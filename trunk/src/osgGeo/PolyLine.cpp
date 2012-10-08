@@ -34,10 +34,10 @@ PolylineNode::PolylineNode()
 
 PolylineNode::PolylineNode( const PolylineNode& node, const osg::CopyOp& co )
     : osg::Node( node, co )
+    , _array( node._array )
     , _radius( node._radius )
     , _maxRadius( node._maxRadius )
     , _screenSizeScaling( node._screenSizeScaling )
-    , _array( node._array )
     , _geometry( (osg::Geometry*) node._geometry->clone(co) )
     , _arrayModifiedCount( 0 )
 {}
