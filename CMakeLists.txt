@@ -15,7 +15,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
 #All configureations should be set in osgGeoConfig.cmake
-include(osgGeoConfig.cmake)
 
 # No configuration settings shoule be modified below.
 
