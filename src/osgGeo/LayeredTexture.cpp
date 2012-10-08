@@ -28,6 +28,7 @@ struct LayeredTextureData : public osg::Referenced
 {
 				LayeredTextureData(int id)
 				    : _id( id ), _origin(0,0)
+				    , _scale( 1, 1 )
 				    , _updateSetupStateSet( true )
 				{}
 
@@ -37,6 +38,7 @@ struct LayeredTextureData : public osg::Referenced
 
     const int					_id;
     osg::Vec2f					_origin;
+    osg::Vec2f					_scale;
     osg::ref_ptr<const osg::Image>		_image;
     bool					_updateSetupStateSet;
 };
@@ -159,6 +161,7 @@ type LayeredTexture::getDataLayer##funcpostfix( int id ) const \
 
 SET_GET_PROP( Image, const osg::Image*, _image )
 SET_GET_PROP( Origin, const osg::Vec2f&, _origin )
+SET_GET_PROP( Scale, const osg::Vec2f&, _scale )
 
 void LayeredTexture::addProcess( LayerProcess* process )
 {
