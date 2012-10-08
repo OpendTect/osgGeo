@@ -8,13 +8,7 @@
 namespace osgGeo
 {
 
-Line3::Line3( const osg::Vec3& pos, const osg::Vec3& dir )
-    : _pos(pos)
-    , _dir(dir)
-{}
-
-
-bool Line3::intersectWith( const osg::Plane& plane, double& t ) const
+bool Line3::intersectWith( const osg::Plane& plane, float& t ) const
 {
     const double denominator = _dir.x()*plane[0] + _dir.y()*plane[1]
 				+ _dir.z()*plane[2];
@@ -38,9 +32,9 @@ bool Line3::intersectWith( const osg::Plane& plane, double& t ) const
 
 osg::Vec3 Line3::getInterSectionPoint( const osg::Plane& plane ) const
 {
-    double intercept;
+    float intercept;
     intersectWith( plane, intercept );
-    return getPosition( intercept );
+    return getPositionOnLine( intercept );
 }
 
 } // osgGeo
