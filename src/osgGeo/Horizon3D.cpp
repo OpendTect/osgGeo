@@ -38,12 +38,12 @@ Horizon3DNode::Horizon3DNode(const Horizon3DNode& other,
 
 }
 
-void Horizon3DNode::setSize(const Size &size)
+void Horizon3DNode::setSize(const Vec2i &size)
 {
     _size = size;
 }
 
-Size Horizon3DNode::getSize() const
+Vec2i Horizon3DNode::getSize() const
 {
     return _size;
 }
@@ -72,8 +72,8 @@ void Horizon3DNode::updateDrawables()
     osg::DoubleArray &depthVals =
             *(dynamic_cast<osg::DoubleArray*>(getDepthArray()));
 
-    const int allHSize = getSize().width;
-    const int allVSize = getSize().height;
+    const int allHSize = getSize().x();
+    const int allVSize = getSize().y();
 
     const int hSize = allHSize;
     const int vSize = allVSize;
