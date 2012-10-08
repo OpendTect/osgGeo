@@ -54,11 +54,11 @@ class LayeredTexture;
 class OSGGEO_EXPORT Horizon3DNode : public osg::Geode
 {
 public:
-//    Horizon3DNode();
-//    Horizon3DNode(const Horizon3DNode&,
-//                  const osg::CopyOp& op =
-//                  osg::CopyOp::DEEP_COPY_ALL);
-//    META_Node(osgGeo,Horizon3DNode)
+    Horizon3DNode();
+    Horizon3DNode(const Horizon3DNode&,
+                  const osg::CopyOp& op =
+                  osg::CopyOp::DEEP_COPY_ALL);
+    META_Node(osgGeo,Horizon3DNode)
 
     void setSize(const Size &size);
     Size getSize() const;
@@ -82,16 +82,11 @@ public:
     void setMaxDepth(float);
     float getMaxDepth() const;
 
-//    void			traverse(osg::NodeVisitor&);
-
     void setLayeredTexture(LayeredTexture*);
     LayeredTexture* getLayeredTexture();
     const LayeredTexture* getLayeredTexture() const;
 
 protected:
-//    Horizon3DNode&			operator=(const Horizon3DNode&);
-//    virtual				~Horizon3DNode();
-
     void updateDrawables();
     bool isUndef(double val);
 
