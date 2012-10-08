@@ -1,0 +1,75 @@
+#ifndef OSGGEO_HORIZON3D_H
+#define OSGGEO_HORIZON3D_H
+
+/* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
+Copyright 2011 dGB Beheer B.V.
+
+osgGeo is free software; you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>
+*/
+
+#include <osg/Node>
+#include <osg/NodeVisitor>
+#include <osgGeo/Common>
+
+namespace osg { class Geometry; }
+
+namespace osgGeo
+{
+
+class LayeredTexture;
+
+class OSGGEO_EXPORT Horizon3DNode : public osg::Node
+{
+public:
+
+				Horizon3DNode();
+				Horizon3DNode(const Horizon3DNode&,
+				    const osg::CopyOp& op =
+					osg::CopyOp::DEEP_COPY_ALL);
+				META_Node(osgGeo,Horizon3DNode);
+
+    void			setDepthArray(osg::Array*);
+    const osg::Array*		getDepthArray() const;
+    osg::Array*			getDepthArray();
+
+    void			touch(int row,int col);
+				//row=-1, col=-1 means everything
+
+    void			setNrColumns(int);
+    int				getNrColumns() const;
+
+    void			setMaxDepth(float);
+				//Everything larger than this will be treated as undef
+    float			getMaxDepth() const;
+
+    void			traverse(osg::NodeVisitor&);
+
+    void			setLayeredTexture(LayeredTexture*);
+    LayeredTexture*		getLayeredTexture();
+    const LayeredTexture*	getLayeredTexture() const;
+
+protected:
+    Horizon3DNode&			operator=(const Horizon3DNode&);
+    virtual				~Horizon3DNode();
+
+    osg::ref_ptr<osg::Array>		_array;
+    int					_nrcolumns;
+    float				_maxdepth;
+    osg::ref_ptr<LayeredTexture>	_texture;
+};
+
+
+
+}
+#endif //OSGGEO_POLYLINE_H
