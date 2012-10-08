@@ -14,7 +14,8 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-SET(OSG_DIR "<DIRECTORY_TO_OSG_INSTALL>")
+#All configureations should be set in osgGeoConfig.cmake
+include(osgGeoConfig.cmake)
 
 # No configuration settings shoule be modified below.
 
