@@ -1,7 +1,8 @@
 SET(LIB_NAME osgGeo)
 
-CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/Config.cmake ${CMAKE_CURRENT_SOURCE_DIR}/Config)
-
+CONFIGURE_FILE(
+    ${CMAKE_CURRENT_SOURCE_DIR}/Config.cmake
+    ${CMAKE_CURRENT_SOURCE_DIR}/Config)
 
 ADD_LIBRARY( ${LIB_NAME} SHARED
 	    ${LIB_PUBLIC_HEADERS}
@@ -15,3 +16,17 @@ target_link_libraries(
 	${OSG_LIBRARY}
 	${OPENTHREADS_LIBRARY}
 	${OSGUTIL_LIBRARY} )
+
+INSTALL(FILES
+	Export
+	Common
+	Config
+	Horizon3D
+	LayeredTexture
+	PolyLine
+	TexturePlane
+	DESTINATION include/${LIB_NAME} )
+
+INSTALL(TARGETS
+	${LIB_NAME}
+	DESTINATION lib )
