@@ -9,6 +9,9 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the 
  * OpenSceneGraph Public License for more details.
+ *
+ * $Id$
+ *
 */
 
 #ifndef OSG_VEC2I
