@@ -30,7 +30,9 @@ PolylineNode::PolylineNode()
     , _screenSizeScaling( false )
     , _arrayModifiedCount( 0 )
     , _geometry(new osg::Geometry)
-{}
+{
+    setNumChildrenRequiringUpdateTraversal( 1 );
+}
 
 
 PolylineNode::PolylineNode( const PolylineNode& node, const osg::CopyOp& co )
@@ -41,7 +43,9 @@ PolylineNode::PolylineNode( const PolylineNode& node, const osg::CopyOp& co )
     , _screenSizeScaling( node._screenSizeScaling )
     , _geometry( (osg::Geometry*) node._geometry->clone(co) )
     , _arrayModifiedCount( 0 )
-{}
+{
+    setNumChildrenRequiringUpdateTraversal( 1 );
+}
 
 
 PolylineNode::~PolylineNode()
