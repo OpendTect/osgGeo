@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include <osgViewer/Viewer>
+#include <osgViewer/ViewerEventHandlers>
 #include <osgGeo/Horizon3D>
 
 int main(int argc, char **argv)
@@ -20,10 +21,10 @@ int main(int argc, char **argv)
             depthVals[i*size.y()+j] = sin(double(i+val)/50.0) * sin(double(j+val)/50.0) / 20.0;
         }
 
-    std::vector<osg::Vec2d> coords(3);
-    coords[0] = osg::Vec2d(0, 0);
-    coords[1] = osg::Vec2d(0, 1);
-    coords[2] = osg::Vec2d(1.4, 0);
+    std::vector<osg::Vec2d> coords;
+    coords.push_back(osg::Vec2d(0, 0));
+    coords.push_back(osg::Vec2d(0, 1));
+    coords.push_back(osg::Vec2d(1.4, 0));
 
     osg::ref_ptr<osgGeo::Horizon3DNode> horizon3d = new osgGeo::Horizon3DNode();
     horizon3d->setCornerCoords(coords);
@@ -32,6 +33,8 @@ int main(int argc, char **argv)
     horizon3d->setDepthArray(depthValsPtr.get());
 
     osgViewer::Viewer viewer;
+    // add the stats handler
+    viewer.addEventHandler(new osgViewer::StatsHandler);
     viewer.setSceneData(horizon3d.get());
     return viewer.run();
 }
