@@ -1,10 +1,29 @@
-SET(LIB_NAME osgGeo)
+# osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
+# Copyright 2011 dGB Beheer B.V.
+# 
+# osgGeo is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+# 
+# You should have received a copy of the GNU Lesser General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>
+#
+# $Id$
+#
 
-CONFIGURE_FILE(
+set( LIB_NAME osgGeo )
+
+configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/Config.cmake
     ${CMAKE_CURRENT_SOURCE_DIR}/Config)
 
-ADD_LIBRARY( ${LIB_NAME} SHARED
+add_library( ${LIB_NAME} SHARED
     ${LIB_PUBLIC_HEADERS}
     Palette.cpp
     ShaderUtility.cpp
@@ -24,7 +43,7 @@ target_link_libraries(
     ${OSGGEO_OSGUTIL_LIBRARY}
     ${OSGGEO_OSGDB_LIBRARY} )
 
-INSTALL(FILES
+install(FILES
     Line3
     Export
     Common
@@ -39,7 +58,7 @@ INSTALL(FILES
     Vec2i
     DESTINATION include/${LIB_NAME} )
 
-INSTALL(TARGETS
+install(TARGETS
     ${LIB_NAME}
     RUNTIME DESTINATION bin${OSGGEO_LIB_POSTFIX}
     LIBRARY DESTINATION lib${OSGGEO_LIB_POSTFIX}
