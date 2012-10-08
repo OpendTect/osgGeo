@@ -19,7 +19,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
 
 #include <osg/Node>
+#include <osg/NodeVisitor>
 #include <osgGeo/Common>
+
+namespace osg { class Geometry; }
 
 namespace osgGeo
 {
