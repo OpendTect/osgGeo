@@ -387,8 +387,8 @@ LayeredTexture::createCutoutStateSet(const osgGeo::Vec2i& origin,
 	    layer->getLayerCoord( origin+size )-layeroriginf;
 	const osgGeo::Vec2i layerorigin( (int) layeroriginf._v[0],
 					 (int) layeroriginf._v[1] );
-	osgGeo::Vec2i layersize( getTextureSize((int) layersize._v[0]+0.5),
-			      getTextureSize((int) layersize._v[1]+0.5 ) );
+	osgGeo::Vec2i layersize( getTextureSize((int) layersizef._v[0]+0.5),
+			      getTextureSize((int) layersizef._v[1]+0.5 ) );
 
 	osg::ref_ptr<const osg::Image> sourceimage = layer->_image;
 	osg::ref_ptr<osg::Image> imagetile = new osg::Image();
