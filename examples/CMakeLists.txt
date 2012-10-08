@@ -20,3 +20,4 @@ endmacro()
 
 add_example(horizons horizons.cpp)
 add_example(textureplane textureplane.cpp)
+add_example(PolyLines PolyLines.cpp)
