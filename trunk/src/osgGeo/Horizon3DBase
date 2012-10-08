@@ -1,0 +1,110 @@
+//      =================================================================
+//      |                                                               |
+//      |                       COPYRIGHT (C) 2012                      |
+//      |               ARK CLS Ltd, Bedford, Bedfordshire, UK          |
+//      |                                                               |
+//      |                       All Rights Reserved                     |
+//      |                                                               |
+//      | This software is confidential information which is proprietary|
+//      | to and a trade secret of ARK-CLS Ltd. Use, duplication, or    |
+//      | disclosure is subject to the terms of a separate source code  |
+//      | licence agreement.                                            |
+//      |                                                               |
+//      =================================================================
+//
+//
+
+#ifndef HORIZON3DBASE
+#define HORIZON3DBASE
+
+#include <osg/Node>
+#include <osg/NodeVisitor>
+#include <osg/MatrixTransform>
+#include <osgGeo/Common>
+#include <osgGeo/Vec2i>
+
+namespace osgGeo
+{
+
+class OSGGEO_EXPORT Horizon3DBase : public osg::Node
+{
+public:
+    Horizon3DBase();
+    Horizon3DBase(const Horizon3DBase&,
+                  const osg::CopyOp& op =
+                  osg::CopyOp::DEEP_COPY_ALL);
+
+    // size of the grid
+    void setSize(const Vec2i& size);
+    const Vec2i& getSize() const;
+
+    void setDepthArray(osg::Array*);
+    const osg::Array* getDepthArray() const;
+    osg::Array* getDepthArray();
+
+    //! row=-1, col=-1 means everything
+    void touch(int row, int col);
+
+    //! real world coordinate of the positions (0, 0), (0, height) and (width, 0)
+    void setCornerCoords(const std::vector<osg::Vec2d> &coords);
+    std::vector<osg::Vec2d> getCornerCoords() const;
+
+    //! Everything larger than this will be treated as undef
+    void setMaxDepth(float);
+    float getMaxDepth() const;
+    bool isUndef(double val);
+    bool needsUpdate() const;
+
+    virtual void traverse(osg::NodeVisitor& nv);
+
+protected:
+    virtual void updateGeometry() = 0;
+
+    std::vector<osg::Vec2d> _cornerCoords;
+    osg::ref_ptr<osg::Array> _array;
+    std::vector<osg::ref_ptr<osg::Node> > _nodes;
+    bool _needsUpdate;
+
+private:
+    Vec2i _size;
+    float _maxDepth;
+};
+
+class OSGGEO_EXPORT Horizon3DTileNode : public osg::MatrixTransform
+{
+public:
+    Horizon3DTileNode();
+    Horizon3DTileNode(const Horizon3DTileNode &,
+                      const osg::CopyOp& op =
+            osg::CopyOp::DEEP_COPY_ALL);
+    META_Node(osgGeo,Horizon3DTileNode)
+
+    std::vector<osg::Vec2d> getCornerCoords() const;
+    void setCornerCoords(const std::vector<osg::Vec2d> &coords);
+
+    void setSize(const Vec2i &size);
+    Vec2i getSize() const;
+
+    virtual void traverse(osg::NodeVisitor& nv);
+    void traverseSubNode(int lod, osg::NodeVisitor &nv);
+
+    osg::Vec3 getCenter() const;
+
+    void setNode(int resolution, osg::Node *node);
+    void setPointLineNode(int resolution, osg::Node *node);
+
+    virtual osg::BoundingSphere computeBound() const;
+    void setBoundingSphere(const osg::BoundingSphere &boundingSphere);
+
+protected:
+    std::vector<osg::ref_ptr<osg::Node> > _nodes, _pointLineNodes;
+
+private:
+    Vec2i _size;
+    osg::Vec3 _center;
+    std::vector<osg::Vec2d> _cornerCoords;
+    osg::BoundingSphere _bs;
+};
+
+}
+#endif // HORIZON3DBASE

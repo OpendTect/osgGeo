@@ -1,5 +1,5 @@
-#ifndef OSGGEO_POLYLINE_H
-#define OSGGEO_POLYLINE_H
+#ifndef OSGGEO_POLYLONENODE_H
+#define OSGGEO_POLYLONENODE_H
 
 /* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
 Copyright 2011 dGB Beheer B.V.
@@ -19,55 +19,53 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
 
 #include <osg/Node>
+#include <osg/Vec3>
 #include <osg/NodeVisitor>
 #include <osgGeo/Common>
+
+
 namespace osg { class Geometry; }
 
 namespace osgGeo
 {
 
-class OSGGEO_EXPORT PolylineNode : public osg::Node
+class OSGGEO_EXPORT	PolyLineNode : public osg::Node
 {
 public:
 
-    			PolylineNode();
-			PolylineNode(const PolylineNode&,const osg::CopyOp& op =osg::CopyOp::DEEP_COPY_ALL);
-			META_Node(osgGeo,PolylineNode);
+						PolyLineNode();
+						PolyLineNode(const PolyLineNode&,
+										const osg::CopyOp& op =
+												osg::CopyOp::DEEP_COPY_ALL);
+						META_Node(osgGeo,PolyLineNode);
 
-    void		setVertexArray(osg::Array*);
-    const osg::Array*	getVertexArray() const;
-    osg::Array*		getVertexArray();
-
-    void		setRadius(float);
-    float		getRadius() const;
-	void		setColor(osg::Vec4);
-	osg::Vec4   getColor() const { return _color; }
-    void		setMaxScreenRadius(float);
-    float		getMaxScreenRadius() const;
-
-    void		setScaleMode(bool screensize);
-    bool		getScaleMode() const;
-
-    void		traverse(osg::NodeVisitor&);
-	virtual osg::BoundingSphere computeBound() const;  
+	virtual void		traverse(osg::NodeVisitor&);
+	void				setVertexArray(osg::Array*);
+	void				setRadius(const float&);
+	void				setColor(const osg::Vec4&);
 
 protected:
-    PolylineNode&	operator=(const PolylineNode&);
-    virtual		~PolylineNode();
+    virtual				~PolyLineNode();
+    bool				updateGeometry();
+    bool				needsUpdate() const;
+	void				getOrthoVecs(const osg::Vec3&,osg::Vec3&,osg::Vec3&) const;
+	virtual osg::BoundingSphere computeBound() const;  
 
-    void		createGeometry();
-
-    osg::ref_ptr<osg::Array>	_array;
-    float			_radius;
-    float			_maxRadius;
-    bool			_screenSizeScaling;
-	osg::Vec4		_color;
-
+    osg::Vec3			_center;
+	osg::Vec3			_width;
+    bool				_needsUpdate;
+	osg::ref_ptr<osg::Array> _array;
+    float				_radius;
+    float				_maxRadius;
+    bool				_screenSizeScaling;
+	osg::Vec4			_color;
     osg::ref_ptr<osg::Geometry>	_geometry;
     unsigned int		_arrayModifiedCount;
+	const int			_resolution;
 };
 
 
 
 }
-#endif //OSGGEO_POLYLINE_H
+#endif //OSGGEO_TEXTUREPLANE_H
+

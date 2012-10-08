@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 #include <osg/Vec3>
 #include <osg/NodeVisitor>
 #include <osgGeo/Common>
-#include <osgGeo/Vec2i>
+
 
 namespace osg { class Geometry; }
 
@@ -45,12 +45,16 @@ public:
     const osg::Vec3&		getCenter() const;
 
     void			setTextureBrickSize(short);
-				//Must be power of two
+				//Will be ceiled to power of two
     short			getTextureBrickSize() const;
 
     void			setWidth(const osg::Vec3&);
 				//!One dim must be zero
+				//!Negative width yields mirrored dim
     const osg::Vec3&		getWidth() const;
+
+    void			swapTextureAxes(bool yn=true);
+    bool			areTextureAxesSwapped() const;
 
     void			traverse(osg::NodeVisitor&);
 
@@ -64,6 +68,7 @@ protected:
     TexturePlaneNode&			operator=(const TexturePlaneNode&);
     virtual				~TexturePlaneNode();
     bool				updateGeometry();
+    float				getSense() const;
     bool				needsUpdate() const;
     void				cleanUp();
 
@@ -71,12 +76,29 @@ protected:
     osg::Vec3				_width;
     short				_textureBrickSize;
     bool				_needsUpdate;
-    osgGeo::Vec2i			_textureEnvelope;
+
+    bool				_swapTextureAxes;
 
     osg::ref_ptr<LayeredTexture>	_texture;
 
     std::vector<osg::Geometry*>		_geometries;
     std::vector<osg::StateSet*>		_statesets;
+
+    void				updateBoundingGeometry();
+    osg::Geometry*			_boundingGeometry;
+
+public:
+			// Testing purposes only
+
+    int			_disperseFactor;
+    void		setDisperseFactor( int val )
+			{ _disperseFactor = val; _needsUpdate = true; }
+    int			getDisperseFactor() const
+			{ return _disperseFactor; }
+
+    bool		_useShaders;
+    void		toggleShaders()
+			{ _useShaders = !_useShaders; _needsUpdate = true; }
 };
 
 

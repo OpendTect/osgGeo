@@ -1,0 +1,56 @@
+//      =================================================================
+//      |                                                               |
+//      |                       COPYRIGHT (C) 2012                      |
+//      |               ARK CLS Ltd, Bedford, Bedfordshire, UK          |
+//      |                                                               |
+//      |                       All Rights Reserved                     |
+//      |                                                               |
+//      | This software is confidential information which is proprietary|
+//      | to and a trade secret of ARK-CLS Ltd. Use, duplication, or    |
+//      | disclosure is subject to the terms of a separate source code  |
+//      | licence agreement.                                            |
+//      |                                                               |
+//      =================================================================
+//
+//
+
+#ifndef HORIZON3D2_H
+#define HORIZON3D2_H
+
+#include <osgGeo/Horizon3DBase>
+#include <osg/MatrixTransform>
+
+namespace osgGeo
+{
+
+/**
+  * This class implements shader-based horizon display.
+  * We reuse one piece of geometry for all tiles, and store
+  * height information in textures (as well as undefined flag
+  * and normals). Palettes are not supported yet, colouring
+  * is black and white for the moment.
+  */
+class OSGGEO_EXPORT Horizon3DNode2 : public Horizon3DBase
+{
+public:
+    Horizon3DNode2();
+
+protected:
+    virtual void updateGeometry();
+};
+
+/**
+  * Temporary class until we implement LOD for Horizon3DNode2.
+  * After that's done we'll just use Horizon3DTileNode.
+  */
+class OSGGEO_EXPORT Horizon3DTileNode2 : public Horizon3DTileNode
+{
+public:
+    Horizon3DTileNode2();
+
+    virtual void traverse(osg::NodeVisitor& nv);
+};
+
+}
+
+#endif // HORIZON3D2_H
