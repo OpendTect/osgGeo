@@ -1,0 +1,161 @@
+#ifndef OSGGEO_LAYEREDTEXTURE_H
+#define OSGGEO_LAYEREDTEXTURE_H
+
+/* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
+Copyright 2011 dGB Beheer B.V.
+
+osgGeo is free software; you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>
+*/
+
+#include <osg/Object>
+#include <osg/Vec2f>
+#include <osg/Vec2s>
+#include <OpenThreads/ReadWriteMutex>
+
+//#include <osg/NodeVisitor>
+
+#include <osgGeo/Common>
+
+#include <vector>
+namespace osg { class Geometry; }
+
+namespace osgGeo
+{
+
+class OSGGEO_EXPORT ColorSequence
+{
+public:
+				ColorSequence();
+    virtual			~ColorSequence();
+
+    unsigned char*		getRGBAValues()		{ return arr_; }
+    const unsigned char*	getRGBAValues() const	{ return arr_; }
+    void			touch()			{ dirtycount_++; }
+    unsigned int		getModifiedCount()	{ return dirtycount_; }
+
+protected:
+    unsigned char*		arr_;
+    int				dirtycount_;
+};
+
+struct LayeredTextureData;
+
+enum TransparencyType { Opaque, HasTransparencies, OnlyFullTransparencies };
+
+
+class OSGGEO_EXPORT LayeredTexture : public osg::Object
+{
+public:
+    class LayerProcess : public osg::Referenced
+    {
+	virtual const char*	getShaderText()			= 0;
+	virtual bool		needsTextureRow() 		= 0;
+	virtual void		setTexturePtr(unsigned char* rgba) {}
+	virtual void		setTextureCoord(float)		{}
+
+	virtual TransparencyType getTransparencyType(const LayeredTexture*);
+	virtual bool		doProcess(const LayeredTexture*,
+					  const osg::Image* output)	= 0;
+    };
+
+			LayeredTexture();
+			LayeredTexture(const LayeredTexture&,
+			    const osg::CopyOp& op =osg::CopyOp::DEEP_COPY_ALL);
+
+    int			addDataLayer(); //returns an id
+			//Does it's own locking
+    void		removeDataLayer(int id);
+			//Does it's own locking
+
+    void		readLock() { _lock.readLock(); }
+			//Protects the layers, not the contents of them
+    void		readUnLock() { _lock.readUnlock(); }
+
+    int			nrDataLayers() const { return _datalayers.size(); }
+    int			getDataLayerID(int idx) const;
+    int			getDataLayerIndex(int id) const;
+
+    void		setDataLayerImage(int id,const osg::Image*);
+    const osg::Image*	getDataLayerImage(int id) const;
+
+    void		setDataLayerOrigin(int id,const osg::Vec2f&);
+    const osg::Vec2f&	getDataLayerOrigin(int id) const;
+
+    int			nrProcesses() const	   { return _processes.size(); }
+    LayerProcess*	getProcess(int idx)	   { return _processes[idx]; }
+    const LayerProcess*	getProcess(int idx) const  { return _processes[idx]; }
+
+    void		addProcess(LayerProcess*);
+			//Does it's own locking
+    void		removeProcess(const LayerProcess*);
+			//Does it's own locking
+    void		moveProcessEarlier(const LayerProcess*);
+			//Does it's own locking
+    void		moveProcessLater(const LayerProcess*);
+			//Does it's own locking
+
+    osg::StateSet*	getSetupStateSet();
+    osg::StateSet*	createCutoutStateSet(const osg::Vec2s& origin,
+					     const osg::Vec2s& size);
+protected:
+					~LayeredTexture();
+    void				updateSetupStateSet();
+
+    OpenThreads::ReadWriteMutex		_lock;
+    int					_freeId;
+    std::vector<LayeredTextureData*>	_datalayers;
+    std::vector<LayerProcess*>		_processes;
+
+    bool				_updateSetupStateSet;
+    osg::ref_ptr<osg::StateSet>		_setupStateSet;
+};
+
+
+class OSGGEO_EXPORT ColTabLayerProcess : public LayeredTexture::LayerProcess
+{
+    void			setDataLayerID(int id);
+    int				getDataLayerID() const;
+
+    void			setDataLayerColorSequence(const ColorSequence*);
+    const ColorSequence*	getLayerColorSequence() const;
+
+    void			setDataLayerHasUndef(bool hasudf);
+    bool			getDataLayerHasUndef() const;
+
+    const char*			getShaderText();
+
+    void			setTexturePtr(unsigned char* rgba);
+    void			setTextureCoord(float);
+    bool			needsTextureRow() const { return true; }
+};
+
+
+class OSGGEO_EXPORT RGBALayerProcess : public LayeredTexture::LayerProcess
+{
+public:
+    void			setDataLayersID(int idx, int id);
+				//int id=0 red
+				//    id=1 green
+				//    id=2 blue
+				//    id=3 alpha
+    int				getDataLayers(int idx) const;
+
+    void			setDataLayerHasUndef(bool hasudf);
+    bool			getDataLayerHasUndef() const;
+    bool			needsTextureRow() const { return false; }
+};
+
+} //namespace
+
+#endif //OSGGEO_LARGE_TEXTURE
