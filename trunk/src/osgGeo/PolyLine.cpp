@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
 
 
-#include <osgGeo/Polyline>
+#include <osgGeo/PolyLine>
 
 #include <osg/Geometry>
 #include <osgUtil/CullVisitor>
