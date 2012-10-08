@@ -25,6 +25,7 @@ INSTALL(FILES
 	LayeredTexture
 	PolyLine
 	TexturePlane
+	Vec2i
 	DESTINATION include/${LIB_NAME} )
 
 INSTALL(TARGETS
