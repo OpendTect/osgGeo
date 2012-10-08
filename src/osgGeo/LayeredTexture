@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 
 #include <osg/Object>
 #include <osg/Vec2f>
-#include <osg/Vec2s>
+#include <osgGeo/Vec2i>
 #include <OpenThreads/ReadWriteMutex>
 
 //#include <osg/NodeVisitor>
@@ -91,7 +91,7 @@ public:
     void		setDataLayerImage(int id,const osg::Image*);
     const osg::Image*	getDataLayerImage(int id) const;
 
-    osg::Vec2s		getEnvelope() const;
+    osgGeo::Vec2i	getEnvelope() const;
 
     void		setDataLayerOrigin(int id,const osg::Vec2f&);
     const osg::Vec2f&	getDataLayerOrigin(int id) const;
@@ -117,7 +117,8 @@ public:
 			TextureCoordData(int tu,
 				const osg::Vec2f& tc00, const osg::Vec2f& tc01,
 				const osg::Vec2f& tc10, const osg::Vec2f& tc11 )
-			    : _tc00( tc00 ), _tc01( tc01 ), _tc10( tc10 ), _tc11( tc11 )
+			    : _tc00( tc00 ), _tc01( tc01 )
+			    , _tc10( tc10 ), _tc11( tc11 )
 			{}
 
 	int		_textureUnit;
@@ -125,8 +126,8 @@ public:
     };
 
     osg::StateSet*	getSetupStateSet();
-    osg::StateSet*	createCutoutStateSet(const osg::Vec2s& origin,
-			    const osg::Vec2s& size,
+    osg::StateSet*	createCutoutStateSet(const osgGeo::Vec2i& origin,
+			    const osgGeo::Vec2i& size,
 			    std::vector<TextureCoordData>&) const;
 
     static void		divideAxis(int size,
