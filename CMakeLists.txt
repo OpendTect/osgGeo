@@ -18,32 +18,37 @@
 
 # No configuration settings should be modified below.
 
-PROJECT(osgGeo)
+project( osgGeo )
 
 set (osgGeo_VERSION_MAJOR 0)
 set (osgGeo_VERSION_MINOR 1)
 
-SET(BUILD_EXAMPLES "" CACHE BOOL "Build examples")
+set ( BUILD_EXAMPLES "" CACHE BOOL "Build examples" )
 
 cmake_minimum_required (VERSION 2.6)
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMakeModules")
-INCLUDE(CreateLaunchers)
-INCLUDE(osgGeoCommon)
-INCLUDE(osgGeoSetupOSG)
+list( APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMakeModules")
+if ( WIN32 )
+    set ( CMAKE_CXX_FLAGS "/W4" )
+else()
+    set ( CMAKE_CXX_FLAGS "-Wall -Werror" )
+endif()
 
-INCLUDE_DIRECTORIES(
-    ${osgGeo_SOURCE_DIR}/src
-    ${OSG_INCLUDE_DIR}
-)
 
-INSTALL( FILES
+include( CreateLaunchers )
+include( osgGeoCommon )
+include( osgGeoSetupOSG )
+
+include_directories( ${osgGeo_SOURCE_DIR}/src )
+include_directories( SYSTEM ${OSG_INCLUDE_DIR} )
+
+install( FILES
 	CMakeModules/FindosgGeo.cmake
 	CMakeModules/FindOSG.cmake
 	DESTINATION share/CMakeModules )
 
 add_subdirectory(src)
 
-IF( BUILD_EXAMPLES )
+if( BUILD_EXAMPLES )
     add_subdirectory(examples)
-ENDIF( BUILD_EXAMPLES )
+endif( BUILD_EXAMPLES )
