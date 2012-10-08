@@ -6,6 +6,7 @@ cmake_install.cmake
 Config
 install_manifest.txt
 launch*.cmd
+launch*.sh
 Makefile
 
 #OS Stuff
