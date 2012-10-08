@@ -74,9 +74,9 @@ public:
 			    const osg::CopyOp& op =osg::CopyOp::DEEP_COPY_ALL);
 
     int			addDataLayer(); //returns an id
-			//Does it's own locking
+			//Does its own locking
     void		removeDataLayer(int id);
-			//Does it's own locking
+			//Does its own locking
 
     void		readLock() { _lock.readLock(); }
 			//Protects the layers, not the contents of them
@@ -102,13 +102,13 @@ public:
     const LayerProcess*	getProcess(int idx) const  { return _processes[idx]; }
 
     void		addProcess(LayerProcess*);
-			//Does it's own locking
+			//Does its own locking
     void		removeProcess(const LayerProcess*);
-			//Does it's own locking
+			//Does its own locking
     void		moveProcessEarlier(const LayerProcess*);
-			//Does it's own locking
+			//Does its own locking
     void		moveProcessLater(const LayerProcess*);
-			//Does it's own locking
+			//Does its own locking
 
     struct		TextureCoordData
     {
