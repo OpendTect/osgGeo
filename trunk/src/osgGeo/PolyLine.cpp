@@ -43,6 +43,10 @@ PolylineNode::PolylineNode( const PolylineNode& node, const osg::CopyOp& co )
 {}
 
 
+PolylineNode::~PolylineNode()
+{}
+
+
 void PolylineNode::traverse( osg::NodeVisitor& nv )
 {
     if ( nv.getVisitorType()==osg::NodeVisitor::UPDATE_VISITOR )
@@ -72,6 +76,10 @@ void PolylineNode::traverse( osg::NodeVisitor& nv )
 	}
     }
 }
+
+
+void PolylineNode::createGeometry()
+{}
 
 
 }
