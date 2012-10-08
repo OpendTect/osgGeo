@@ -26,6 +26,7 @@ set (osgGeo_VERSION_MINOR 1)
 
 cmake_minimum_required (VERSION 2.6)
 
+INCLUDE(CMakeModules/osgGeoCommon.cmake)
 INCLUDE(CMakeModules/osgGeoSetupOSG.cmake)
 
 INCLUDE_DIRECTORIES(
@@ -33,7 +34,10 @@ INCLUDE_DIRECTORIES(
     ${OSG_INCLUDE_DIR}
 )
 
-
+INSTALL( FILES
+	CMakeModules/FindosgGeo.cmake
+	CMakeModules/FindOSG.cmake
+	DESTINATION share/CMakeModules )
 
 add_subdirectory(src)
 add_subdirectory(examples)
