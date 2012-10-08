@@ -145,9 +145,12 @@ void Horizon3D2::updateGeometry()
     osg::Vec2d iInc = (coords[2] - coords[0]) / (fullSize.x() - 1);
     osg::Vec2d jInc = (coords[1] - coords[0]) / (fullSize.y() - 1);
 
-    const osgGeo::Vec2i tileSize(256, 256);
-    const int hSize = tileSize.x();
-    const int vSize = tileSize.y();
+    const osgGeo::Vec2i tileSize(255, 255);
+
+    const int compr = 1;
+
+    const int hSize = tileSize.x() + 1;
+    const int vSize = tileSize.y() + 1;
 
     osg::ref_ptr<osg::Vec3Array> vertices = new osg::Vec3Array(hSize * vSize);
     osg::ref_ptr<osg::DrawElementsUInt> indices =
@@ -212,12 +215,22 @@ void Horizon3D2::updateGeometry()
     int numHTiles = ceil(float(fullSize.x()) / tileSize.x());
     int numVTiles = ceil(float(fullSize.y()) / tileSize.y());
 
+    std::cerr << "numtiles " << numHTiles << " " << numVTiles << std::endl;
     for(int hIdx = 0; hIdx < numHTiles; ++hIdx)
     {
         for(int vIdx = 0; vIdx < numVTiles; ++vIdx)
         {
+            const int hSize2 = hIdx < (numHTiles - 1) ?
+                        (tileSize.x() + 1) : (fullSize.x() - tileSize.x() * (numHTiles - 1)) / compr;
+            const int vSize2 = vIdx < (numVTiles - 1) ?
+                        (tileSize.y() + 1) : ((fullSize.y() - tileSize.y() * (numVTiles - 1))) / compr;
+
+            if(hSize2 == 1 || vSize2 == 1)
+                continue;
+
             osg::ref_ptr<osg::Image> image = new osg::Image;
             image->allocateImage(vSize, hSize, 1, GL_RED, GL_FLOAT);
+            // might use GL_LUMINANCE16_ALPHA16 or GL_LUMINANCE_12_ALPHA4 later
             image->setInternalTextureFormat(GL_LUMINANCE32F_ARB);
 
             float *ptr = reinterpret_cast<float*>(image->data());
@@ -225,9 +238,15 @@ void Horizon3D2::updateGeometry()
             {
                 for(int i = 0; i < hSize; ++i)
                 {
-                    int iGlobal = hIdx * tileSize.x() + i;
-                    int jGlobal = vIdx * tileSize.y() + j;
-                    *ptr = depthVals.at(iGlobal * fullSize.y() + jGlobal);
+                    if((i < hSize2) && (j < vSize2))
+                    {
+                        int iGlobal = hIdx * tileSize.x() + i;
+                        int jGlobal = vIdx * tileSize.y() + j;
+                        *ptr = depthVals.at(iGlobal * fullSize.y() + jGlobal);
+                    }
+                    else {
+                        *ptr = 0.0;
+                    }
                     ptr++;
                 }
             }
