@@ -7,7 +7,8 @@ ADD_LIBRARY( ${LIB_NAME} SHARED
 	    ${LIB_PUBLIC_HEADERS}
 	    PolyLine.cpp
 	    Horizon3D.cpp
-	    LayeredTexture.cpp )
+	    LayeredTexture.cpp
+	    TexturePlane.cpp )
 
 target_link_libraries(
 	${LIB_NAME}
