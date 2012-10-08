@@ -6,6 +6,7 @@ CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/Config.cmake ${CMAKE_CURRENT_SOURCE_D
 ADD_LIBRARY( ${LIB_NAME} SHARED
 	    ${LIB_PUBLIC_HEADERS}
 	    PolyLine.cpp
+	    Horizon3D.cpp
 	    LayeredTexture.cpp )
 
 target_link_libraries(
