@@ -60,7 +60,7 @@ public:
     class LayerProcess : public osg::Referenced
     {
 	virtual const char*	getShaderText()			= 0;
-	virtual bool		needsTextureRow() 		= 0;
+	virtual bool		needsTextureRow() const		= 0;
 	virtual void		setTexturePtr(unsigned char* rgba) {}
 	virtual void		setTextureCoord(float)		{}
 
