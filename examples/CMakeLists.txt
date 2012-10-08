@@ -12,9 +12,11 @@ macro(add_example name)
         ${OSG_GEO_OPENTHREADS_LIBRARY}
         ${OSG_GEO_OSGUTIL_LIBRARY}
         ${OSG_GEO_OSGVIEWER_LIBRARY}
+        ${OSG_GEO_OSGDB_LIBRARY}
         osgGeo
     )
     add_dependencies(osgGeoExamples ${name})
 endmacro()
 
 add_example(horizons horizons.cpp)
+add_example(textureplane textureplane.cpp)
