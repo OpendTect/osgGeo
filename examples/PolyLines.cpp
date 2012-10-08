@@ -11,7 +11,7 @@ osg::ref_ptr<osg::Node> drawPolyLineSnake()
 	osg::Vec3 coord( 200*sin(idx/10.0), 200*cos(idx/10.0), idx*20 ); 
 	coords->push_back( coord );
     }
-    osg::ref_ptr<osgGeo::PolylineNode> polyline = new osgGeo::PolylineNode();
+    osg::ref_ptr<osgGeo::PolyLineNode> polyline = new osgGeo::PolyLineNode();
     polyline->setRadius( 50 );
     polyline->setColor( osg::Vec4(0.0f, 1.0f, 0.0f, 1.0f) );
     polyline->setVertexArray( coords );
@@ -22,7 +22,7 @@ int main()
 {
     osgViewer::Viewer viewer;
     viewer.setSceneData ( drawPolyLineSnake() );
-    viewer.setUpViewInWindow( 20, 20, 640, 480 );
+    viewer.setUpViewInWindow( 150, 20, 640, 480 );
     viewer.run();
 }
 
