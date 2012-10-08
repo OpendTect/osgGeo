@@ -82,12 +82,14 @@ public:
 			//Protects the layers, not the contents of them
     void		readUnLock() { _lock.readUnlock(); }
 
-    int			nrDataLayers() const { return _datalayers.size(); }
+    int			nrDataLayers() const { return _dataLayers.size(); }
     int			getDataLayerID(int idx) const;
     int			getDataLayerIndex(int id) const;
 
     void		setDataLayerImage(int id,const osg::Image*);
     const osg::Image*	getDataLayerImage(int id) const;
+
+    osg::Vec2s		getEnvelope() const;
 
     void		setDataLayerOrigin(int id,const osg::Vec2f&);
     const osg::Vec2f&	getDataLayerOrigin(int id) const;
@@ -108,16 +110,36 @@ public:
     void		moveProcessLater(const LayerProcess*);
 			//Does it's own locking
 
+    struct		TextureCoordData
+    {
+			TextureCoordData(int tu,
+				const osg::Vec2f& tc00, const osg::Vec2f& tc01,
+				const osg::Vec2f& tc10, const osg::Vec2f& tc11 )
+			    : _tc00( tc00 ), _tc01( tc01 ), _tc10( tc10 ), _tc11( tc11 )
+			{}
+
+	int		_textureUnit;
+	osg::Vec2f	_tc00, _tc01, _tc10, _tc11;
+    };
+
     osg::StateSet*	getSetupStateSet();
     osg::StateSet*	createCutoutStateSet(const osg::Vec2s& origin,
-					     const osg::Vec2s& size);
+			    const osg::Vec2s& size,
+			    std::vector<TextureCoordData>&) const;
+
+    static void		divideAxis(int size,
+			   int blocksize,
+			   std::vector<int>& origins,
+			   std::vector<int>& sizes);
+
+    static unsigned int	getTextureSize(unsigned short nr);
 protected:
 					~LayeredTexture();
     void				updateSetupStateSet();
 
     OpenThreads::ReadWriteMutex		_lock;
     int					_freeId;
-    std::vector<LayeredTextureData*>	_datalayers;
+    std::vector<LayeredTextureData*>	_dataLayers;
     std::vector<LayerProcess*>		_processes;
 
     bool				_updateSetupStateSet;
