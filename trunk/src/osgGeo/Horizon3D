@@ -47,8 +47,8 @@ public:
     META_Node(osgGeo,Horizon3DNode)
 
     // size of the grid
-    void setSize(const Vec2i &size);
-    Vec2i getSize() const;
+    void setSize(const Vec2i& size);
+    const Vec2i& getSize() const;
 
     void setDepthArray(osg::Array*);
     const osg::Array* getDepthArray() const;

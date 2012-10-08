@@ -38,12 +38,12 @@ Horizon3DNode::Horizon3DNode(const Horizon3DNode& other,
 
 }
 
-void Horizon3DNode::setSize(const Vec2i &size)
+void Horizon3DNode::setSize(const Vec2i& size)
 {
     _size = size;
 }
 
-Vec2i Horizon3DNode::getSize() const
+const Vec2i& Horizon3DNode::getSize() const
 {
     return _size;
 }
