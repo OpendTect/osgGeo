@@ -13,9 +13,11 @@
 # 
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
-
+#
 # All configurations should be set in osgGeoConfig.cmake
-
+#
+# $Id$
+#
 # No configuration settings should be modified below.
 
 project( osgGeo )
@@ -29,7 +31,7 @@ cmake_minimum_required (VERSION 2.6)
 
 list( APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMakeModules")
 if ( WIN32 )
-    set ( CMAKE_CXX_FLAGS "/W4" )
+    add_definitions( "/W4" "/EHsc" "-DWIN32" "/wd4127" "/wd4800" )
 else()
     set ( CMAKE_CXX_FLAGS "-Wextra -Wunused-label -Wunused-value  -Wunused-variable" )
 endif()
