@@ -1,0 +1,50 @@
+#ifndef OSGGEO_LINE3_H
+#define OSGGEO_LINE3_H
+
+/* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
+Copyright 2011 dGB Beheer B.V.
+
+osgGeo is free software; you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>
+*/
+
+#include <osg/Vec3>
+#include <osgGeo/Common>
+
+namespace osg{ class Plane; }
+
+namespace osgGeo
+{
+
+class OSGGEO_EXPORT		Line3
+{
+public:
+						Line3(const osg::Vec3& pos,const osg::Vec3& dir);
+    bool				intersectWith(const osg::Plane& plane, 
+					    double& intercept) const;
+    const osg::Vec3&	getDirection() const { return _dir; }
+    const osg::Vec3&    getPosition() const { return _pos; }
+    osg::Vec3		    getPosition(double t) const
+						{ return _pos + (_dir * t); }
+
+    osg::Vec3		    getInterSectionPoint(const osg::Plane& plane) const;
+
+protected:
+
+    const osg::Vec3&	_pos;
+    const osg::Vec3&	_dir;
+};
+
+} // osgGeo
+
+#endif
