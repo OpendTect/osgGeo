@@ -38,3 +38,4 @@ INCLUDE_DIRECTORIES(
 
 
 add_subdirectory(src)
+add_subdirectory(examples)
