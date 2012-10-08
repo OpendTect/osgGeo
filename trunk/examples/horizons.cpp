@@ -1,5 +1,5 @@
 #include <iostream>
-#include <random>
+#include <stdlib.h>
 
 #include <osgViewer/Viewer>
 #include <osgViewer/ViewerEventHandlers>
