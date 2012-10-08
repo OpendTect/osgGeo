@@ -26,6 +26,8 @@
 
 #include <osgGeo/Vec2i>
 
+#include <climits>
+
 namespace osgGeo
 {
 
@@ -36,20 +38,54 @@ static const char *shaderVertSource =
 {
     "#version 330 compatibility\n"
 
-    "attribute vec3 position;\n"
-    "in vec2 texCoord;\n"
     "uniform sampler2D heightMap;\n"
-    "varying vec2 texCoordOut;\n"
+    "uniform float depthMin;\n"
+    "uniform float depthDiff;\n"
+
+    "varying float depthOut;\n"
+    "out vec2 texCoordOut;\n"
+    "out int undef;\n"
 
     "void main(void)\n"
     "{\n"
     "    vec4 pos = gl_Vertex;\n"
     "    texCoordOut = gl_MultiTexCoord0.st;\n"
-    "    float depth = texture2D(heightMap, texCoordOut).r;\n"
-    "    pos.z = depth;\n"
+    "    vec4 depthMask = texture2D(heightMap, texCoordOut);\n"
+    "    float depthComp = depthMask.r;\n"
+    "    depthOut = depthMin + depthComp * depthDiff;\n"
+    "    pos.z = depthOut;\n"
+    "    undef = (depthMask.a > 0.1) ? 1 : 0;\n"
     "    gl_Position = gl_ModelViewProjectionMatrix * pos;\n"
     "}\n"
 };
+
+static const char *microshaderGeomSource =
+    "#version 330 compatibility\n"
+
+    "layout( triangles ) in;\n"
+    "layout( triangle_strip, max_vertices = 3 ) out;"
+    "in int undef[];\n"
+    "in vec2 texCoordOut[];\n"
+    "out vec2 texCoordOutOut;\n"
+
+    "void main()\n"
+    "{\n"
+    "    if(undef[0] != 1 && undef[1] != 1 && undef[2] != 1)\n"
+    "    {\n"
+    "        gl_Position = gl_in[0].gl_Position;\n"
+    "        texCoordOutOut = texCoordOut[0];\n"
+    "        EmitVertex();\n"
+
+    "        gl_Position = gl_in[1].gl_Position;\n"
+    "        texCoordOutOut = texCoordOut[1];\n"
+    "        EmitVertex();\n"
+
+    "        gl_Position = gl_in[2].gl_Position;\n"
+    "        texCoordOutOut = texCoordOut[2];\n"
+    "        EmitVertex();\n"
+    "    }\n"
+    "    EndPrimitive();\n"
+    "}\n";
 
 static const char *shaderFragSource =
 {
@@ -57,13 +93,13 @@ static const char *shaderFragSource =
 
     "uniform vec4 colour;\n"
     "uniform sampler2D heightMap;\n"
-    "varying vec2 texCoordOut;\n"
+    "varying vec2 texCoordOutOut;\n"
 
     "void main(void)\n"
     "{\n"
-    "    float depth = texture2D(heightMap, texCoordOut).r * 5.0;\n"
-    "    vec4 col = vec4(depth, 0.0, 0.0, 1.0);\n"
-    "    gl_FragColor = col;\n"
+    "    vec4 pix = texture2D(heightMap, texCoordOutOut);\n"
+    "    vec4 col = vec4(pix.g, pix.g, pix.g, 1.0);\n"
+    "    gl_FragColor = pix;\n"
     "}\n"
 };
 
@@ -140,6 +176,19 @@ void Horizon3D2::updateGeometry()
 
     osg::DoubleArray &depthVals = *dynamic_cast<osg::DoubleArray*>(getDepthArray());
 
+    double min = +999999;
+    double max = -999999;
+    for(int j = 0; j < fullSize.x(); ++j)
+    {
+        for(int i = 0; i < fullSize.y(); ++i)
+        {
+            const double val = depthVals.at(i * fullSize.y() + j);
+            min = std::min(val, min);
+            max = std::max(val, max);
+        }
+    }
+    const double diff = max - min;
+
     std::vector<osg::Vec2d> coords = getCornerCoords();
 
     osg::Vec2d iInc = (coords[2] - coords[0]) / (fullSize.x() - 1);
@@ -211,6 +260,7 @@ void Horizon3D2::updateGeometry()
     program->setName( "microshader" );
     program->addShader( new osg::Shader( osg::Shader::VERTEX, shaderVertSource ) );
     program->addShader( new osg::Shader( osg::Shader::FRAGMENT, shaderFragSource ) );
+    program->addShader( new osg::Shader( osg::Shader::GEOMETRY, microshaderGeomSource ) );
 
     int numHTiles = ceil(float(fullSize.x()) / tileSize.x());
     int numVTiles = ceil(float(fullSize.y()) / tileSize.y());
@@ -229,11 +279,11 @@ void Horizon3D2::updateGeometry()
                 continue;
 
             osg::ref_ptr<osg::Image> image = new osg::Image;
-            image->allocateImage(vSize, hSize, 1, GL_RED, GL_FLOAT);
-            // might use GL_LUMINANCE16_ALPHA16 or GL_LUMINANCE_12_ALPHA4 later
-            image->setInternalTextureFormat(GL_LUMINANCE32F_ARB);
+            image->allocateImage(vSize, hSize, 1, GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE);
+            image->setInternalTextureFormat(GL_LUMINANCE8_ALPHA8);
 
-            float *ptr = reinterpret_cast<float*>(image->data());
+            unsigned short *ptr = reinterpret_cast<unsigned short*>(image->data());
+            bool hasUndefs = false;
             for(int j = 0; j < vSize; ++j)
             {
                 for(int i = 0; i < hSize; ++i)
@@ -242,15 +292,19 @@ void Horizon3D2::updateGeometry()
                     {
                         int iGlobal = hIdx * tileSize.x() + i;
                         int jGlobal = vIdx * tileSize.y() + j;
-                        *ptr = depthVals.at(iGlobal * fullSize.y() + jGlobal);
+                        double val = depthVals.at(iGlobal * fullSize.y() + jGlobal);
+                        unsigned short depthNorm = (val - min) / diff * UCHAR_MAX;
+                        *ptr = depthNorm;
                     }
                     else {
-                        *ptr = 0.0;
+                        *ptr = 0xFF00;
+                        hasUndefs = true;
                     }
                     ptr++;
                 }
             }
 
+//            std::cerr << "hasUndefs " << hasUndefs << std::endl;
             osg::ref_ptr<osg::Texture2D> texture = new osg::Texture2D;
             texture->setImage(image.get());
 
@@ -260,9 +314,13 @@ void Horizon3D2::updateGeometry()
             // apply vertex shader to shift geometry
             osg::StateSet *ss = geode->getOrCreateStateSet();
             ss->addUniform(new osg::Uniform("colour", osg::Vec4(0.0f, 0.0f, 1.0f, 1.0f)));
+            ss->addUniform(new osg::Uniform("depthMin", float(min)));
+            ss->addUniform(new osg::Uniform("depthDiff", float(diff)));
             ss->setTextureAttributeAndModes(1, texture.get());
             ss->addUniform( new osg::Uniform("heightMap", 1));
-            ss->setAttributeAndModes( program, osg::StateAttribute::ON );
+            ss->setAttributeAndModes(program, osg::StateAttribute::ON);
+
+//            ss->setMode( GL_DEPTH_TEST, osg::StateAttribute::OFF );
 
             const int i1 = hIdx * tileSize.x();
             const int j1 = vIdx * tileSize.y();
