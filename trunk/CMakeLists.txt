@@ -23,13 +23,10 @@ PROJECT(osgGeo)
 
 set (osgGeo_VERSION_MAJOR 0)
 set (osgGeo_VERSION_MINOR 1)
-SET (CMAKE_DEBUG_POSTFIX d)
 
 cmake_minimum_required (VERSION 2.6)
 
-LIST(APPEND CMAKE_MODULE_PATH ${osgGeo_SOURCE_DIR}/CMakeModules)
-
-find_package(OSG)
+INCLUDE(CMakeModules/osgGeoSetupOSG.cmake)
 
 INCLUDE_DIRECTORIES(
     ${osgGeo_SOURCE_DIR}/src

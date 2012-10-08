@@ -8,10 +8,10 @@ add_custom_target(osgGeoExamples)
 macro(add_example name)
     add_executable(${name} EXCLUDE_FROM_ALL ${ARGN})
     target_link_libraries(${name}
-        ${OSG_LIBRARY}
-        ${OPENTHREADS_LIBRARY}
-        ${OSGUTIL_LIBRARY}
-        ${OSGVIEWER_LIBRARY}
+        ${OSG_GEO_OSG_LIBRARY}
+        ${OSG_GEO_OPENTHREADS_LIBRARY}
+        ${OSG_GEO_OSGUTIL_LIBRARY}
+        ${OSG_GEO_OSGVIEWER_LIBRARY}
         osgGeo
     )
     add_dependencies(osgGeoExamples ${name})
