@@ -2,13 +2,18 @@
 #include <osg/Geometry>
 
 #include <osgViewer/Viewer>
+#include <osgViewer/ViewerEventHandlers>
 
 #include <osgGeo/Horizon3D2.h>
 
 int main(int argc, char **argv)
 {
     double undef = 999999.0;
-    osgGeo::Vec2i size(512, 512);
+
+    int sizes[5] = {511, 1021, 2041, 3061, 4081};
+    int sz = sizes[0];
+    osgGeo::Vec2i size(sz, sz);
+
     osg::ref_ptr<osg::DoubleArray> depthValsPtr =
             new osg::DoubleArray(size.x()*size.y());
 
@@ -34,6 +39,8 @@ int main(int argc, char **argv)
     hor3->setDepthArray(depthValsPtr.get());
 
     osgViewer::Viewer viewer;
+    // add the stats handler
+    viewer.addEventHandler(new osgViewer::StatsHandler);
     viewer.setSceneData(hor3);
     return viewer.run();
 }
