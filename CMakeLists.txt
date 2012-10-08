@@ -25,8 +25,10 @@ set (osgGeo_VERSION_MINOR 1)
 
 cmake_minimum_required (VERSION 2.6)
 
-INCLUDE(CMakeModules/osgGeoCommon.cmake)
-INCLUDE(CMakeModules/osgGeoSetupOSG.cmake)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMakeModules")
+INCLUDE(CreateLaunchers)
+INCLUDE(osgGeoCommon)
+INCLUDE(osgGeoSetupOSG)
 
 INCLUDE_DIRECTORIES(
     ${osgGeo_SOURCE_DIR}/src
