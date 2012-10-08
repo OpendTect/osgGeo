@@ -23,6 +23,8 @@ PROJECT(osgGeo)
 set (osgGeo_VERSION_MAJOR 0)
 set (osgGeo_VERSION_MINOR 1)
 
+SET(BUILD_EXAMPLES "" CACHE BOOL "Build examples")
+
 cmake_minimum_required (VERSION 2.6)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMakeModules")
@@ -41,4 +43,7 @@ INSTALL( FILES
 	DESTINATION share/CMakeModules )
 
 add_subdirectory(src)
-add_subdirectory(examples)
+
+IF( BUILD_EXAMPLES )
+    add_subdirectory(examples)
+ENDIF( BUILD_EXAMPLES )

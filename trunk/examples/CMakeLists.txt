@@ -3,10 +3,11 @@ include_directories(
     ${OSGGEO_INCLUDE_DIR}
 )
 
-add_custom_target(osgGeoExamples)
-
 macro(add_example name)
-    add_executable(${name} EXCLUDE_FROM_ALL ${ARGN})
+    add_executable(${name} ${ARGN})
+    create_target_launcher( ${name}
+    	    RUNTIME_LIBRARY_DIRS
+    	    ${OSG_GEO_OSG_LIBRARY_PATH}/../bin )
     target_link_libraries(${name}
         ${OSG_GEO_OSG_LIBRARY}
         ${OSG_GEO_OPENTHREADS_LIBRARY}
@@ -15,9 +16,8 @@ macro(add_example name)
         ${OSG_GEO_OSGDB_LIBRARY}
         osgGeo
     )
-    add_dependencies(osgGeoExamples ${name})
 endmacro()
 
 add_example(horizons horizons.cpp)
-add_example(textureplane textureplane.cpp)
 add_example(PolyLines PolyLines.cpp)
+add_example(textureplane textureplane.cpp)
