@@ -120,6 +120,8 @@ void PolylineNode::setColor( osg::Vec4 color )
 }
 
 #define mAddVertex(vec,nrm,pos)\
+    norm = vec / _radius; \
+    norm.normalize(); \
     normals->push_back( nrm ); \
     coords->push_back( vec + pos ); \
 
@@ -129,7 +131,7 @@ void PolylineNode::createGeometry()
     if ( !newarr )
 	return;
 
-    const int resolution = 10;
+    const int resolution = 20;
     osg::ref_ptr<osg::Vec3Array> coords = new osg::Vec3Array;
     osg::ref_ptr<osg::Vec3Array> normals = new osg::Vec3Array;
     osg::ref_ptr<osg::Vec3Array> dirvecs = new osg::Vec3Array;
@@ -150,8 +152,6 @@ void PolylineNode::createGeometry()
 					  : dirvec ) ^ dir ) * _radius;
 	    osg::Vec3 vec2 = ( dirvec ^ dir ) * _radius;
 	    osg::Vec3 norm;
-	    norm = vec1 / _radius;
-	    norm.normalize();
 	    mAddVertex( vec1, norm, start )
 	    mAddVertex( vec2, norm, stop )
 	}
@@ -167,8 +167,8 @@ void PolylineNode::createGeometry()
     colors->push_back( _color );
     _geometry->setColorArray( colors );
     _geometry->setColorBinding(osg::Geometry::BIND_OVERALL); 
-     osg::StateSet* state = _geometry->getOrCreateStateSet();
-     state->setMode( GL_CULL_FACE, osg::StateAttribute::ON );
+    osg::StateSet* state = _geometry->getOrCreateStateSet();
+    state->setMode( GL_CULL_FACE, osg::StateAttribute::ON );
 }
 
 
