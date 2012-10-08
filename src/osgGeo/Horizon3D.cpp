@@ -79,7 +79,7 @@ void Horizon3DNode::updateDrawables()
     if(getDepthArray()->getType() != osg::Array::DoubleArrayType)
         return;
 
-    osg::DoubleArray &depthVals =
+    const osg::DoubleArray &depthVals =
             *(dynamic_cast<osg::DoubleArray*>(getDepthArray()));
 
     const int allHSize = getSize().x();
@@ -88,9 +88,9 @@ void Horizon3DNode::updateDrawables()
     const int hSize = allHSize;
     const int vSize = allVSize;
 
-    std::vector<osg::Vec2d> coords = getCornerCoords();
-    osg::Vec2d iInc = (coords[2] - coords[0]) / (allHSize - 1);
-    osg::Vec2d jInc = (coords[1] - coords[0]) / (allVSize - 1);
+    const std::vector<osg::Vec2d> coords = getCornerCoords();
+    const osg::Vec2d iInc = (coords[2] - coords[0]) / (allHSize - 1);
+    const osg::Vec2d jInc = (coords[1] - coords[0]) / (allVSize - 1);
 
     osg::ref_ptr<osg::Vec3Array> vertices = new osg::Vec3Array(hSize * vSize);
 
