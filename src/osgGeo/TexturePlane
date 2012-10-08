@@ -82,4 +82,4 @@ protected:
 
 
 }
-#endif //OSGGEO_TEXTUREPLANE
+#endif //OSGGEO_TEXTUREPLANE_H
