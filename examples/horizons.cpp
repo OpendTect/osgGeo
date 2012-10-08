@@ -1,4 +1,5 @@
 #include <iostream>
+#include <random>
 
 #include <osgViewer/Viewer>
 #include <osgViewer/ViewerEventHandlers>
