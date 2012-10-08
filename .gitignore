@@ -1,12 +1,62 @@
-CMakeFiles
+# CMake stuff
+############
 CMakeCache.txt
-Makefile
+CMakeFiles
 cmake_install.cmake
-src/osgGeo/Config
+Config
+install_manifest.txt
+launch*.cmd
+Makefile
+
+#OS Stuff
+############
+.DS_Store
+
+# Build stuff
+############
+*.log
 *.dylib
 *.dll
 *.so
-install_manifest.txt
-.DS_Store
+*.lib
+*.exe
+*.obj
+
+# MSVC stuff
+############
+*.exp
+*.ipch
+*.lastbuildstate
+*.manifest
+*.opensdf
+*.rc
+*.res
+*.sdf
+*.sln
+*.suo
+*.tlog
+*.vc*
+WIN32
+
+# XCode stuff
+############
 *.xcode
+*.ilk
+*.pdb
+
+# Packages #
+############
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+
+#Other
 *.swp
+*.swo
+*~
