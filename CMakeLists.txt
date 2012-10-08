@@ -14,9 +14,9 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-#All configureations should be set in osgGeoConfig.cmake
+# All configurations should be set in osgGeoConfig.cmake
 
-# No configuration settings shoule be modified below.
+# No configuration settings should be modified below.
 
 PROJECT(osgGeo)
 
