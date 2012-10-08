@@ -21,7 +21,9 @@ INSTALL(FILES
 	Export
 	Common
 	Config
+	Horizon3DBase
 	Horizon3D
+	Horizon3D2
 	LayeredTexture
 	PolyLine
 	TexturePlane
