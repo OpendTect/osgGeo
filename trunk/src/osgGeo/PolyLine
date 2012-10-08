@@ -21,7 +21,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 #include <osg/Node>
 #include <osg/NodeVisitor>
 #include <osgGeo/Common>
-
 namespace osg { class Geometry; }
 
 namespace osgGeo
@@ -41,7 +40,8 @@ public:
 
     void		setRadius(float);
     float		getRadius() const;
-
+	void		setColor(osg::Vec4);
+	osg::Vec4   getColor() const { return _color; }
     void		setMaxScreenRadius(float);
     float		getMaxScreenRadius() const;
 
@@ -49,6 +49,7 @@ public:
     bool		getScaleMode() const;
 
     void		traverse(osg::NodeVisitor&);
+	virtual osg::BoundingSphere computeBound() const;  
 
 protected:
     PolylineNode&	operator=(const PolylineNode&);
@@ -60,6 +61,7 @@ protected:
     float			_radius;
     float			_maxRadius;
     bool			_screenSizeScaling;
+	osg::Vec4		_color;
 
     osg::ref_ptr<osg::Geometry>	_geometry;
     unsigned int		_arrayModifiedCount;
