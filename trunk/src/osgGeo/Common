@@ -19,5 +19,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
 
 #include <osgGeo/Export>
+
+#ifndef M_PI
 #define M_PI 3.14159265
+#endif M_PI
+
 #endif //OSGGEO_COMMON_H
