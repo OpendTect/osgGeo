@@ -1,0 +1,11 @@
+CMakeFiles
+CMakeCache.txt
+Makefile
+cmake_install.cmake
+src/osgGeo/Config
+*.dylib
+*.dll
+*.so
+install_manifest.txt
+.DS_Store
+*.xcode
