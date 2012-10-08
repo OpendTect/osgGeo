@@ -5,15 +5,15 @@
 # Written by: Kristofer Tingdahl
 
 
-IF(UNIX AND NOT WIN32 AND NOT APPLE)
-  IF(CMAKE_SIZEOF_VOID_P MATCHES "8")
-      SET(LIB_POSTFIX "64" CACHE STRING "suffix for 32/64 dir placement")
-      MARK_AS_ADVANCED(LIB_POSTFIX)
-  ENDIF()
-ELSE()
-  SET(OSGGEO_MAKE_LAUNCHERS 1)
-ENDIF()
+if (UNIX AND NOT WIN32 AND NOT APPLE)
+  if (CMAKE_SIZEOF_VOID_P MATCHES "8")
+      set(LIB_POSTFIX "64" CACHE STRING "suffix for 32/64 dir placement")
+      mark_as_advanced(LIB_POSTFIX)
+  endif()
+else()
+  set(OSGGEO_MAKE_LAUNCHERS 1)
+endif()
 
-IF(NOT DEFINED OSGGEO_LIB_POSTFIX)
-    SET(OSGGEO_LIB_POSTFIX "")
-ENDIF()
+if ( NOT DEFINED OSGGEO_LIB_POSTFIX)
+    set(OSGGEO_LIB_POSTFIX "")
+endif()
