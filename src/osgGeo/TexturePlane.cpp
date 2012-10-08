@@ -78,7 +78,7 @@ void TexturePlaneNode::traverse( osg::NodeVisitor& nv )
 {
     if ( nv.getVisitorType()==osg::NodeVisitor::UPDATE_VISITOR )
     {
-	if ( _needsUpdate )
+	if ( needsUpdate() )
 	    updateGeometry();
     }
     else if ( nv.getVisitorType()==osg::NodeVisitor::CULL_VISITOR )
