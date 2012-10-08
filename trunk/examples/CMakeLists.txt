@@ -4,20 +4,22 @@ include_directories(
 )
 
 SET ( RUNTIMELIBS
-        ${OSG_GEO_OSG_LIBRARY}
-        ${OSG_GEO_OPENTHREADS_LIBRARY}
-        ${OSG_GEO_OSGUTIL_LIBRARY}
-        ${OSG_GEO_OSGVIEWER_LIBRARY}
-	${OSG_GEO_OSGGA_LIBRARY}
-        ${OSG_GEO_OSGDB_LIBRARY} )
+        ${OSGGEO_OSG_LIBRARY}
+        ${OSGGEO_OPENTHREADS_LIBRARY}
+        ${OSGGEO_OSGUTIL_LIBRARY}
+        ${OSGGEO_OSGVIEWER_LIBRARY}
+	${OSGGEO_OSGGA_LIBRARY}
+        ${OSGGEO_OSGDB_LIBRARY} )
 
 guess_runtime_library_dirs( RUNTIMELIBDIR ${RUNTIMELIBS} )
 
 macro(add_example name)
     add_executable(${name} ${ARGN})
-    create_target_launcher( ${name}
-    	    RUNTIME_LIBRARY_DIRS
-	    ${RUNTIMELIBDIR} )
+    IF( OSGGEO_MAKE_LAUNCHERS )
+	create_target_launcher( ${name}
+		RUNTIME_LIBRARY_DIRS
+		${RUNTIMELIBDIR} )
+    ENDIF()
     target_link_libraries(${name}
 	${RUNTIMELIBS}
         osgGeo
