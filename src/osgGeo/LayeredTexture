@@ -73,6 +73,8 @@ public:
 			LayeredTexture(const LayeredTexture&,
 			    const osg::CopyOp& op =osg::CopyOp::DEEP_COPY_ALL);
 
+			META_Object( osgGeo, LayeredTexture );
+
     int			addDataLayer(); //returns an id
 			//Does its own locking
     void		removeDataLayer(int id);
