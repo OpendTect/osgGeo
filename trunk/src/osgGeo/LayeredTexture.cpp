@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 #include <osgGeo/LayeredTexture>
 
 #include <osg/Geometry>
+#include <osg/Texture2D>
 #include <osgUtil/CullVisitor>
 
 namespace osgGeo
@@ -30,9 +31,11 @@ struct LayeredTextureData : public osg::Referenced
 				    : _id( id ), _origin(0,0)
 				    , _scale( 1, 1 )
 				    , _updateSetupStateSet( true )
+				    , _textureUnit( -1 )
 				{}
 
     LayeredTextureData*		clone() const;
+    osg::Vec2f			getLayerCoord(const osg::Vec2s& global) const;
 
     TransparencyType		getTransparencyType();
 
@@ -41,6 +44,7 @@ struct LayeredTextureData : public osg::Referenced
     osg::Vec2f					_scale;
     osg::ref_ptr<const osg::Image>		_image;
     bool					_updateSetupStateSet;
+    int						_textureUnit;
 };
 
 
@@ -52,6 +56,14 @@ LayeredTextureData* LayeredTextureData::clone() const
 	res->_image = (osg::Image*) _image->clone(osg::CopyOp::DEEP_COPY_ALL);
 
     return res;
+}
+
+
+osg::Vec2f LayeredTextureData::getLayerCoord( const osg::Vec2s& global ) const
+{
+    osg::Vec2f res = osg::Vec2f(global.x(), global.y() )-_origin;
+    res.x() /= _scale.x();
+    res.y() /= _scale.y();
 }
 
 
@@ -69,22 +81,22 @@ LayeredTexture::LayeredTexture( const LayeredTexture& lt,
     , _updateSetupStateSet( false )
     , _setupStateSet( 0 )
 {
-    for ( int idx=0; idx<lt._datalayers.size(); idx++ )
+    for ( int idx=0; idx<lt._dataLayers.size(); idx++ )
     {
 	osg::ref_ptr<LayeredTextureData> layer =
 		co.getCopyFlags()==osg::CopyOp::DEEP_COPY_ALL
-	    ? lt._datalayers[idx]->clone()
-	    : lt._datalayers[idx];
+	    ? lt._dataLayers[idx]->clone()
+	    : lt._dataLayers[idx];
 
 	layer->ref();
-	_datalayers.push_back( layer );
+	_dataLayers.push_back( layer );
     }
 }
 
 
 LayeredTexture::~LayeredTexture()
 {
-    std::for_each( _datalayers.begin(), _datalayers.end(),
+    std::for_each( _dataLayers.begin(), _dataLayers.end(),
 	    	   osg::intrusive_ptr_release );
 
     std::for_each( _processes.begin(), _processes.end(),
@@ -99,7 +111,7 @@ int LayeredTexture::addDataLayer()
     if ( ltd )
     {
 	ltd->ref();
-	_datalayers.push_back( ltd );
+	_dataLayers.push_back( ltd );
     }
 
     _updateSetupStateSet = true;
@@ -115,8 +127,8 @@ void LayeredTexture::removeDataLayer( int id )
     const int idx = getDataLayerIndex( id );
     if ( idx!=-1 )
     {
-	osg::ref_ptr<LayeredTextureData> ltd = _datalayers[idx];
-	_datalayers.erase( _datalayers.begin()+idx );
+	osg::ref_ptr<LayeredTextureData> ltd = _dataLayers[idx];
+	_dataLayers.erase( _dataLayers.begin()+idx );
 	_updateSetupStateSet = true;
 	ltd->unref();
     }
@@ -127,17 +139,17 @@ void LayeredTexture::removeDataLayer( int id )
 
 int LayeredTexture::getDataLayerID( int idx ) const
 {
-    return idx>=0 && idx<_datalayers.size() 
-	? _datalayers[idx]->_id
+    return idx>=0 && idx<_dataLayers.size() 
+	? _dataLayers[idx]->_id
 	: -1;
 }
 
 
 int LayeredTexture::getDataLayerIndex( int id ) const
 {
-    for ( int idx=_datalayers.size()-1; idx>=0; idx-- )
+    for ( int idx=_dataLayers.size()-1; idx>=0; idx-- )
     {
-	if ( _datalayers[idx]->_id==id )
+	if ( _dataLayers[idx]->_id==id )
 	    return idx;
     }
 
@@ -149,14 +161,14 @@ void LayeredTexture::setDataLayer##funcpostfix( int id, type localvar ) \
 { \
     const int idx = getDataLayerIndex( id ); \
     if ( idx!=-1 ) \
-	_datalayers[idx]->variable = localvar; \
+	_dataLayers[idx]->variable = localvar; \
 } \
  \
  \
 type LayeredTexture::getDataLayer##funcpostfix( int id ) const \
 { \
     const int idx = getDataLayerIndex( id ); \
-    return _datalayers[idx]->variable; \
+    return _dataLayers[idx]->variable; \
 }
 
 SET_GET_PROP( Image, const osg::Image*, _image )
@@ -214,6 +226,48 @@ osg::StateSet* LayeredTexture::getSetupStateSet()
 }
 
 
+osg::Vec2s LayeredTexture::getEnvelope() const
+{
+    if ( !_dataLayers.size() )
+	return osg::Vec2s( 0, 0 );
+
+    std::vector<LayeredTextureData*>::const_iterator it = _dataLayers.begin();
+    osg::Vec2s res((*it)->_image->s(), (*it)->_image->t() );
+    for ( it++; it!=_dataLayers.end(); it++ )
+    {
+	const int s = (*it)->_image->s();
+	const int t = (*it)->_image->t();
+	if ( s>res.x() ) res.x() = s;
+	if ( t>res.y() ) res.y() = t;
+    }
+
+    return res;
+}
+
+
+void LayeredTexture::divideAxis( int size, int bricksize,
+				 std::vector<int>& origins,
+				 std::vector<int>& sizes )
+{
+    int cur = 0;
+
+    do
+    {
+	origins.push_back( cur );
+
+	int cursize = bricksize;
+	while ( cur+cursize/2>=size )
+	    cursize /=2;
+
+	int next = cur+cursize-1;
+	sizes.push_back( cursize );
+	cur = next;
+
+    } while ( cur<size );
+
+}
+
+
 void LayeredTexture::updateSetupStateSet()
 {
     _lock.readLock();
@@ -229,7 +283,7 @@ void LayeredTexture::updateSetupStateSet()
     {
 	for ( int idx=nrDataLayers()-1; idx>=0; idx-- )
 	{
-	    if ( _datalayers[idx]->_updateSetupStateSet )
+	    if ( _dataLayers[idx]->_updateSetupStateSet )
 	    {
 		needsupdate = true;
 		break;
@@ -243,12 +297,115 @@ void LayeredTexture::updateSetupStateSet()
 	//TODO
 	
 	for ( int idx=nrDataLayers()-1; idx>=0; idx-- )
-	    _datalayers[idx]->_updateSetupStateSet = false;
+	    _dataLayers[idx]->_updateSetupStateSet = false;
 
 	_updateSetupStateSet = false;
     }
 
     _lock.readUnlock();
+}
+
+
+unsigned int LayeredTexture::getTextureSize( unsigned short nr )
+{
+    unsigned short res = 0;
+    if ( nr<=256 )
+    {
+	if ( nr<=16 )
+	{
+	    if ( nr<=4 )
+	    {
+		if ( nr<=2 )
+		    return nr;
+
+		return 4;
+	    }
+
+	    if ( nr<=8 )
+		return 8;
+
+	    return 16;
+	}
+
+	if ( nr<128 )
+	{
+	    if (nr<=32 )
+		return 32;
+	    return 64;
+	}
+
+	if ( nr<=128 )
+	    return 128;
+	return 256;
+    }
+
+    if ( nr<=4096 )
+    {
+	if ( nr<=1024 )
+	{
+	    if ( nr<=512 )
+		return 512;
+
+	    return 1024;
+	}
+
+	if ( nr<=2048 )
+	    return 2048;
+
+	return 4096;
+    }
+
+    if ( nr<=16384 )
+    {
+	if ( nr<=8192 )
+	    return 8192;
+
+	return 16384;
+    }
+
+    if ( nr<=32768 )
+	return 32768;
+
+    return 65526;
+}
+
+osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2s& origin,
+    const osg::Vec2s& size, std::vector<LayeredTexture::TextureCoordData>& tcdata ) const
+{
+    tcdata.clear();
+    osg::ref_ptr<osg::StateSet> stateset = new osg::StateSet;
+
+    for ( int idx=nrDataLayers()-1; idx>=0; idx-- )
+    {
+	osg::Vec2f tc00, tc01, tc10, tc11;
+	LayeredTextureData* layer = _dataLayers[idx];
+	const osg::Vec2f layeroriginf = layer->getLayerCoord( origin );
+	const osg::Vec2f layersizef = layer->getLayerCoord( origin+size )-layeroriginf;
+	const osg::Vec2s layerorigin( (int) layeroriginf.x(), (int) layeroriginf.y() );
+	osg::Vec2s layersize( getTextureSize((int) layersize.x()+0.5),
+			      getTextureSize((int) layersize.y()+0.5 ) );
+
+	osg::ref_ptr<const osg::Image> sourceimage = layer->_image;
+	osg::ref_ptr<osg::Image> imagetile = new osg::Image();
+	if ( layerorigin.x()<0 || layerorigin.x()+layersize.x()>sourceimage->s() ||
+	     layerorigin.y()<0 || layerorigin.y()+layersize.y()>sourceimage->t() )
+	{
+	    //copy image
+	}
+	else
+	{
+	    const int offset =
+		(layerorigin.x() + layerorigin.y()*sourceimage->r())*sourceimage->getPixelSizeInBits()/8;
+	    imagetile->setImage( size.x(), size.y(), 1, sourceimage->getInternalTextureFormat(), sourceimage->getPixelFormat(), sourceimage->getDataType(),
+		    const_cast<unsigned char*>(sourceimage->data()+offset), osg::Image::NO_DELETE, 1);
+	}
+
+	osg::ref_ptr<osg::Texture2D> texture = new osg::Texture2D( imagetile );
+	stateset->setTextureAttribute( layer->_textureUnit, texture.get() );
+	tcdata.push_back( TextureCoordData( layer->_textureUnit, tc00, tc01, tc10, tc11 ) );
+    }
+
+    return stateset;
 }
 
 } //namespace
