@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
 
 
-#include <osgGeo/PolyLine>
+#include "PolyLine"
 
 #include <osg/Geometry>
 #include <osgUtil/CullVisitor>
@@ -29,6 +29,7 @@ PolylineNode::PolylineNode()
     , _maxRadius( -1 )
     , _screenSizeScaling( false )
     , _arrayModifiedCount( 0 )
+    , _geometry(new osg::Geometry)
 {}
 
 
@@ -64,7 +65,7 @@ void PolylineNode::traverse( osg::NodeVisitor& nv )
     {
 	if ( _geometry.valid() )
 	{
-	    osgUtil::CullVisitor* cv = dynamic_cast<osgUtil::CullVisitor*>(&nv);
+	    osgUtil::CullVisitor* cv = static_cast<osgUtil::CullVisitor*>(&nv);
 
 	    if ( getStateSet() )
 		cv->pushStateSet( getStateSet() );
@@ -75,11 +76,100 @@ void PolylineNode::traverse( osg::NodeVisitor& nv )
 		cv->popStateSet();
 	}
     }
+    else
+    {
+	createGeometry();
+    }
 }
 
 
+osg::BoundingSphere PolylineNode::computeBound() const
+{
+    osg::Vec3Array* newarr = dynamic_cast<osg::Vec3Array*>(_array.get());
+    osg::BoundingSphere bb;
+    if ( !newarr )
+	return bb;
+    const int sz = newarr->size();
+    bb._center =  newarr->at( sz/2 );
+    osg::Vec3 start = newarr->at( 0 );
+    osg::Vec3 stop = newarr->at( sz-1 );
+    const float xdiff = stop[0] - start[0];
+    const float ydiff = stop[1] - start[1];
+    const float zdiff = stop[2] - start[2];
+    const float length = sqrt( xdiff*xdiff + ydiff*ydiff + zdiff*zdiff );
+    bb._radius = length;
+    return bb;
+}
+
+
+void PolylineNode::setVertexArray( osg::Array* arr )
+{
+    _array = arr;
+}
+
+
+void PolylineNode::setRadius( float rad )
+{
+    _radius = rad;
+}
+
+
+void PolylineNode::setColor( osg::Vec4 color )
+{
+    _color = color;
+}
+
+#define mAddVertex(vec,nrm,pos)\
+    normals->push_back( nrm ); \
+    coords->push_back( vec + pos ); \
+
 void PolylineNode::createGeometry()
-{}
+{
+    osg::Vec3Array* newarr = dynamic_cast<osg::Vec3Array*>(_array.get());
+    if ( !newarr )
+	return;
+
+    const int resolution = 10;
+    osg::ref_ptr<osg::Vec3Array> coords = new osg::Vec3Array;
+    osg::ref_ptr<osg::Vec3Array> normals = new osg::Vec3Array;
+    osg::ref_ptr<osg::Vec3Array> dirvecs = new osg::Vec3Array;
+
+    for ( int pidx=0; pidx<newarr->size()-1; pidx++ )
+    {
+	osg::Vec3 start = newarr->at( pidx );
+	osg::Vec3 stop = newarr->at( pidx+1 );
+	osg::Vec3 dirvec = stop - start;
+	dirvec.normalize();
+	dirvecs->push_back( dirvec );
+	
+	for ( int idx=0; idx<=resolution; idx++ )
+	{
+	    float angl = idx * 2 * M_PI / resolution;
+	    osg::Vec3 dir( sin(angl), cos(angl), 0 ); 
+	    osg::Vec3 vec1 = ( (pidx >= 1 ? dirvecs->at(pidx-1)
+					  : dirvec ) ^ dir ) * _radius;
+	    osg::Vec3 vec2 = ( dirvec ^ dir ) * _radius;
+	    osg::Vec3 norm;
+	    norm = vec1 / _radius;
+	    norm.normalize();
+	    mAddVertex( vec1, norm, start )
+	    mAddVertex( vec2, norm, stop )
+	}
+    
+    }
+    
+    _geometry->setVertexArray( coords );
+    _geometry->addPrimitiveSet( new osg::DrawArrays( GL_TRIANGLE_STRIP, 0,
+			       coords->size(), 0 ));
+    _geometry->setNormalArray( normals.get() );
+    _geometry->setNormalBinding( osg::Geometry::BIND_PER_VERTEX );
+    osg::Vec4Array* colors = new osg::Vec4Array;
+    colors->push_back( _color );
+    _geometry->setColorArray( colors );
+    _geometry->setColorBinding(osg::Geometry::BIND_OVERALL); 
+     osg::StateSet* state = _geometry->getOrCreateStateSet();
+     state->setMode( GL_CULL_FACE, osg::StateAttribute::ON );
+}
 
 
 }
