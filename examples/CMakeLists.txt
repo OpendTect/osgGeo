@@ -13,6 +13,7 @@ macro(add_example name)
         ${OSG_GEO_OPENTHREADS_LIBRARY}
         ${OSG_GEO_OSGUTIL_LIBRARY}
         ${OSG_GEO_OSGVIEWER_LIBRARY}
+	${OSG_GEO_OSGGA_LIBRARY}
         ${OSG_GEO_OSGDB_LIBRARY}
         osgGeo
     )
