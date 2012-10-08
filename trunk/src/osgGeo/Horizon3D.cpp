@@ -64,6 +64,16 @@ osg::Array *Horizon3DNode::getDepthArray()
     return _array;
 }
 
+void Horizon3DNode::setCornerCoords(const std::vector<osg::Vec2d> &coords)
+{
+    _cornerCoords = coords;
+}
+
+std::vector<osg::Vec2d> Horizon3DNode::getCornerCoords() const
+{
+    return _cornerCoords;
+}
+
 void Horizon3DNode::updateDrawables()
 {
     if(getDepthArray()->getType() != osg::Array::DoubleArrayType)
@@ -78,6 +88,10 @@ void Horizon3DNode::updateDrawables()
     const int hSize = allHSize;
     const int vSize = allVSize;
 
+    std::vector<osg::Vec2d> coords = getCornerCoords();
+    osg::Vec2d iInc = (coords[2] - coords[0]) / (allHSize - 1);
+    osg::Vec2d jInc = (coords[1] - coords[0]) / (allVSize - 1);
+
     osg::ref_ptr<osg::Vec3Array> vertices = new osg::Vec3Array(hSize * vSize);
 
     // first we construct an array of vertices which is just a grid
@@ -85,9 +99,10 @@ void Horizon3DNode::updateDrawables()
     for(int i = 0; i < hSize; ++i)
         for(int j = 0; j < vSize; ++j)
         {
+            osg::Vec2d hor = coords[0] + iInc * i + jInc * j;
             (*vertices)[i*vSize+j] = osg::Vec3(
-                        float(i) / hSize,
-                        float(j) / vSize,
+                        hor.x(),
+                        hor.y(),
                         depthVals[i*allVSize+j]
                         );
         }
@@ -188,7 +203,6 @@ void Horizon3DNode::updateDrawables()
                 for(int l = 0; l < k; ++l)
                     norm += triNormCache[l];
 
-                norm /= k;
                 norm.normalize();
 
                 (*normals)[i*vSize+j] = -norm;

@@ -54,16 +54,12 @@ public:
     const osg::Array* getDepthArray() const;
     osg::Array* getDepthArray();
 
-    //! real world coordinate of the position(0, 0)
-    void setStart(osg::Vec2 value);
-    osg::Vec2 getStart();
-
-    //! real world coordinate of the position(width, height)
-    void setEnd(osg::Vec2 value);
-    osg::Vec2 getEnd();
+    //! real world coordinate of the positions (0, 0), (0, height) and (width, 0)
+    void setCornerCoords(const std::vector<osg::Vec2d> &coords);
+    std::vector<osg::Vec2d> getCornerCoords() const;
 
     //! row=-1, col=-1 means everything
-    void touch(int row,int col);
+    void touch(int row, int col);
 
     //! Everything larger than this will be treated as undef
     void setMaxDepth(float);
@@ -79,7 +75,7 @@ protected:
 
     Vec2i _size;
     osg::ref_ptr<osg::Array> _array;
-    osg::Vec2 _start, _end;
+    std::vector<osg::Vec2d> _cornerCoords;
     float _maxdepth;
 //    osg::ref_ptr<LayeredTexture> _texture;
 };
