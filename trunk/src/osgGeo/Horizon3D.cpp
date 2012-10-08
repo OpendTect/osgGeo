@@ -91,8 +91,8 @@ void Horizon3DNode::updateDrawables()
 
             (*vertices)[i*vSize+j] = osg::Vec3(
                         float(i) / hSize,
-                        val,
-                        float(j) / vSize
+                        float(j) / vSize,
+                        val
                         );
         }
 
