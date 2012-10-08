@@ -1,0 +1,6 @@
+To Install osgGeo, edit osgGeoConfig.cmake according to your settings.
+Then, run
+
+cmake .
+make
+make install
