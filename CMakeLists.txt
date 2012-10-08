@@ -31,7 +31,7 @@ list( APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMakeModules")
 if ( WIN32 )
     set ( CMAKE_CXX_FLAGS "/W4" )
 else()
-    set ( CMAKE_CXX_FLAGS "-Wextra -Wunused" )
+    set ( CMAKE_CXX_FLAGS "-Wextra -Wunused-parameter" )
 endif()
 
 
