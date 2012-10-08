@@ -64,6 +64,8 @@ osg::Vec2f LayeredTextureData::getLayerCoord( const osg::Vec2s& global ) const
     osg::Vec2f res = osg::Vec2f(global.x(), global.y() )-_origin;
     res.x() /= _scale.x();
     res.y() /= _scale.y();
+    
+    return res;
 }
 
 
@@ -308,7 +310,6 @@ void LayeredTexture::updateSetupStateSet()
 
 unsigned int LayeredTexture::getTextureSize( unsigned short nr )
 {
-    unsigned short res = 0;
     if ( nr<=256 )
     {
 	if ( nr<=16 )
