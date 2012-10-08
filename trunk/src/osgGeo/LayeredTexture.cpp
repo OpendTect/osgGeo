@@ -27,24 +27,24 @@ namespace osgGeo
 
 struct LayeredTextureData : public osg::Referenced
 {
-				LayeredTextureData(int id)
-				    : _id( id ), _origin(0,0)
-				    , _scale( 1, 1 )
-				    , _updateSetupStateSet( true )
-				    , _textureUnit( -1 )
-				{}
+			LayeredTextureData(int id)
+			    : _id( id ), _origin(0,0)
+			    , _scale( 1, 1 )
+			    , _updateSetupStateSet( true )
+			    , _textureUnit( -1 )
+			{}
 
-    LayeredTextureData*		clone() const;
-    osg::Vec2f			getLayerCoord(const osg::Vec2s& global) const;
+    LayeredTextureData*	clone() const;
+    osg::Vec2f		getLayerCoord(const osgGeo::Vec2i& global) const;
 
-    TransparencyType		getTransparencyType();
+    TransparencyType	getTransparencyType();
 
-    const int					_id;
-    osg::Vec2f					_origin;
-    osg::Vec2f					_scale;
-    osg::ref_ptr<const osg::Image>		_image;
-    bool					_updateSetupStateSet;
-    int						_textureUnit;
+    const int				_id;
+    osg::Vec2f				_origin;
+    osg::Vec2f				_scale;
+    osg::ref_ptr<const osg::Image>	_image;
+    bool				_updateSetupStateSet;
+    int					_textureUnit;
 };
 
 
@@ -59,15 +59,15 @@ LayeredTextureData* LayeredTextureData::clone() const
 }
 
 
-osg::Vec2f LayeredTextureData::getLayerCoord( const osg::Vec2s& global ) const
+osg::Vec2f LayeredTextureData::getLayerCoord(
+				const osgGeo::Vec2i& global ) const
 {
-    osg::Vec2f res = osg::Vec2f(global.x(), global.y() )-_origin;
-    res.x() /= _scale.x();
-    res.y() /= _scale.y();
+    osg::Vec2f res = osg::Vec2f(global._v[0], global._v[1] )-_origin;
+    res._v[0] /= _scale._v[0];
+    res._v[1] /= _scale._v[1];
     
     return res;
 }
-
 
 
 LayeredTexture::LayeredTexture()
@@ -228,19 +228,19 @@ osg::StateSet* LayeredTexture::getSetupStateSet()
 }
 
 
-osg::Vec2s LayeredTexture::getEnvelope() const
+osgGeo::Vec2i LayeredTexture::getEnvelope() const
 {
     if ( !_dataLayers.size() )
-	return osg::Vec2s( 0, 0 );
+	return osgGeo::Vec2i( 0, 0 );
 
     std::vector<LayeredTextureData*>::const_iterator it = _dataLayers.begin();
-    osg::Vec2s res((*it)->_image->s(), (*it)->_image->t() );
+    osgGeo::Vec2i res((*it)->_image->s(), (*it)->_image->t() );
     for ( it++; it!=_dataLayers.end(); it++ )
     {
 	const int s = (*it)->_image->s();
 	const int t = (*it)->_image->t();
-	if ( s>res.x() ) res.x() = s;
-	if ( t>res.y() ) res.y() = t;
+	if ( s>res._v[0] ) res._v[0] = s;
+	if ( t>res._v[1] ) res._v[1] = t;
     }
 
     return res;
@@ -370,8 +370,10 @@ unsigned int LayeredTexture::getTextureSize( unsigned short nr )
     return 65526;
 }
 
-osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2s& origin,
-    const osg::Vec2s& size, std::vector<LayeredTexture::TextureCoordData>& tcdata ) const
+osg::StateSet*
+LayeredTexture::createCutoutStateSet(const osgGeo::Vec2i& origin,
+    const osgGeo::Vec2i& size,
+    std::vector<LayeredTexture::TextureCoordData>& tcdata ) const
 {
     tcdata.clear();
     osg::ref_ptr<osg::StateSet> stateset = new osg::StateSet;
@@ -381,23 +383,27 @@ osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2s& origin,
 	osg::Vec2f tc00, tc01, tc10, tc11;
 	LayeredTextureData* layer = _dataLayers[idx];
 	const osg::Vec2f layeroriginf = layer->getLayerCoord( origin );
-	const osg::Vec2f layersizef = layer->getLayerCoord( origin+size )-layeroriginf;
-	const osg::Vec2s layerorigin( (int) layeroriginf.x(), (int) layeroriginf.y() );
-	osg::Vec2s layersize( getTextureSize((int) layersize.x()+0.5),
-			      getTextureSize((int) layersize.y()+0.5 ) );
+	const osg::Vec2f layersizef =
+	    layer->getLayerCoord( origin+size )-layeroriginf;
+	const osgGeo::Vec2i layerorigin( (int) layeroriginf._v[0],
+					 (int) layeroriginf._v[1] );
+	osgGeo::Vec2i layersize( getTextureSize((int) layersize._v[0]+0.5),
+			      getTextureSize((int) layersize._v[1]+0.5 ) );
 
 	osg::ref_ptr<const osg::Image> sourceimage = layer->_image;
 	osg::ref_ptr<osg::Image> imagetile = new osg::Image();
-	if ( layerorigin.x()<0 || layerorigin.x()+layersize.x()>sourceimage->s() ||
-	     layerorigin.y()<0 || layerorigin.y()+layersize.y()>sourceimage->t() )
+	if ( layerorigin._v[0]<0 ||
+	     layerorigin._v[0]+layersize._v[0]>sourceimage->s() ||
+	     layerorigin._v[1]<0 ||
+	     layerorigin._v[1]+layersize._v[1]>sourceimage->t() )
 	{
 	    //copy image
 	}
 	else
 	{
 	    const int offset =
-		(layerorigin.x() + layerorigin.y()*sourceimage->r())*sourceimage->getPixelSizeInBits()/8;
-	    imagetile->setImage( size.x(), size.y(), 1, sourceimage->getInternalTextureFormat(), sourceimage->getPixelFormat(), sourceimage->getDataType(),
+		(layerorigin._v[0] + layerorigin._v[1]*sourceimage->r())*sourceimage->getPixelSizeInBits()/8;
+	    imagetile->setImage( size._v[0], size._v[1], 1, sourceimage->getInternalTextureFormat(), sourceimage->getPixelFormat(), sourceimage->getDataType(),
 		    const_cast<unsigned char*>(sourceimage->data()+offset), osg::Image::NO_DELETE, 1);
 	}
 

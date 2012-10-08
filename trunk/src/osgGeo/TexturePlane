@@ -22,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 #include <osg/Vec3>
 #include <osg/NodeVisitor>
 #include <osgGeo/Common>
+#include <osgGeo/Vec2i>
 
 namespace osg { class Geometry; }
 
@@ -70,7 +71,7 @@ protected:
     osg::Vec3				_width;
     short				_textureBrickSize;
     bool				_needsUpdate;
-    osg::Vec2s				_textureEnvelope;
+    osgGeo::Vec2i			_textureEnvelope;
 
     osg::ref_ptr<LayeredTexture>	_texture;
 

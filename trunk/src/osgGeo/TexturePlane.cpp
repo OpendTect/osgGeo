@@ -111,7 +111,7 @@ bool TexturePlaneNode::updateGeometry()
 {
     cleanUp();
 
-    const osg::Vec2s texturesize = _texture->getEnvelope();
+    const osgGeo::Vec2i texturesize = _texture->getEnvelope();
 
     std::vector<int> sorigins, ssizes;
     _texture->divideAxis( texturesize.x(), _textureBrickSize, sorigins, ssizes );
@@ -144,8 +144,8 @@ bool TexturePlaneNode::updateGeometry()
 		return false;
 
 	    std::vector<LayeredTexture::TextureCoordData> tcdata;
-	    osg::ref_ptr<osg::StateSet> stateset = _texture->createCutoutStateSet( osg::Vec2s(sorigins[ids], torigins[idt] ),
-		                                                                      osg::Vec2s(ssizes[ids], tsizes[idt] ), tcdata );
+	    osg::ref_ptr<osg::StateSet> stateset = _texture->createCutoutStateSet( osgGeo::Vec2i(sorigins[ids], torigins[idt] ),
+		                                                                      osgGeo::Vec2i(ssizes[ids], tsizes[idt] ), tcdata );
 
 	    for ( std::vector<LayeredTexture::TextureCoordData>::iterator it = tcdata.begin();
 		  it!=tcdata.end();
