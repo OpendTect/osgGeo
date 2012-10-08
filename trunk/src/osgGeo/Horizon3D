@@ -21,26 +21,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 #include <osg/Geode>
 #include <osg/NodeVisitor>
 #include <osgGeo/Common>
+#include <osgGeo/Vec2i>
 
 namespace osg { class Geometry; }
 
 namespace osgGeo
 {
-
-struct Size
-{
-  Size(int width_, int height_) :
-      width(width_),
-      height(height_)
-  {}
-
-  Size() :
-      width(0),
-      height(0)
-  {}
-
-  int width, height;
-};
 
 class LayeredTexture;
 
@@ -60,8 +46,9 @@ public:
                   osg::CopyOp::DEEP_COPY_ALL);
     META_Node(osgGeo,Horizon3DNode)
 
-    void setSize(const Size &size);
-    Size getSize() const;
+    // size of the grid
+    void setSize(const Vec2i &size);
+    Vec2i getSize() const;
 
     void setDepthArray(osg::Array*);
     const osg::Array* getDepthArray() const;
@@ -90,7 +77,7 @@ protected:
     void updateDrawables();
     bool isUndef(double val);
 
-    Size _size;
+    Vec2i _size;
     osg::ref_ptr<osg::Array> _array;
     osg::Vec2 _start, _end;
     float _maxdepth;
