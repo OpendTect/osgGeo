@@ -25,6 +25,19 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 namespace osgGeo
 {
 
+Horizon3DNode::Horizon3DNode() :
+    Geode()
+{
+
+}
+
+Horizon3DNode::Horizon3DNode(const Horizon3DNode& other,
+              const osg::CopyOp& op) :
+    Geode(other, op)
+{
+
+}
+
 void Horizon3DNode::setSize(const Size &size)
 {
     _size = size;
