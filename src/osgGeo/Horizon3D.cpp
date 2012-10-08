@@ -85,14 +85,10 @@ void Horizon3DNode::updateDrawables()
     for(int i = 0; i < hSize; ++i)
         for(int j = 0; j < vSize; ++j)
         {
-            float val = depthVals[i*allVSize+j];
-            if(isUndef(val))
-                val = 0.0;
-
             (*vertices)[i*vSize+j] = osg::Vec3(
                         float(i) / hSize,
                         float(j) / vSize,
-                        val
+                        depthVals[i*allVSize+j]
                         );
         }
 
@@ -110,21 +106,21 @@ void Horizon3DNode::updateDrawables()
     for(int i = 0; i < hSize - 1; ++i)
         for(int j = 0; j < vSize - 1; ++j)
         {
-            float val00 = depthVals[i*allVSize+j];
-            float val10 = depthVals[(i+1)*allVSize+j];
-            float val01 = depthVals[i*allVSize+(j+1)];
-            float val11 = depthVals[(i+1)*allVSize+(j+1)];
-
-            if(isUndef(val10) || isUndef(val01))
-                continue;
-
             int i00 = i*vSize+j;
             int i10 = (i+1)*vSize+j;
             int i01 = i*vSize+(j+1);
             int i11 = (i+1)*vSize+(j+1);
 
+            osg::Vec3 v00 = (*vertices)[i00];
+            osg::Vec3 v10 = (*vertices)[i10];
+            osg::Vec3 v01 = (*vertices)[i01];
+            osg::Vec3 v11 = (*vertices)[i11];
+
+            if(isUndef(v10.z()) || isUndef(v01.z()))
+                continue;
+
             // first triangle
-            if(!isUndef(val00))
+            if(!isUndef(v00.z()))
             {
                 indices->push_back(i00);
                 indices->push_back(i10);
@@ -132,7 +128,7 @@ void Horizon3DNode::updateDrawables()
             }
 
             // second triangle
-            if(!isUndef(val11))
+            if(!isUndef(v11.z()))
             {
                 indices->push_back(i10);
                 indices->push_back(i01);
@@ -140,11 +136,6 @@ void Horizon3DNode::updateDrawables()
             }
 
             // calculate triangle normals
-            osg::Vec3 v00 = (*vertices)[i00];
-            osg::Vec3 v10 = (*vertices)[i10];
-            osg::Vec3 v01 = (*vertices)[i01];
-            osg::Vec3 v11 = (*vertices)[i11];
-
             osg::Vec3 norm1 = (v01 - v00) ^ (v10 - v00);
             norm1.normalize();
             (*triangleNormals)[(i*(vSize-1)+j)*2] = norm1;
