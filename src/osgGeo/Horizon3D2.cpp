@@ -14,7 +14,7 @@
 //
 //
 
-#include "Horizon3D2.h"
+#include "Horizon3D2"
 
 #include <iostream>
 #include <cstdlib>
@@ -22,9 +22,11 @@
 #include <osg/Geometry>
 #include <osg/Geode>
 #include <osg/Texture2D>
-#include <osg/MatrixTransform>
+#include <osg/BoundingBox>
 
 #include <osgGeo/Vec2i>
+#include <osgGeo/Palette>
+#include <osgGeo/ShaderUtility.h>
 
 #include <climits>
 
@@ -33,75 +35,6 @@ namespace osgGeo
 
 namespace
 {
-
-static const char *shaderVertSource =
-{
-    "#version 330 compatibility\n"
-
-    "uniform sampler2D heightMap;\n"
-    "uniform float depthMin;\n"
-    "uniform float depthDiff;\n"
-
-    "varying float depthOut;\n"
-    "out vec2 texCoordOut;\n"
-    "out int undef;\n"
-
-    "void main(void)\n"
-    "{\n"
-    "    vec4 pos = gl_Vertex;\n"
-    "    texCoordOut = gl_MultiTexCoord0.st;\n"
-    "    vec4 depthMask = texture2D(heightMap, texCoordOut);\n"
-    "    float depthComp = depthMask.r;\n"
-    "    depthOut = depthMin + depthComp * depthDiff;\n"
-    "    pos.z = depthOut;\n"
-    "    undef = (depthMask.a > 0.1) ? 1 : 0;\n"
-    "    gl_Position = gl_ModelViewProjectionMatrix * pos;\n"
-    "}\n"
-};
-
-static const char *microshaderGeomSource =
-    "#version 330 compatibility\n"
-
-    "layout( triangles ) in;\n"
-    "layout( triangle_strip, max_vertices = 3 ) out;"
-    "in int undef[];\n"
-    "in vec2 texCoordOut[];\n"
-    "out vec2 texCoordOutOut;\n"
-
-    "void main()\n"
-    "{\n"
-    "    if(undef[0] != 1 && undef[1] != 1 && undef[2] != 1)\n"
-    "    {\n"
-    "        gl_Position = gl_in[0].gl_Position;\n"
-    "        texCoordOutOut = texCoordOut[0];\n"
-    "        EmitVertex();\n"
-
-    "        gl_Position = gl_in[1].gl_Position;\n"
-    "        texCoordOutOut = texCoordOut[1];\n"
-    "        EmitVertex();\n"
-
-    "        gl_Position = gl_in[2].gl_Position;\n"
-    "        texCoordOutOut = texCoordOut[2];\n"
-    "        EmitVertex();\n"
-    "    }\n"
-    "    EndPrimitive();\n"
-    "}\n";
-
-static const char *shaderFragSource =
-{
-    "#version 330 compatibility\n"
-
-    "uniform vec4 colour;\n"
-    "uniform sampler2D heightMap;\n"
-    "varying vec2 texCoordOutOut;\n"
-
-    "void main(void)\n"
-    "{\n"
-    "    vec4 pix = texture2D(heightMap, texCoordOutOut);\n"
-    "    vec4 col = vec4(pix.g, pix.g, pix.g, 1.0);\n"
-    "    gl_FragColor = pix;\n"
-    "}\n"
-};
 
 struct BoundCallback : public osg::Node::ComputeBoundingSphereCallback
 {
@@ -119,70 +52,37 @@ private:
 
 }
 
-Horizon3D2::Horizon3D2()
+Horizon3DTileNode2::Horizon3DTileNode2()
 {
 }
 
-void Horizon3D2::setSize(const Vec2i& size)
+void Horizon3DTileNode2::traverse(osg::NodeVisitor &nv)
 {
-    _size = size;
+    if(nv.getVisitorType()==osg::NodeVisitor::CULL_VISITOR)
+    {
+        _nodes.at(0)->accept(nv);
+    }
 }
 
-const Vec2i& Horizon3D2::getSize() const
+Horizon3DNode2::Horizon3DNode2()
 {
-    return _size;
 }
 
-void Horizon3D2::setDepthArray(osg::Array *arr)
-{
-    _array = arr;
-    _needsUpdate = true;
-    updateGeometry();
-}
-
-const osg::Array *Horizon3D2::getDepthArray() const
-{
-    return _array;
-}
-
-osg::Array *Horizon3D2::getDepthArray()
-{
-    return _array;
-}
-
-void Horizon3D2::setMaxDepth(float val)
-{
-    _maxDepth = val;
-}
-
-float Horizon3D2::getMaxDepth() const
-{
-    return _maxDepth;
-}
-
-void Horizon3D2::setCornerCoords(const std::vector<osg::Vec2d> &coords)
-{
-    _cornerCoords = coords;
-}
-
-std::vector<osg::Vec2d> Horizon3D2::getCornerCoords() const
-{
-    return _cornerCoords;
-}
-
-void Horizon3D2::updateGeometry()
+void Horizon3DNode2::updateGeometry()
 {
     osgGeo::Vec2i fullSize = getSize();
 
     osg::DoubleArray &depthVals = *dynamic_cast<osg::DoubleArray*>(getDepthArray());
 
-    double min = +999999;
-    double max = -999999;
+    double min = +999999.0;
+    double max = -999999.0;
     for(int j = 0; j < fullSize.x(); ++j)
     {
         for(int i = 0; i < fullSize.y(); ++i)
         {
             const double val = depthVals.at(i * fullSize.y() + j);
+            if(isUndef(val))
+                continue;
             min = std::min(val, min);
             max = std::max(val, max);
         }
@@ -256,16 +156,16 @@ void Horizon3D2::updateGeometry()
 
     // ------------- geom finished ----------------
 
-    osg::Program* program = new osg::Program;
-    program->setName( "microshader" );
-    program->addShader( new osg::Shader( osg::Shader::VERTEX, shaderVertSource ) );
-    program->addShader( new osg::Shader( osg::Shader::FRAGMENT, shaderFragSource ) );
-    program->addShader( new osg::Shader( osg::Shader::GEOMETRY, microshaderGeomSource ) );
+    ShaderUtility su;
+    su.addDefinition("hasGeomShader");
+    osg::Program* programGeom = su.createProgram("horizon3d_vert.glsl", "horizon3d_frag.glsl",
+                                                 "horizon3d_geom.glsl");
+    ShaderUtility su2;
+    osg::Program* programNonGeom = su2.createProgram("horizon3d_vert.glsl", "horizon3d_frag.glsl");
 
-    int numHTiles = ceil(float(fullSize.x()) / tileSize.x());
-    int numVTiles = ceil(float(fullSize.y()) / tileSize.y());
+    int numHTiles = (int) ceil(float(fullSize.x()) / tileSize.x());
+    int numVTiles = (int) ceil(float(fullSize.y()) / tileSize.y());
 
-    std::cerr << "numtiles " << numHTiles << " " << numVTiles << std::endl;
     for(int hIdx = 0; hIdx < numHTiles; ++hIdx)
     {
         for(int vIdx = 0; vIdx < numVTiles; ++vIdx)
@@ -288,15 +188,20 @@ void Horizon3D2::updateGeometry()
             {
                 for(int i = 0; i < hSize; ++i)
                 {
+                    bool defined = false;
                     if((i < hSize2) && (j < vSize2))
                     {
                         int iGlobal = hIdx * tileSize.x() + i;
                         int jGlobal = vIdx * tileSize.y() + j;
-                        double val = depthVals.at(iGlobal * fullSize.y() + jGlobal);
-                        unsigned short depthNorm = (val - min) / diff * UCHAR_MAX;
-                        *ptr = depthNorm;
+                        const double val = depthVals.at(iGlobal * fullSize.y() + jGlobal);
+                        if(!isUndef(val))
+                        {
+                            *ptr = (unsigned short) ((val - min) / diff * UCHAR_MAX);
+                            defined = true;
+                        }
                     }
-                    else {
+                    if(!defined)
+                    {
                         *ptr = 0xFF00;
                         hasUndefs = true;
                     }
@@ -304,9 +209,125 @@ void Horizon3D2::updateGeometry()
                 }
             }
 
-//            std::cerr << "hasUndefs " << hasUndefs << std::endl;
-            osg::ref_ptr<osg::Texture2D> texture = new osg::Texture2D;
-            texture->setImage(image.get());
+            const int i1 = hIdx * tileSize.x();
+            const int j1 = vIdx * tileSize.y();
+            const osg::Vec2d start = coords[0] + iInc * i1 + jInc * j1;
+            const osg::Vec3 shift(start.x(), start.y(), 0);
+
+            osg::ref_ptr<osg::Texture2D> heightMap = new osg::Texture2D;
+            heightMap->setImage(image.get());
+
+            osg::ref_ptr<osg::Vec3Array> triangleNormals =
+                    new osg::Vec3Array((hSize - 1) * (vSize - 1) * 2);
+
+            for(int i = 0; i < hSize - 1; ++i)
+                for(int j = 0; j < vSize - 1; ++j)
+                {
+                    if((i < hSize2 - 1) && (j < vSize2 - 1))
+                    {
+                        int iGlobal = hIdx * tileSize.x() + i;
+                        int jGlobal = vIdx * tileSize.y() + j;
+
+                        const int i00 = i*vSize+j;
+                        const int i10 = (i+1)*vSize+j;
+                        const int i01 = i*vSize+(j+1);
+                        const int i11 = (i+1)*vSize+(j+1);
+
+                        osg::Vec3 v00 = (*vertices)[i00] + shift;
+                        osg::Vec3 v10 = (*vertices)[i10] + shift;
+                        osg::Vec3 v01 = (*vertices)[i01] + shift;
+                        osg::Vec3 v11 = (*vertices)[i11] + shift;
+
+                        const int i00_Global = iGlobal * fullSize.y() + jGlobal;
+                        const int i10_Global = (iGlobal+1) * fullSize.y() + jGlobal;
+                        const int i01_Global = iGlobal * fullSize.y() + (jGlobal+1);
+                        const int i11_Global = (iGlobal+1) * fullSize.y() + (jGlobal+1);
+
+                        v00.z() = depthVals.at(i00_Global);
+                        v10.z() = depthVals.at(i10_Global);
+                        v01.z() = depthVals.at(i01_Global);
+                        v11.z() = depthVals.at(i11_Global);
+
+                        if(isUndef(v10.z()) || isUndef(v01.z()))
+                            continue;
+
+                        // calculate triangle normals
+                        osg::Vec3 norm1 = (v01 - v00) ^ (v10 - v00);
+                        norm1.normalize();
+                        (*triangleNormals)[(i*(vSize-1)+j)*2] = norm1;
+
+                        osg::Vec3 norm2 = (v10 - v11) ^ (v01 - v11);
+                        norm2.normalize();
+                        (*triangleNormals)[(i*(vSize-1)+j)*2+1] = norm2;
+                    }
+                }
+
+            osg::Image *normalsImage = new osg::Image();
+            normalsImage->allocateImage(hSize, vSize, 1, GL_RGB, GL_UNSIGNED_BYTE);
+            GLubyte *normPtr = (GLubyte*)normalsImage->data();
+
+            // The following loop calculates normals per vertex. Because
+            // each vertex might be shared between many triangles(up to 6)
+            // we find out which triangles this particular vertex is shared
+            // and then compute the average of normals per triangle.
+            osg::Vec3 triNormCache[6];
+            for(int j = 0; j < vSize; ++j)
+            {
+                for(int i = 0; i < hSize; ++i)
+                {
+                    if((i < hSize2) && (j < vSize2))
+                    {
+                        int k = 0;
+
+                        const int vSizeT = vSize - 1;
+
+                        // 3
+                        if((i < hSize - 1) && (j < vSize - 1))
+                        {
+                            triNormCache[k++] = (*triangleNormals)[(i*vSizeT+j)*2];
+                        }
+
+                        // 4, 5
+                        if(i > 0 && j < vSize - 1)
+                        {
+                            triNormCache[k++] = (*triangleNormals)[((i-1)*vSizeT+j)*2];
+                            triNormCache[k++] = (*triangleNormals)[((i-1)*vSizeT+j)*2+1];
+                        }
+
+                        // 1, 2
+                        if(j > 0 && i < hSize - 1)
+                        {
+                            triNormCache[k++] = (*triangleNormals)[(i*vSizeT+j-1)*2];
+                            triNormCache[k++] = (*triangleNormals)[(i*vSizeT+j-1)*2+1];
+                        }
+
+                        // 6
+                        if(i > 0 && j > 0)
+                        {
+                            triNormCache[k++] = (*triangleNormals)[((i-1)*vSizeT+j-1)*2+1];
+                        }
+
+                        if(k > 0)
+                        {
+                            osg::Vec3 norm;
+                            for(int l = 0; l < k; ++l)
+                                norm += triNormCache[l];
+
+                            norm.normalize();
+
+                            // scale [-1;1] to [0..255]
+                            #define C_255_OVER_2 127.5
+                            *(normPtr + 0) = GLubyte((norm.x() + 1.0) * C_255_OVER_2);
+                            *(normPtr + 1) = GLubyte((norm.y() + 1.0) * C_255_OVER_2);
+                            *(normPtr + 2) = GLubyte((norm.z() + 1.0) * C_255_OVER_2);
+                        }
+                    }
+                    normPtr += 3;
+                }
+            }
+
+            osg::ref_ptr<osg::Texture2D> normals = new osg::Texture2D;
+            normals->setImage(normalsImage);
 
             osg::Geode* geode = new osg::Geode;
             geode->addDrawable(geom.get());
@@ -316,23 +337,46 @@ void Horizon3D2::updateGeometry()
             ss->addUniform(new osg::Uniform("colour", osg::Vec4(0.0f, 0.0f, 1.0f, 1.0f)));
             ss->addUniform(new osg::Uniform("depthMin", float(min)));
             ss->addUniform(new osg::Uniform("depthDiff", float(diff)));
-            ss->setTextureAttributeAndModes(1, texture.get());
-            ss->addUniform( new osg::Uniform("heightMap", 1));
-            ss->setAttributeAndModes(program, osg::StateAttribute::ON);
+            ss->setTextureAttributeAndModes(1, heightMap.get());
+            ss->setTextureAttributeAndModes(2, normals.get());
+            ss->addUniform(new osg::Uniform("heightMap", 1));
+            ss->addUniform(new osg::Uniform("normals", 2));
 
-//            ss->setMode( GL_DEPTH_TEST, osg::StateAttribute::OFF );
+            const Palette p;
+            const int sz = p.colorPoints().size();
 
-            const int i1 = hIdx * tileSize.x();
-            const int j1 = vIdx * tileSize.y();
-            const osg::Vec2d start = coords[0] + iInc * i1 + jInc * j1;
+            osg::Uniform *colourPoints = new osg::Uniform(osg::Uniform::FLOAT_VEC4, "colourPoints[0]", 20);
+            for(int i = 0; i < sz; ++i)
+            {
+                osg::Vec3 colour = p.colorPoints().at(i).color;
+                colourPoints->setElement(i, osg::Vec4(colour, 1.0));
+            }
+            ss->addUniform(colourPoints);
+            osg::Uniform *colourPositions = new osg::Uniform(osg::Uniform::FLOAT, "colourPositions[0]", 20);
+            for(int i = 0; i < sz; ++i)
+            {
+                colourPositions->setElement(i, p.colorPoints().at(i).pos);
+            }
+            ss->addUniform(colourPositions);
+            ss->addUniform(new osg::Uniform("paletteSize", sz));
 
-            osg::ref_ptr<osg::MatrixTransform> transform = new osg::MatrixTransform;
-            transform->setMatrix(osg::Matrix::translate(start.x(), start.y(), 0));
-            transform->addChild(geode);
+            ss->setAttributeAndModes(hasUndefs ? programGeom : programNonGeom, osg::StateAttribute::ON);
 
-            addChild(transform);
+            osg::ref_ptr<Horizon3DTileNode2> transform = new Horizon3DTileNode2;
+            transform->setMatrix(osg::Matrix::translate(osg::Vec3(start, 0)));
+            transform->setNode(0, geode);
+
+            // compute bounding box as our nodes don't have proper vertex information
+            // and OSG can't deduce bounding sphere for culling
+            osg::BoundingBox bb(osg::Vec3(start, min),
+                                osg::Vec3(start + iInc * hSize2 + jInc * vSize2, max));
+            transform->setBoundingSphere(bb);
+
+            _nodes.push_back(transform);
         }
     }
+
+    _needsUpdate = false;
 }
 
 }

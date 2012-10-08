@@ -18,26 +18,17 @@ You should have received a copy of the GNU Lesser General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
 
-#include <osg/Geode>
-#include <osg/NodeVisitor>
-#include <osgGeo/Common>
-#include <osgGeo/Vec2i>
-
-namespace osg { class Geometry; }
+#include <osgGeo/Horizon3DBase>
+#include <osgGeo/LayeredTexture>
 
 namespace osgGeo
 {
 
-class LayeredTexture;
-
 /**
-  * Node to display a horizon object. Currently a simplistic
-  * implementation that creates a single Geometry object
-  * without breaking it into tiles. Normals are calculated
-  * for each vertex, textures are not supported yet, currently
-  * it is single coloured
+  * Node to display a horizon object. Does not use shaders
+  * however it supports multi-threaded tesselation.
   */
-class OSGGEO_EXPORT Horizon3DNode : public osg::Geode
+class OSGGEO_EXPORT Horizon3DNode : public Horizon3DBase
 {
 public:
     Horizon3DNode();
@@ -46,38 +37,18 @@ public:
                   osg::CopyOp::DEEP_COPY_ALL);
     META_Node(osgGeo,Horizon3DNode)
 
-    // size of the grid
-    void setSize(const Vec2i& size);
-    const Vec2i& getSize() const;
-
-    void setDepthArray(osg::Array*);
-    const osg::Array* getDepthArray() const;
-    osg::Array* getDepthArray();
-
-    //! real world coordinate of the positions (0, 0), (0, height) and (width, 0)
-    void setCornerCoords(const std::vector<osg::Vec2d> &coords);
-    std::vector<osg::Vec2d> getCornerCoords() const;
-
-    //! row=-1, col=-1 means everything
-    void touch(int row, int col);
-
-    //! Everything larger than this will be treated as undef
-    void setMaxDepth(float);
-    float getMaxDepth() const;
-
-    void setLayeredTexture(LayeredTexture*);
+    void setLayeredTexture(LayeredTexture* texture);
     LayeredTexture* getLayeredTexture();
     const LayeredTexture* getLayeredTexture() const;
 
-protected:
-    void updateDrawables();
-    bool isUndef(double val);
+private:
+    void init();
 
-    Vec2i _size;
-    osg::ref_ptr<osg::Array> _array;
-    std::vector<osg::Vec2d> _cornerCoords;
-    float _maxdepth;
-//    osg::ref_ptr<LayeredTexture> _texture;
+protected:
+    void updateGeometry();
+    osg::Image *makeElevationTexture();
+
+    osg::ref_ptr<LayeredTexture> _texture;
 };
 
 }
