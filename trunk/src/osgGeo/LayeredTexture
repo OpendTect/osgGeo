@@ -92,6 +92,9 @@ public:
     void		setDataLayerOrigin(int id,const osg::Vec2f&);
     const osg::Vec2f&	getDataLayerOrigin(int id) const;
 
+    void		setDataLayerScale(int id,const osg::Vec2f&);
+    const osg::Vec2f&	getDataLayerScale(int id) const;
+
     int			nrProcesses() const	   { return _processes.size(); }
     LayerProcess*	getProcess(int idx)	   { return _processes[idx]; }
     const LayerProcess*	getProcess(int idx) const  { return _processes[idx]; }
