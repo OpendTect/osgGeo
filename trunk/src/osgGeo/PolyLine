@@ -56,13 +56,13 @@ protected:
 
     void		createGeometry();
 
-    osg::ref_ptr<osg::Array>	array_;
-    float			radius_;
-    float			maxRadius_;
-    bool			screenSizeScaling_;
+    osg::ref_ptr<osg::Array>	_array;
+    float			_radius;
+    float			_maxRadius;
+    bool			_screenSizeScaling;
 
-    osg::ref_ptr<osg::Geometry>	geometry_;
-    unsigned int		arrayModifiedCount_;
+    osg::ref_ptr<osg::Geometry>	_geometry;
+    unsigned int		_arrayModifiedCount;
 };
 
 

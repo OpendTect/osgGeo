@@ -25,21 +25,21 @@ namespace osgGeo
 {
 
 PolylineNode::PolylineNode()
-    : radius_( 5 )
-    , maxRadius_( -1 )
-    , screenSizeScaling_( false )
-    , arrayModifiedCount_( 0 )
+    : _radius( 5 )
+    , _maxRadius( -1 )
+    , _screenSizeScaling( false )
+    , _arrayModifiedCount( 0 )
 {}
 
 
 PolylineNode::PolylineNode( const PolylineNode& node, const osg::CopyOp& co )
     : osg::Node( node, co )
-    , radius_( node.radius_ )
-    , maxRadius_( node.maxRadius_ )
-    , screenSizeScaling_( node.screenSizeScaling_ )
-    , array_( node.array_ )
-    , geometry_( (osg::Geometry*) node.geometry_->clone(co) )
-    , arrayModifiedCount_( 0 )
+    , _radius( node._radius )
+    , _maxRadius( node._maxRadius )
+    , _screenSizeScaling( node._screenSizeScaling )
+    , _array( node._array )
+    , _geometry( (osg::Geometry*) node._geometry->clone(co) )
+    , _arrayModifiedCount( 0 )
 {}
 
 
@@ -51,10 +51,10 @@ void PolylineNode::traverse( osg::NodeVisitor& nv )
 {
     if ( nv.getVisitorType()==osg::NodeVisitor::UPDATE_VISITOR )
     {
-	if ( array_.valid() )
+	if ( _array.valid() )
 	{
-	    if ( !arrayModifiedCount_ ||
-		 arrayModifiedCount_!=array_->getModifiedCount() )
+	    if ( !_arrayModifiedCount ||
+		 _arrayModifiedCount!=_array->getModifiedCount() )
 	    {
 		createGeometry();
 	    }
@@ -62,14 +62,14 @@ void PolylineNode::traverse( osg::NodeVisitor& nv )
     }
     else if ( nv.getVisitorType()==osg::NodeVisitor::CULL_VISITOR )
     {
-	if ( geometry_.valid() )
+	if ( _geometry.valid() )
 	{
 	    osgUtil::CullVisitor* cv = dynamic_cast<osgUtil::CullVisitor*>(&nv);
 
 	    if ( getStateSet() )
 		cv->pushStateSet( getStateSet() );
 
-	    cv->addDrawable( geometry_, cv->getModelViewMatrix() );
+	    cv->addDrawable( _geometry, cv->getModelViewMatrix() );
 
 	    if ( getStateSet() )
 		cv->popStateSet();
