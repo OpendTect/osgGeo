@@ -18,7 +18,7 @@ You should have received a copy of the GNU Lesser General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
 
-#include <osg/Node>
+#include <osg/Geode>
 #include <osg/NodeVisitor>
 #include <osgGeo/Common>
 
@@ -27,49 +27,80 @@ namespace osg { class Geometry; }
 namespace osgGeo
 {
 
-class LayeredTexture;
-
-class OSGGEO_EXPORT Horizon3DNode : public osg::Node
+struct Size
 {
-public:
+  Size(int width_, int height_) :
+      width(width_),
+      height(height_)
+  {}
 
-				Horizon3DNode();
-				Horizon3DNode(const Horizon3DNode&,
-				    const osg::CopyOp& op =
-					osg::CopyOp::DEEP_COPY_ALL);
-				META_Node(osgGeo,Horizon3DNode);
+  Size() :
+      width(0),
+      height(0)
+  {}
 
-    void			setDepthArray(osg::Array*);
-    const osg::Array*		getDepthArray() const;
-    osg::Array*			getDepthArray();
-
-    void			touch(int row,int col);
-				//row=-1, col=-1 means everything
-
-    void			setNrColumns(int);
-    int				getNrColumns() const;
-
-    void			setMaxDepth(float);
-				//Everything larger than this will be treated as undef
-    float			getMaxDepth() const;
-
-    void			traverse(osg::NodeVisitor&);
-
-    void			setLayeredTexture(LayeredTexture*);
-    LayeredTexture*		getLayeredTexture();
-    const LayeredTexture*	getLayeredTexture() const;
-
-protected:
-    Horizon3DNode&			operator=(const Horizon3DNode&);
-    virtual				~Horizon3DNode();
-
-    osg::ref_ptr<osg::Array>		_array;
-    int					_nrcolumns;
-    float				_maxdepth;
-    osg::ref_ptr<LayeredTexture>	_texture;
+  int width, height;
 };
 
+class LayeredTexture;
 
+/**
+  * Node to display a horizon object. Currently a simplistic
+  * implementation that creates a single Geometry object
+  * without breaking it into tiles. Normals are calculated
+  * for each vertex, textures are not supported yet, currently
+  * it is single coloured
+  */
+class OSGGEO_EXPORT Horizon3DNode : public osg::Geode
+{
+public:
+//    Horizon3DNode();
+//    Horizon3DNode(const Horizon3DNode&,
+//                  const osg::CopyOp& op =
+//                  osg::CopyOp::DEEP_COPY_ALL);
+//    META_Node(osgGeo,Horizon3DNode)
+
+    void setSize(const Size &size);
+    Size getSize() const;
+
+    void setDepthArray(osg::Array*);
+    const osg::Array* getDepthArray() const;
+    osg::Array* getDepthArray();
+
+    //! real world coordinate of the position(0, 0)
+    void setStart(osg::Vec2 value);
+    osg::Vec2 getStart();
+
+    //! real world coordinate of the position(width, height)
+    void setEnd(osg::Vec2 value);
+    osg::Vec2 getEnd();
+
+    //! row=-1, col=-1 means everything
+    void touch(int row,int col);
+
+    //! Everything larger than this will be treated as undef
+    void setMaxDepth(float);
+    float getMaxDepth() const;
+
+//    void			traverse(osg::NodeVisitor&);
+
+    void setLayeredTexture(LayeredTexture*);
+    LayeredTexture* getLayeredTexture();
+    const LayeredTexture* getLayeredTexture() const;
+
+protected:
+//    Horizon3DNode&			operator=(const Horizon3DNode&);
+//    virtual				~Horizon3DNode();
+
+    void updateDrawables();
+    bool isUndef(double val);
+
+    Size _size;
+    osg::ref_ptr<osg::Array> _array;
+    osg::Vec2 _start, _end;
+    float _maxdepth;
+//    osg::ref_ptr<LayeredTexture> _texture;
+};
 
 }
 #endif //OSGGEO_POLYLINE_H
