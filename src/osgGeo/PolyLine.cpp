@@ -290,4 +290,29 @@ bool PolyLineNode::needsUpdate() const
     return _needsUpdate;
 }
 
+
+void PolyLineNode::addPrimitiveSet( osg::PrimitiveSet* ps )
+{
+    _primitivesets.push_back( ps );
+}
+
+
+int PolyLineNode::getPrimitiveSetIndex( const osg::PrimitiveSet* ps ) const
+{
+    std::vector<osg::ref_ptr<osg::PrimitiveSet> >::const_iterator it =
+	std::find( _primitivesets.begin(), _primitivesets.end(), ps );
+
+    if ( it==_primitivesets.end() )
+	return -1;
+
+    return it-_primitivesets.begin();
+}
+
+
+void PolyLineNode::removePrimitiveSet( int idx )
+{
+    _primitivesets.erase( _primitivesets.begin()+idx );
+}
+
+
 } //namespace osgGeo
