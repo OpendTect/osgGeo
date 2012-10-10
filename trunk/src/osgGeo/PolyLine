@@ -36,35 +36,44 @@ class OSGGEO_EXPORT	PolyLineNode : public osg::Node
 {
 public:
 
-						PolyLineNode();
-						PolyLineNode(const PolyLineNode&,
-										const osg::CopyOp& op =
-												osg::CopyOp::DEEP_COPY_ALL);
-						META_Node(osgGeo,PolyLineNode);
+		PolyLineNode();
+		PolyLineNode(const PolyLineNode&,
+			const osg::CopyOp& op =
+				osg::CopyOp::DEEP_COPY_ALL);
+			META_Node(osgGeo,PolyLineNode);
 
-	virtual void		traverse(osg::NodeVisitor&);
-	void				setVertexArray(osg::Array*);
-	void				setRadius(const float&);
-	void				setColor(const osg::Vec4&);
+    void	traverse(osg::NodeVisitor&);
+    void	setVertexArray(osg::Array*);
+    void	setRadius(const float&);
+    float	getRadius() const { return _radius; }
+    void	setColor(const osg::Vec4&);
+
+    void	addPrimitiveSet(osg::PrimitiveSet*);
+    void	removePrimitiveSet(int);
+    int		getPrimitiveSetIndex(const osg::PrimitiveSet*) const;
+    void	touchPrimitiveSet(int)			{}
 
 protected:
-    virtual				~PolyLineNode();
-    bool				updateGeometry();
-    bool				needsUpdate() const;
-	void				getOrthoVecs(const osg::Vec3&,osg::Vec3&,osg::Vec3&) const;
-	virtual osg::BoundingSphere computeBound() const;  
+    virtual		~PolyLineNode();
+    bool		updateGeometry();
+    bool		needsUpdate() const;
+    void		getOrthoVecs(const osg::Vec3&,osg::Vec3&,
+				     osg::Vec3&) const;
 
-    osg::Vec3			_center;
-	osg::Vec3			_width;
-    bool				_needsUpdate;
-	osg::ref_ptr<osg::Array> _array;
-    float				_radius;
-    float				_maxRadius;
-    bool				_screenSizeScaling;
-	osg::Vec4			_color;
-    osg::ref_ptr<osg::Geometry>	_geometry;
-    unsigned int		_arrayModifiedCount;
-	const int			_resolution;
+    osg::BoundingSphere	computeBound() const;  
+
+    osg::Vec3						_center;
+    osg::Vec3						_width;
+    bool						_needsUpdate;
+    osg::ref_ptr<osg::Array>				_array;
+    float						_radius;
+    float						_maxRadius;
+    bool						_screenSizeScaling;
+    osg::Vec4						_color;
+    osg::ref_ptr<osg::Geometry>				_geometry;
+    unsigned int					_arrayModifiedCount;
+    const int						_resolution;
+    std::vector<osg::ref_ptr<osg::PrimitiveSet> >	_primitivesets;
 };
 
 
