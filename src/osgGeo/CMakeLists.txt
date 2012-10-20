@@ -34,13 +34,15 @@ add_library( ${LIB_NAME} SHARED
     LayeredTexture.cpp
     OneSideRender.cpp
     Line3.cpp
-    TexturePlane.cpp )
+    TexturePlane.cpp
+    ThumbWheel.cpp )
 
 target_link_libraries(
     ${LIB_NAME}
     ${OSGGEO_OSG_LIBRARY}
     ${OSGGEO_OPENTHREADS_LIBRARY}
     ${OSGGEO_OSGUTIL_LIBRARY}
+    ${OSGGEO_OSGMANIPULATOR_LIBRARY}
     ${OSGGEO_OSGDB_LIBRARY} )
 
 install(FILES
@@ -56,6 +58,7 @@ install(FILES
     OneSideRender
     TexturePlane
     Vec2i
+    ThumbWheel
     DESTINATION include/${LIB_NAME} )
 
 install(TARGETS
