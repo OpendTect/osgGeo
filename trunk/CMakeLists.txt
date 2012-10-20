@@ -44,8 +44,13 @@ include( CreateLaunchers )
 include( osgGeoCommon )
 include( osgGeoSetupOSG )
 
+if( BUILD_EXAMPLES )
+    find_package( Qt4 REQUIRED )
+endif( BUILD_EXAMPLES )
+
+
 include_directories( ${osgGeo_SOURCE_DIR}/src )
-include_directories( SYSTEM ${OSG_INCLUDE_DIR} )
+include_directories( SYSTEM ${OSG_INCLUDE_DIR} ${QT_HEADERS_DIR} )
 
 install( FILES
 	CMakeModules/FindosgGeo.cmake
