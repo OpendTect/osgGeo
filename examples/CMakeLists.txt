@@ -5,11 +5,15 @@ include_directories(
 
 SET ( RUNTIMELIBS
         ${OSGGEO_OSG_LIBRARY}
+        ${OSGGEO_OSGQT_LIBRARY}
         ${OSGGEO_OPENTHREADS_LIBRARY}
         ${OSGGEO_OSGUTIL_LIBRARY}
         ${OSGGEO_OSGVIEWER_LIBRARY}
 	${OSGGEO_OSGGA_LIBRARY}
-        ${OSGGEO_OSGDB_LIBRARY} )
+        ${OSGGEO_OSGDB_LIBRARY}
+	${QT_QTCORE_LIBRARY} 
+	${QT_QTGUI_LIBRARY} 
+)
 
 guess_runtime_library_dirs( RUNTIMELIBDIR ${RUNTIMELIBS} )
 
@@ -27,5 +31,6 @@ macro(add_example name)
 endmacro()
 
 add_example(horizons horizons.cpp)
+add_example( thumbwheel  thumbwheel.cpp)
 add_example(PolyLines PolyLines.cpp)
 add_example(textureplane textureplane.cpp)
