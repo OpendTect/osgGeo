@@ -1,0 +1,64 @@
+#ifndef OSGGEO_THUMBWHEEL_H
+#define OSGGEO_THUMBWHEEL_H
+
+/* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
+Copyright 2011 dGB Beheer B.V.
+
+osgGeo is free software; you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>
+
+$Id: Horizon3D 108 2012-10-08 08:32:40Z kristofer.tingdahl@dgbes.com $
+
+*/
+
+#include <osgGeo/Common>
+#include <osgManipulator/Dragger>
+#include <osgManipulator/Projector>
+
+namespace osgGeo
+{
+
+/**
+ * Wheel for performing rotation
+ */
+
+class OSGGEO_EXPORT ThumbWheel : public osgManipulator::Dragger
+{
+public:
+    ThumbWheel();
+    ThumbWheel(const ThumbWheel&,const osg::CopyOp&);
+
+    META_Node(osgGeo,ThumbWheel)
+
+    /** Handle pick events on dragger and generate TranslateInLine commands. */
+    virtual bool handle(const osgManipulator::PointerInfo& pi, const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& us);
+
+    /** Setup default geometry for dragger. */
+    void setupDefaultGeometry();
+
+    inline void setCheckForNodeInNodePath(bool onOff) { _checkForNodeInNodePath = onOff; }
+
+protected:
+
+    virtual ~ThumbWheel();
+
+    osg::ref_ptr<osgManipulator::LineProjector>		_projector;
+    osg::Vec3d						_startProjectedPoint;
+
+    bool                            			_checkForNodeInNodePath;
+};
+
+
+}
+
+#endif
