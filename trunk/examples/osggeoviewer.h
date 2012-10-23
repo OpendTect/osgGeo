@@ -43,12 +43,8 @@ public:
 
     int			run();
 
-#ifdef USEQT
-    int			width() const { return widget_->width(); }
-    int			height() const { return widget_->height(); }
-#else
-   
-#endif
+    int			width() const { return viewer_->getCamera()->getViewport()->width(); }
+    int			height() const { return viewer_->getCamera()->getViewport()->height(); }
 
 protected:
 #ifdef USEQT
@@ -61,10 +57,12 @@ protected:
 
 inline
 Viewer::Viewer( int argc, char** argv )
-    : app_( argc, argv )
 #ifdef USEQT
+    : app_( argc, argv )
     , widget_( 0 )
     , viewer_( 0 )
+#else
+    : viewer_( 0 )
 #endif
 {
     viewer_ = new osgViewer::Viewer;

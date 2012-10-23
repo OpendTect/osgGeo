@@ -3,17 +3,22 @@ include_directories(
     ${OSGGEO_INCLUDE_DIR}
 )
 
-SET ( RUNTIMELIBS
+set ( RUNTIMELIBS
         ${OSGGEO_OSG_LIBRARY}
-        ${OSGGEO_OSGQT_LIBRARY}
         ${OSGGEO_OPENTHREADS_LIBRARY}
         ${OSGGEO_OSGUTIL_LIBRARY}
         ${OSGGEO_OSGVIEWER_LIBRARY}
 	${OSGGEO_OSGGA_LIBRARY}
         ${OSGGEO_OSGDB_LIBRARY}
+)
+
+if ( USEQT )
+    add_definitions( -DUSEQT )
+    list( APPEND RUNTIMELIBS
 	${QT_QTCORE_LIBRARY} 
 	${QT_QTGUI_LIBRARY} 
-)
+        ${OSGGEO_OSGQT_LIBRARY} )
+endif()
 
 guess_runtime_library_dirs( RUNTIMELIBDIR ${RUNTIMELIBS} )
 
