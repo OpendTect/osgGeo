@@ -47,6 +47,7 @@ public:
     int			width() const { return widget_->width(); }
     int			height() const { return widget_->height(); }
 #else
+   
 #endif
 
 protected:
@@ -58,37 +59,44 @@ protected:
 };
 
 
-#ifdef USEQT
 inline
 Viewer::Viewer( int argc, char** argv )
     : app_( argc, argv )
+#ifdef USEQT
     , widget_( 0 )
     , viewer_( 0 )
+#endif
 {
-
     viewer_ = new osgViewer::Viewer;
     viewer_->setCameraManipulator( new osgGA::TrackballManipulator );
 
+#ifdef USEQT
     osgQt::initQtWindowingSystem();
     osgQt::setViewer( viewer_.get() );
     
     osgQt::GLWidget* glw = new osgQt::GLWidget;
     widget_ = glw;
-    osgQt::GraphicsWindowQt* graphicswin = new osgQt::GraphicsWindowQt( glw );
+#endif
     
-    viewer_->getCamera()->setViewport( new osg::Viewport(0, 0, glw->width(), glw->height() ) );
+    viewer_->getCamera()->setViewport( new osg::Viewport(0, 0, width(), height() ) );
+
+#ifdef USEQT
+    osgQt::GraphicsWindowQt* graphicswin = new osgQt::GraphicsWindowQt( glw );
     viewer_->getCamera()->setGraphicsContext( graphicswin );
+#endif
 }
 
 
 inline
 int Viewer::run()
 {
+#ifdef USEQT
     widget_->show();
     return app_.exec();
-}
 #else
+    return viewer_->run();
 #endif
+}
 
 inline
 void Viewer::setSceneData( osg::Node* n )
