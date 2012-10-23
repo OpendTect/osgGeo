@@ -24,10 +24,12 @@ $Id: PolyLines.cpp 108 2012-10-08 08:32:40Z kristofer.tingdahl@dgbes.com $
 
 */
 
-#include <QtGui/QApplication>
+#ifdef USEQT
+# include <QtGui/QApplication>
+# include <osgQt/GraphicsWindowQt>
+#endif
 
 #include <osgViewer/Viewer>
-#include <osgQt/GraphicsWindowQt>
 #include <osgGA/TrackballManipulator>
 
 namespace osgGeo
@@ -41,25 +43,33 @@ public:
 
     int			run();
 
+#ifdef USEQT
     int			width() const { return widget_->width(); }
     int			height() const { return widget_->height(); }
+#else
+#endif
+
 protected:
+#ifdef USEQT
     QApplication 			app_;
     QWidget*				widget_;
+#endif
     osg::ref_ptr<osgViewer::Viewer>	viewer_;
 };
 
 
+#ifdef USEQT
 inline
 Viewer::Viewer( int argc, char** argv )
     : app_( argc, argv )
     , widget_( 0 )
     , viewer_( 0 )
 {
-    osgQt::initQtWindowingSystem();
 
     viewer_ = new osgViewer::Viewer;
     viewer_->setCameraManipulator( new osgGA::TrackballManipulator );
+
+    osgQt::initQtWindowingSystem();
     osgQt::setViewer( viewer_.get() );
     
     osgQt::GLWidget* glw = new osgQt::GLWidget;
@@ -72,17 +82,20 @@ Viewer::Viewer( int argc, char** argv )
 
 
 inline
-void Viewer::setSceneData( osg::Node* n )
-{
-    viewer_->setSceneData( n );
-}
-
-inline
 int Viewer::run()
 {
     widget_->show();
     return app_.exec();
 }
+#else
+#endif
+
+inline
+void Viewer::setSceneData( osg::Node* n )
+{
+    viewer_->setSceneData( n );
+}
+
 
 } //namespace
 
