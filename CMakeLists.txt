@@ -47,7 +47,7 @@ include( osgGeoSetupOSG )
 if( BUILD_EXAMPLES )
     if ( APPLE )
 	find_package( Qt4 REQUIRED )
-	add_definitions( -DUSEQT )
+	set( USEQT 1 )
     endif()
 endif( BUILD_EXAMPLES )
 
