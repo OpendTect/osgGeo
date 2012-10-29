@@ -33,6 +33,11 @@ namespace osgGeo
 {
 class LayeredTexture;
 
+/*!Class to display a random section through a 3d volume with a texture. The
+    section follows a path on the xy plane, and starts/stops at the
+    z-coordinates given by setZrange.
+*/
+
 class OSGGEO_EXPORT RandomLineNode : public osg::Node
 {
 public:
@@ -46,11 +51,14 @@ public:
     void			setTexture(osgGeo::LayeredTexture*);
     osgGeo::LayeredTexture*	getTexture()		{ return _texture; }
     
-    void			setKnots(const osg::Vec2Array& coords,
+    void			setPath(const osg::Vec2Array& coords,
 				     const osg::UIntArray& indices);
+				/*!<Sets the path. The indices corresponds to
+				    columns in the texture, so the texture will
+				    be in sync with the path. */
 				     
-    const osg::UIntArray&	getKnotIndices() const	{ return *_knotindices;}
-    const osg::Vec2Array&	getKnotCoords() const	{ return *_knotcoords; }
+    const osg::UIntArray&	getKnotIndices() const	{ return *_pathindices;}
+    const osg::Vec2Array&	getKnotCoords() const	{ return *_pathcoords; }
     
     void			setZRange(float top, float bottom );
     float			getBottom() const	{ return _bottom; }
@@ -62,8 +70,8 @@ protected:
     void			traverse(osg::NodeVisitor&);
     
     osg::ref_ptr<osgGeo::LayeredTexture>	_texture;
-    osg::ref_ptr<osg::UIntArray>		_knotindices;
-    osg::ref_ptr<osg::Vec2Array>		_knotcoords;
+    osg::ref_ptr<osg::UIntArray>		_pathindices;
+    osg::ref_ptr<osg::Vec2Array>		_pathcoords;
     float					_top;
     float					_bottom;
     osg::ref_ptr<osg::Geode>			_geode;

@@ -32,8 +32,8 @@ using namespace osgGeo;
 
 RandomLineNode::RandomLineNode()
     : _texture( 0 )
-    , _knotindices( new osg::UIntArray )
-    , _knotcoords( new osg::Vec2Array )
+    , _pathindices( new osg::UIntArray )
+    , _pathcoords( new osg::Vec2Array )
     , _top( 0.0f )
     , _bottom( 1.0f )
     , _geode( new osg::Geode )
@@ -46,8 +46,8 @@ RandomLineNode::RandomLineNode()
 RandomLineNode::RandomLineNode( const RandomLineNode& b,
 	       const osg::CopyOp& op )
     : _texture( 0 )
-    , _knotindices( new osg::UIntArray )
-    , _knotcoords( new osg::Vec2Array )
+    , _pathindices( new osg::UIntArray )
+    , _pathcoords( new osg::Vec2Array )
     , _top( b._top )
     , _bottom( b._bottom )
     , _geode( new osg::Geode )
@@ -62,7 +62,7 @@ RandomLineNode::RandomLineNode( const RandomLineNode& b,
 	    setTexture( b._texture );
     }
     
-    setKnots( *b._knotcoords, *b._knotindices );
+    setPath( *b._pathcoords, *b._pathindices );
 }
 
 
@@ -83,11 +83,11 @@ void RandomLineNode::setTexture( osgGeo::LayeredTexture* t )
 }
 
 
-void RandomLineNode::setKnots( const osg::Vec2Array& coords,
-			       const osg::UIntArray& indices )
+void RandomLineNode::setPath( const osg::Vec2Array& coords,
+			      const osg::UIntArray& indices )
 {
-    *_knotindices = indices;
-    *_knotcoords = coords;
+    *_pathindices = indices;
+    *_pathcoords = coords;
     
     _updatecount++;
 }
@@ -116,7 +116,7 @@ void RandomLineNode::traverse( osg::NodeVisitor& nv )
 
 bool RandomLineNode::updateGeometry()
 {
-    int nrknots = osg::minimum( _knotindices->size(), _knotcoords->size() );
+    //int nrknots = osg::minimum( _pathindices->size(), _pathcoords->size() );
     
     //TODO port code from visBase and create tiles with own stateset and part
     //of the texture.
