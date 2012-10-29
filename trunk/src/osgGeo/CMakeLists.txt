@@ -34,6 +34,7 @@ add_library( ${LIB_NAME} SHARED
     LayeredTexture.cpp
     OneSideRender.cpp
     Line3.cpp
+    RandomLine.cpp
     TexturePlane.cpp
     ThumbWheel.cpp )
 
