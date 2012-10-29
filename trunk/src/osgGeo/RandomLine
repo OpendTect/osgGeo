@@ -37,38 +37,38 @@ class OSGGEO_EXPORT RandomLineNode : public osg::Node
 {
 public:
 
-			    RandomLineNode();
-			    RandomLineNode(const RandomLineNode&,
-				const osg::CopyOp& op =
-				osg::CopyOp::DEEP_COPY_ALL);
-			    META_Node(osgGeo,RandomLineNode);
+				RandomLineNode();
+				RandomLineNode(const RandomLineNode&,
+				    const osg::CopyOp& op =
+				    osg::CopyOp::DEEP_COPY_ALL);
+				META_Node(osgGeo,RandomLineNode);
     
-    void		    setTexture(osgGeo::LayeredTexture*);
-    osgGeo::LayeredTexture* getTexture()		{ return _texture; }
+    void			setTexture(osgGeo::LayeredTexture*);
+    osgGeo::LayeredTexture*	getTexture()		{ return _texture; }
     
-    void		    setKnots(const osg::Vec2Array& coords,
+    void			setKnots(const osg::Vec2Array& coords,
 				     const osg::UIntArray& indices);
 				     
-    const osg::UIntArray&   getKnotIndices() const	{ return *_knotindices;}
-    const osg::Vec2Array&   getKnotCoords() const	{ return *_knotcoords; }
+    const osg::UIntArray&	getKnotIndices() const	{ return *_knotindices;}
+    const osg::Vec2Array&	getKnotCoords() const	{ return *_knotcoords; }
     
-    void		    setZRange(float top, float bottom );
-    float		    getBottom() const		{ return _bottom; }
-    float		    getTop() const		{ return _top; }
+    void			setZRange(float top, float bottom );
+    float			getBottom() const	{ return _bottom; }
+    float			getTop() const		{ return _top; }
     
 protected:
-    virtual		~RandomLineNode();
-    bool		updateGeometry();
-    void		traverse(osg::NodeVisitor&);
+    virtual			~RandomLineNode();
+    bool			updateGeometry();
+    void			traverse(osg::NodeVisitor&);
     
-    osg::ref_ptr<osgGeo::LayeredTexture>		_texture;
-    osg::ref_ptr<osg::UIntArray>			_knotindices;
-    osg::ref_ptr<osg::Vec2Array>			_knotcoords;
-    float						_top;
-    float						_bottom;
-    osg::ref_ptr<osg::Geode>				_geode;
-    int							_updatecount;
-    int							_lastgeomupdatecount;
+    osg::ref_ptr<osgGeo::LayeredTexture>	_texture;
+    osg::ref_ptr<osg::UIntArray>		_knotindices;
+    osg::ref_ptr<osg::Vec2Array>		_knotcoords;
+    float					_top;
+    float					_bottom;
+    osg::ref_ptr<osg::Geode>			_geode;
+    int						_updatecount;
+    int						_lastgeomupdatecount;
 };
 
 
