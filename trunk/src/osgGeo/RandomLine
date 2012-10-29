@@ -62,8 +62,8 @@ protected:
     void		traverse(osg::NodeVisitor&);
     
     osg::ref_ptr<osgGeo::LayeredTexture>		_texture;
-    osg::ref_ptr<osg::UIntArray>					_knotindices;
-    osg::ref_ptr<osg::Vec2Array>					_knotcoords;
+    osg::ref_ptr<osg::UIntArray>			_knotindices;
+    osg::ref_ptr<osg::Vec2Array>			_knotcoords;
     float						_top;
     float						_bottom;
     osg::ref_ptr<osg::Geode>				_geode;
