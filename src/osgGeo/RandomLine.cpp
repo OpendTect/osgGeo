@@ -45,7 +45,8 @@ RandomLineNode::RandomLineNode()
 
 RandomLineNode::RandomLineNode( const RandomLineNode& b,
 	       const osg::CopyOp& op )
-    : _texture( 0 )
+    : osg::Node( b, op )
+    , _texture( 0 )
     , _pathindices( new osg::UIntArray )
     , _pathcoords( new osg::Vec2Array )
     , _top( b._top )
