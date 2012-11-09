@@ -19,9 +19,9 @@ $Id$
 */
 
 
-#include <osgGeo/PolyLine>
+#include "PolyLine"
 
-#include <osgGeo/Line3>
+#include "Line3"
 
 #include <osg/Geometry>
 #include <osgUtil/CullVisitor>
@@ -37,7 +37,7 @@ PolyLineNode::PolyLineNode()
     , _screenSizeScaling(false)
     , _geometry( new osg::Geometry )
     , _arrayModifiedCount(0)
-    , _resolution(4)
+    , _resolution(10)
 {
     setNumChildrenRequiringUpdateTraversal( 1 );
 }
@@ -51,7 +51,7 @@ PolyLineNode::PolyLineNode( const PolyLineNode& node, const osg::CopyOp& co )
     , _screenSizeScaling(node._screenSizeScaling)
     , _geometry((osg::Geometry*)node._geometry->clone(co))
     , _arrayModifiedCount(0)
-    , _resolution(4)
+    , _resolution(10)
 {
     setNumChildrenRequiringUpdateTraversal( 1 );
 }
@@ -178,6 +178,7 @@ void PolyLineNode::getOrthoVecs( const osg::Vec3& w, osg::Vec3& u, osg::Vec3& v 
     norm = vec - pos; \
     norm.normalize();\
     normals->push_back( norm ); \
+    cii->push_back( ci++ );
 
 bool PolyLineNode::updateGeometry()
 {
@@ -189,91 +190,89 @@ bool PolyLineNode::updateGeometry()
     osg::ref_ptr<osg::Vec3Array> normals = new osg::Vec3Array;
    
     const unsigned int arrsize = arr->size();
-    osg::Vec3* corners1 = new osg::Vec3[_resolution];
-    osg::Vec3* corners2 = new osg::Vec3[_resolution];
-    for ( unsigned int pidx=0; pidx<arrsize; pidx++ )
+    const unsigned int primsz = _primitivesets.size();
+    int ci = 0;
+    
+    for ( unsigned int primidx=0; primidx<primsz; primidx++ )
     {
-	osg::Vec3 p0;
-	osg::Vec3 p1 = arr->at( pidx );
-	osg::Vec3 p2;
-	osg::Vec3 vec01;
-	osg::Vec3 vec12;
-	osg::Vec3 planenormal;
-	bool doreverse = false;
-	
-	if ( !pidx )
+	osg::Vec3* corners1 = new osg::Vec3[_resolution];
+	osg::Vec3* corners2 = new osg::Vec3[_resolution];
+	osg::PrimitiveSet* ps = _primitivesets.at( primidx );
+	osg::DrawElementsUInt* indices = 
+	    dynamic_cast<osg::DrawElementsUInt*>( ps );
+	if ( !indices )
+	    continue;
+	bool doonce = true;
+	osg::DrawElementsUInt* cii =
+		new osg::DrawElementsUInt(osg::PrimitiveSet::TRIANGLE_STRIP, 0);
+	for ( unsigned int cidx=0; cidx<indices->size(); cidx++ )
 	{
-	    p0 = arr->at( pidx );
-	    p1 = arr->at( pidx+1 );
-	    p2 = arr->at( arrsize >= 3 ? pidx+2 : pidx+1 );
-	    vec01 = p1 - p0; vec01.normalize();
-	    vec12 = p2 - p1; vec12.normalize();
-	    planenormal = vec01 + vec12;
-	    osg::Vec3 curu,curv;
-	    getOrthoVecs( vec01, curu, curv );
+	    const unsigned int pidx = indices->at( cidx );
+	    const osg::Vec3  p0 = arr->at( pidx );
+	    const osg::Vec3  p1 = arr->at( pidx < arrsize-1 ? pidx+1 : pidx );
+	    const osg::Vec3  p2 = arr->at( pidx < arrsize-2 ? pidx+2 : pidx );
+	    osg::Vec3 vec01 = p1 - p0; vec01.normalize();
+	    osg::Vec3 vec12 = p2 - p1; vec12.normalize();
+	    const bool doreverse = vec01 * vec12 < -0.5f;
+	    const osg::Vec3 planenormal =
+		doreverse ? vec12 - vec01 : vec01 + vec12;
+	   
+	    if ( doonce )
+	    {
+		osg::Vec3 curu,curv;
+		getOrthoVecs( vec01, curu, curv );
+		for ( int idx=0; idx<_resolution; idx++ )
+		{
+		    float angl = idx * 2 * M_PI / _resolution;
+		    const osg::Vec3 vec1 = ( curu * cos(angl) ) + ( curv * sin(angl) );
+		    corners1[idx] = vec1*_radius + p0;
+		}
+
+		doonce = false;
+	    }
+
+	    osg::Vec3 norm;
+	    const osg::Plane plane( planenormal, p1 );
 	    for ( int idx=0; idx<_resolution; idx++ )
 	    {
-		float angl = idx * 2 * M_PI / _resolution;
-		const osg::Vec3 vec1 = ( curu * cos(angl) ) + ( curv * sin(angl) );
-		corners1[idx] = vec1*_radius + p0;
+		const osgGeo::Line3 lineproj( corners1[idx], vec01 );
+		corners2[idx] = lineproj.getInterSectionPoint( plane );
+		mAddVertex( corners1[idx], p0 )
+		mAddVertex( corners2[idx], p1 )
 	    }
-	}
-	else if ( pidx == arr->size()-1 )
-	{
-	    p0 = arr->at( pidx-1 );
-	    planenormal = p1 - p0;
-	    planenormal.normalize();
-	    vec01 = planenormal;
-	}
-	else
-	{
-	    p0 = arr->at( pidx-1 );
-	    p2 = arr->at( pidx+1 );
-	    vec01 = p1-p0; vec01.normalize();
-	    vec12 = p2-p1; vec12.normalize();
-	    doreverse = vec01 * vec12 < -0.5f;
-	    planenormal = !doreverse ? vec01 + vec12 : vec12 - vec01;
-	}
-	
-	osg::Vec3 norm;
-	const osg::Plane plane( planenormal, p1 );
-	for ( int idx=0; idx<_resolution; idx++ )
-	{
-	    const osgGeo::Line3 lineproj( corners1[idx], vec01 );
-	    corners2[idx] = lineproj.getInterSectionPoint( plane );
-	    mAddVertex( corners1[idx], p0 )
-	    mAddVertex( corners2[idx], p1 )
-	}
 
-	mAddVertex( corners1[0], p0 )
-	mAddVertex( corners2[0], p1 )
+	    mAddVertex( corners1[0], p0 )
+	    mAddVertex( corners2[0], p1 )
 
-	if ( doreverse )
-	{
-	    norm = -planenormal;
-	    norm.normalize();
-	    for ( int idx=0; idx<_resolution; idx++ )
+	    if ( doreverse )
 	    {
-		coords->push_back( corners2[idx] );
-		normals->push_back( norm*0.5 );
-		coords->push_back( p1 );
-		normals->push_back( norm*0.5 );
-	    }
+		norm = -planenormal;
+		norm.normalize();
+		for ( int idx=0; idx<_resolution; idx++ )
+		{
+		    coords->push_back( corners2[idx] ); 
+		    cii->push_back( ci++ );
+		    normals->push_back( norm*0.5 );
+		    coords->push_back( p1 ); cii->push_back( ci++ );
+		    normals->push_back( norm*0.5 );
+		}
 	    
-	   coords->push_back( corners2[0] );
-	   normals->push_back( norm*0.5 );
-	}
+	       coords->push_back( corners2[0] ); 
+	       cii->push_back( ci++ );
+	       normals->push_back( norm*0.5 );
+	    }
 	
-	for ( int idx=0; idx<_resolution; idx++ )
-	    corners1[idx] = corners2[idx];
+	    for ( int idx=0; idx<_resolution; idx++ )
+		corners1[idx] = corners2[idx];
+	}
+
+	delete[] corners1;
+	delete[] corners2;
+   
+	_geometry->addPrimitiveSet( cii );
     }
-
-    delete[] corners1;
-    delete[] corners2;
-
+   
     _geometry->setVertexArray( coords );
-    _geometry->addPrimitiveSet( new osg::DrawArrays( GL_TRIANGLE_STRIP, 0,
-			       coords->size(), 0 ));
     _geometry->setNormalArray( normals.get() );
     _geometry->setNormalBinding( osg::Geometry::BIND_PER_VERTEX );
     osg::Vec4Array* colors = new osg::Vec4Array;
