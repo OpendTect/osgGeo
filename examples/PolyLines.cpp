@@ -25,26 +25,45 @@ $Id$
 #include <osgGeo/PolyLine>
 #include <osgViewer/Viewer> 
 
-osg::ref_ptr<osg::Node> drawPolyLineSnake()
+osg::ref_ptr<osg::Node> drawDNA()
 {
     srand( clock() );
     osg::ref_ptr<osg::Vec3Array> coords = new osg::Vec3Array;
-    for ( int idx=0; idx<100; idx++ )
+  
+
+    osg::DrawElementsUInt* primset1 =
+	new osg::DrawElementsUInt(osg::PrimitiveSet::TRIANGLE_STRIP, 0);
+    osg::DrawElementsUInt* primset2 =
+	new osg::DrawElementsUInt(osg::PrimitiveSet::TRIANGLE_STRIP, 0);
+
+    int ci = 0;
+    for ( int idx=0; idx<150; idx++ )
     { 
 	osg::Vec3 coord( 200*sin(idx/10.0), 200*cos(idx/10.0), idx*20 ); 
 	coords->push_back( coord );
+	primset1->push_back( ci++ );
     }
+    
+    for ( int idx=0; idx<150; idx++ )
+    { 
+	osg::Vec3 coord( -200*sin(idx/10.0), -200*cos(idx/10.0),  idx*20  ); 
+	coords->push_back( coord );
+	primset2->push_back( ci++ );
+    }
+
     osg::ref_ptr<osgGeo::PolyLineNode> polyline = new osgGeo::PolyLineNode();
     polyline->setRadius( 50 );
     polyline->setColor( osg::Vec4(0.0f, 1.0f, 0.0f, 1.0f) );
     polyline->setVertexArray( coords );
+    polyline->addPrimitiveSet( primset1 );
+    polyline->addPrimitiveSet( primset2 );
     return polyline.get();
 }
 
 int main()
 {
     osgViewer::Viewer viewer;
-    viewer.setSceneData ( drawPolyLineSnake() );
+    viewer.setSceneData ( drawDNA() );
     viewer.setUpViewInWindow( 150, 20, 640, 480 );
     viewer.run();
 }
