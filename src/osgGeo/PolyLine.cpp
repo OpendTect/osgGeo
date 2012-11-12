@@ -18,11 +18,9 @@ $Id$
 
 */
 
+#include <osgGeo/PolyLine>
 
-#include "PolyLine"
-
-#include "Line3"
-
+#include <osgGeo/Line3>
 #include <osg/Geometry>
 #include <osgUtil/CullVisitor>
 
@@ -37,7 +35,7 @@ PolyLineNode::PolyLineNode()
     , _screenSizeScaling(false)
     , _geometry( new osg::Geometry )
     , _arrayModifiedCount(0)
-    , _resolution(10)
+    , _resolution(4)
 {
     setNumChildrenRequiringUpdateTraversal( 1 );
 }
@@ -51,7 +49,7 @@ PolyLineNode::PolyLineNode( const PolyLineNode& node, const osg::CopyOp& co )
     , _screenSizeScaling(node._screenSizeScaling)
     , _geometry((osg::Geometry*)node._geometry->clone(co))
     , _arrayModifiedCount(0)
-    , _resolution(10)
+    , _resolution(4)
 {
     setNumChildrenRequiringUpdateTraversal( 1 );
 }
@@ -108,9 +106,9 @@ osg::BoundingSphere PolyLineNode::computeBound() const
     for ( unsigned int pidx=0; pidx<arr->size(); pidx++ )
     {
 	osg::Vec3 p = arr->at( pidx );
-	float x = p.x();
-	float y = p.y();
-	float z = p.z();
+	const float x = p.x();
+	const float y = p.y();
+	const float z = p.z();
 	mMax(x)
 	mMax(y)
 	mMax(z)
@@ -173,12 +171,25 @@ void PolyLineNode::getOrthoVecs( const osg::Vec3& w, osg::Vec3& u, osg::Vec3& v 
 }
 
 
+unsigned int getMaxIndex( const osg::DrawElementsUInt* indices )
+{
+    unsigned int max = 0;
+    for ( int idx=0; idx<indices->size(); idx++ )
+    {
+	const unsigned val = indices->at( idx );
+    	max = max > val ? max : val;
+    }
+    
+    return max;
+}
+
+
 #define mAddVertex(vec,pos)\
     coords->push_back( vec ); \
     norm = vec - pos; \
     norm.normalize();\
     normals->push_back( norm ); \
-    cii->push_back( ci++ );
+    triindices->push_back( ci++ );
 
 bool PolyLineNode::updateGeometry()
 {
@@ -189,28 +200,27 @@ bool PolyLineNode::updateGeometry()
     osg::ref_ptr<osg::Vec3Array> coords = new osg::Vec3Array;
     osg::ref_ptr<osg::Vec3Array> normals = new osg::Vec3Array;
    
-    const unsigned int arrsize = arr->size();
     const unsigned int primsz = _primitivesets.size();
     int ci = 0;
-    
     for ( unsigned int primidx=0; primidx<primsz; primidx++ )
     {
 	osg::Vec3* corners1 = new osg::Vec3[_resolution];
 	osg::Vec3* corners2 = new osg::Vec3[_resolution];
-	osg::PrimitiveSet* ps = _primitivesets.at( primidx );
-	osg::DrawElementsUInt* indices = 
-	    dynamic_cast<osg::DrawElementsUInt*>( ps );
+	const osg::PrimitiveSet* ps = _primitivesets.at( primidx );
+	const osg::DrawElementsUInt* indices = 
+	    dynamic_cast<const osg::DrawElementsUInt*>( ps );
 	if ( !indices )
 	    continue;
+	const unsigned int maxprimsz = getMaxIndex( indices );
 	bool doonce = true;
-	osg::DrawElementsUInt* cii =
+	osg::DrawElementsUInt* triindices =
 		new osg::DrawElementsUInt(osg::PrimitiveSet::TRIANGLE_STRIP, 0);
 	for ( unsigned int cidx=0; cidx<indices->size(); cidx++ )
 	{
 	    const unsigned int pidx = indices->at( cidx );
 	    const osg::Vec3  p0 = arr->at( pidx );
-	    const osg::Vec3  p1 = arr->at( pidx < arrsize-1 ? pidx+1 : pidx );
-	    const osg::Vec3  p2 = arr->at( pidx < arrsize-2 ? pidx+2 : pidx );
+	    const osg::Vec3  p1 = arr->at( pidx < maxprimsz-1 ? pidx+1 : pidx );
+	    const osg::Vec3  p2 = arr->at( pidx < maxprimsz-2 ? pidx+2 : pidx );
 	    osg::Vec3 vec01 = p1 - p0; vec01.normalize();
 	    osg::Vec3 vec12 = p2 - p1; vec12.normalize();
 	    const bool doreverse = vec01 * vec12 < -0.5f;
@@ -251,14 +261,15 @@ bool PolyLineNode::updateGeometry()
 		for ( int idx=0; idx<_resolution; idx++ )
 		{
 		    coords->push_back( corners2[idx] ); 
-		    cii->push_back( ci++ );
+		    triindices->push_back( ci++ );
 		    normals->push_back( norm*0.5 );
-		    coords->push_back( p1 ); cii->push_back( ci++ );
+		    coords->push_back( p1 ); 
+		    triindices->push_back( ci++ );
 		    normals->push_back( norm*0.5 );
 		}
 	    
 	       coords->push_back( corners2[0] ); 
-	       cii->push_back( ci++ );
+	       triindices->push_back( ci++ );
 	       normals->push_back( norm*0.5 );
 	    }
 	
@@ -269,7 +280,7 @@ bool PolyLineNode::updateGeometry()
 	delete[] corners1;
 	delete[] corners2;
    
-	_geometry->addPrimitiveSet( cii );
+	_geometry->addPrimitiveSet( triindices );
     }
    
     _geometry->setVertexArray( coords );
