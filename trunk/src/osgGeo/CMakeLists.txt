@@ -23,8 +23,26 @@ configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/Config.cmake
     ${CMAKE_CURRENT_SOURCE_DIR}/Config)
 
+set ( LIB_PUBLIC_HEADERS 
+	AutoTransform
+    Line3
+    Export
+    Common
+    Config
+    Horizon3DBase
+    Horizon3D
+    Horizon3D2
+    LayeredTexture
+	MarkerSet
+    PolyLine
+    OneSideRender
+    TexturePlane
+    Vec2i
+    ThumbWheel )
+
 add_library( ${LIB_NAME} SHARED
     ${LIB_PUBLIC_HEADERS}
+	AutoTransform.cpp
     Palette.cpp
     ShaderUtility.cpp
     PolyLine.cpp
@@ -32,6 +50,7 @@ add_library( ${LIB_NAME} SHARED
     Horizon3D.cpp
     Horizon3D2.cpp
     LayeredTexture.cpp
+	MarkerSet.cpp
     OneSideRender.cpp
     Line3.cpp
     RandomLine.cpp
@@ -47,19 +66,7 @@ target_link_libraries(
     ${OSGGEO_OSGDB_LIBRARY} )
 
 install(FILES
-    Line3
-    Export
-    Common
-    Config
-    Horizon3DBase
-    Horizon3D
-    Horizon3D2
-    LayeredTexture
-    PolyLine
-    OneSideRender
-    TexturePlane
-    Vec2i
-    ThumbWheel
+    ${LIB_PUBLIC_HEADERS}
     DESTINATION include/${LIB_NAME} )
 
 install(TARGETS
