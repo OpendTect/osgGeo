@@ -21,7 +21,7 @@ $Id: TexturePlane 108 2012-10-08 08:32:40Z kristofer.tingdahl@dgbes.com $
 
 */
 #include <osgGeo/Common>
-#include <osg/autotransform>
+#include <osg/AutoTransform>
 
 namespace osgGeo
 {
