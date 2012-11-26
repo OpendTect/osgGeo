@@ -103,7 +103,9 @@ void AutoTransform::accept(osg::NodeVisitor& nv)
 
 			if (getAutoScaleToScreen())
 			{
-			    const double nativesize = 1.0/cs->pixelSize(getPosition(),0.48f);
+			    const float pixelFactor(0.48f); // With a very low aspect ratio pixel size 
+							    // which can be as low a half of the true pixel size
+			    const double nativesize = 1.0/cs->pixelSize(getPosition(),pixelFactor);
 			    osg::Vec3d newscale( nativesize, nativesize, nativesize );
 			    if ( _restoreProportions )
 			    {
@@ -162,7 +164,6 @@ void AutoTransform::accept(osg::NodeVisitor& nv)
 			    }
 
 			    newscale *= length;
-
 			    setScale(newscale);
 			}
 

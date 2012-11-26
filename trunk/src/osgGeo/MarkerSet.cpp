@@ -91,22 +91,18 @@ bool MarkerSet::updateShapes()
 	case osgGeo::MarkerSet::Box:
 	    shapedrwb = new osg::ShapeDrawable(new osg::Box(osg::Vec3f(0,0,0),
 		_radius),_hints);
-	    autotrans->setRotation(osg::Quat(0,osg::Vec3d(0,0,1)));
 	    break;
 	case osgGeo::MarkerSet::Cone:
 	    shapedrwb = new osg::ShapeDrawable(new osg::Cone(osg::Vec3f(0,0,0),
 		_radius,_height),_hints);
-	    autotrans->setRotation(osg::Quat(M_PI/2,osg::Vec3d(1,0,0)));
 	    break;
 	case osgGeo::MarkerSet::Sphere:
-	    shapedrwb = new osg::ShapeDrawable(new osg::Sphere(osg::Vec3f(0,0,0)
-		,_radius),_hints);
-	    autotrans->setRotation(osg::Quat(0,osg::Vec3d(0,0,1)));
+	    shapedrwb = new osg::ShapeDrawable(new osg::Sphere(osg::Vec3f(0,0,
+		0),_radius),_hints);
 	    break;
 	case osgGeo::MarkerSet::Cylinder:
-	    shapedrwb = new osg::ShapeDrawable(new osg::Cylinder(osg::Vec3f(0,0,0),
-		_radius,_height),_hints);
-	    autotrans->setRotation(osg::Quat(M_PI/2,osg::Vec3d(1,0,0)));
+	    shapedrwb = new osg::ShapeDrawable(new osg::Cylinder(osg::Vec3f(0,
+		0,0),_radius,_height),_hints);
 	    break;
 	default:
 	    return false;
@@ -126,6 +122,8 @@ bool MarkerSet::updateShapes()
 
 	osg::ref_ptr<osg::Geode> geode = new osg::Geode;
 	geode->addDrawable( shapedrwb );
+	geode->getOrCreateStateSet()->setMode(GL_LIGHTING,
+					osg::StateAttribute::ON);
 	autotrans->addChild( geode );
 	_nonshadinggroup->addChild( autotrans );
 	
@@ -186,31 +184,32 @@ void MarkerSet::setDetail(float ratio)
     _needsUpdate = true;
 }
 
-void MarkerSet::setScale (double scale)
+void MarkerSet::setScale ( double scale )
 {
     _scale = scale;
     _needsUpdate = true;
 }
 
-void MarkerSet::setScale (const osg::Vec3d &scale)
+void MarkerSet::setScale ( const osg::Vec3d &scale )
 {
     _vec3dScale  = scale;
     _needsUpdate = true;
 }
 
-void MarkerSet::setMinimumScale(double minScale)
+void MarkerSet::setMinimumScale( double minScale )
 {
     _minScale = minScale;
     _needsUpdate = true;
 }
 
-void MarkerSet::setMaximumScale(double maxScale)
+void MarkerSet::setMaximumScale( double maxScale )
 {
     _maxScale = maxScale;
     _needsUpdate = true;
 }
 
-void MarkerSet::setAutoTransformRotateMode(osg::AutoTransform::AutoRotateMode rtMode)
+void MarkerSet::setAutoTransformRotateMode( osg::AutoTransform::
+					    AutoRotateMode rtMode )
 {
     _rotateMode = rtMode;
     _needsUpdate = true;
