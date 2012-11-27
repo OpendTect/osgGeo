@@ -67,8 +67,8 @@ macro(_launcher_system_settings)
 		set(VCPROJ_TYPE vcproj)
 		set(USERFILE_EXTENSION ${SYSTEM_NAME}.${USER_NAME}.user)
 		set(LAUNCHER_LINESEP "&#x0A;")
-		
-		if( ${MSVC_VERSION} EQUAL "1700" )
+	
+		if( NOT ${MSVC_VERSION} LESS  "1600" )
 			set(LAUNCHER_LINESEP "\n")
 			set(USERFILE_VC_VERSION 10.00)
 			set(USERFILE_EXTENSION user)
