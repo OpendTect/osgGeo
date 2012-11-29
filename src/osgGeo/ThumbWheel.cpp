@@ -12,37 +12,86 @@
 */
 
 #include <osgGeo/ThumbWheel>
-#include <osgManipulator/Command>
+
+
 
 //#include <osg/ShapeDrawable>
 #include <osg/Geometry>
+#include <osg/Geode>
 #include <osg/Vec4ub>
+#include <osgGA/EventVisitor>
 #include <osg/Texture2D>
 //#include <osg/Material>
 
 using namespace osgGeo;
 
 ThumbWheel::ThumbWheel()
-    : Dragger()
-    , _checkForNodeInNodePath(true)
+    : _geode( new osg::Geode )
 {
-    _projector = new osgManipulator::LineProjector;
-    setupDefaultGeometry();
+    setNumChildrenRequiringEventTraversal( 1 );
+    _geode->ref();
+    
+    osg::Geometry* geometry = new osg::Geometry;
+    _geode->addDrawable( geometry );
+    osg::Vec3Array* coords = new osg::Vec3Array;
+    geometry->setVertexArray( coords );
+    coords->push_back( osg::Vec3( 200, 200, 0 ));
+    coords->push_back( osg::Vec3( 400, 200, 0 ));
+    coords->push_back( osg::Vec3( 200, 400, 0 ));
+    coords->push_back( osg::Vec3( 400, 400, 0 ));
+    
+    geometry->addPrimitiveSet( new osg::DrawArrays( GL_TRIANGLE_STRIP,0, 4) );
 }
 
 
-ThumbWheel::ThumbWheel( const ThumbWheel&, const osg::CopyOp& )
-    : Dragger()
-    , _checkForNodeInNodePath(true)
+ThumbWheel::ThumbWheel( const ThumbWheel& tw, const osg::CopyOp& op )
+    : _geode( (osg::Geode*) tw._geode->clone( op ) )
 {
-    _projector = new osgManipulator::LineProjector;
+    setNumChildrenRequiringEventTraversal( 1 );
 }
 
 
 ThumbWheel::~ThumbWheel()
-{ }
+{
+    _geode->unref();
+}
 
 
+void ThumbWheel::accept( osg::NodeVisitor& nv )
+{
+    if ( nv.getVisitorType()==osg::NodeVisitor::EVENT_VISITOR)
+    {
+	osgGA::EventVisitor* evnv = dynamic_cast<osgGA::EventVisitor*>( &nv );
+	if ( evnv && !evnv->getEventHandled() )
+	{
+	    if ( handleEvents( evnv->getEvents() ) )
+		evnv->setEventHandled( true );
+	}
+    }
+    return _geode->accept( nv );
+}
+
+osg::BoundingSphere ThumbWheel::computeBound() const
+{
+    return _geode->computeBound();
+}
+
+bool ThumbWheel::handleEvents( osgGA::EventQueue::Events& events )
+{
+    for ( osgGA::EventQueue::Events::iterator iter = events.begin();
+	 iter!=events.end(); iter++ )
+    {
+	osg::ref_ptr<osgGA::GUIEventAdapter> ea = *iter;
+	if ( ea->getEventType()==osgGA::GUIEventAdapter::PUSH )
+	{
+	    return false;
+	}
+    }
+    
+    return false;
+}
+
+/*
 bool ThumbWheel::handle(const osgManipulator::PointerInfo& pointer, const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa)
 {
     // Check if the dragger node is in the nodepath.
@@ -169,3 +218,4 @@ void ThumbWheel::setupDefaultGeometry()
 
     addChild(geode);
 }
+ */
