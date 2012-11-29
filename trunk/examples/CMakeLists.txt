@@ -23,14 +23,15 @@ endif()
 
 guess_runtime_library_dirs( RUNTIMELIBDIR ${RUNTIMELIBS} )
 
-macro(add_example name)
-    add_executable(${name} ${ARGN})
-    IF( OSGGEO_MAKE_LAUNCHERS )
-	create_target_launcher( ${name}
+macro(add_example NAME)
+    set ( EXEC_NAME example_${NAME} )
+    add_executable( ${EXEC_NAME} ${ARGN})
+    if ( OSGGEO_MAKE_LAUNCHERS )
+	create_target_launcher( ${EXEC_NAME}
 		RUNTIME_LIBRARY_DIRS
 		${RUNTIMELIBDIR} )
-    ENDIF()
-    target_link_libraries(${name}
+    endif()
+    target_link_libraries(${EXEC_NAME}
 	${RUNTIMELIBS}
         osgGeo
     )
