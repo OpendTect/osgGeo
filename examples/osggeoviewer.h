@@ -29,7 +29,7 @@ $Id: PolyLines.cpp 108 2012-10-08 08:32:40Z kristofer.tingdahl@dgbes.com $
 # include <osgQt/GraphicsWindowQt>
 #endif
 
-#include <osgViewer/Viewer>
+#include <osgViewer/CompositeViewer>
 #include <osgGA/TrackballManipulator>
 
 namespace osgGeo
@@ -43,15 +43,19 @@ public:
 
     int			run();
 
-    int			width() const { return viewer_->getCamera()->getViewport()->width(); }
-    int			height() const { return viewer_->getCamera()->getViewport()->height(); }
+    int			width() const { return view_->getCamera()->getViewport()->width(); }
+    int			height() const { return view_->getCamera()->getViewport()->height(); }
+    
+    void		addView(osgViewer::View* v) { compositeviewer_->addView(v); }
+    osg::Camera*	getCamera() { return view_->getCamera(); }
 
 protected:
 #ifdef USEQT
-    QApplication 			app_;
-    QWidget*				widget_;
+    QApplication				app_;
+    QWidget*					widget_;
 #endif
-    osg::ref_ptr<osgViewer::Viewer>	viewer_;
+    osg::ref_ptr<osgViewer::CompositeViewer>	compositeviewer_;
+    osg::ref_ptr<osgViewer::View>		view_;
 };
 
 
@@ -60,28 +64,32 @@ Viewer::Viewer( int argc, char** argv )
 #ifdef USEQT
     : app_( argc, argv )
     , widget_( 0 )
-    , viewer_( 0 )
+    , compositeviewer_( 0 )
+    , view_( 0 )
 #else
-    : viewer_( 0 )
+    : compositeviewer_( 0 )
+    , view_( 0 )
 #endif
 {
-    viewer_ = new osgViewer::Viewer;
-    viewer_->setCameraManipulator( new osgGA::TrackballManipulator );
+    compositeviewer_ = new osgViewer::CompositeViewer;
+    view_ = new osgViewer::View;
+    view_->setCameraManipulator( new osgGA::TrackballManipulator );
+    compositeviewer_->addView( view_ );
 
 #ifdef USEQT
     osgQt::initQtWindowingSystem();
-    osgQt::setViewer( viewer_.get() );
+    osgQt::setViewer( compositeviewer_.get() );
     
     osgQt::GLWidget* glw = new osgQt::GLWidget;
     widget_ = glw;
 #endif
     
     osg::Viewport* viewport = new osg::Viewport(0, 0, 800, 600 );
-    viewer_->getCamera()->setViewport( viewport );
+    view_->getCamera()->setViewport( viewport );
 
 #ifdef USEQT
     osgQt::GraphicsWindowQt* graphicswin = new osgQt::GraphicsWindowQt( glw );
-    viewer_->getCamera()->setGraphicsContext( graphicswin );
+    view_->getCamera()->setGraphicsContext( graphicswin );
 #endif
 }
 
@@ -100,7 +108,7 @@ int Viewer::run()
 inline
 void Viewer::setSceneData( osg::Node* n )
 {
-    viewer_->setSceneData( n );
+    view_->setSceneData( n );
 }
 
 
