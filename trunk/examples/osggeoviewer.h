@@ -76,7 +76,8 @@ Viewer::Viewer( int argc, char** argv )
     widget_ = glw;
 #endif
     
-    viewer_->getCamera()->setViewport( new osg::Viewport(0, 0, width(), height() ) );
+    osg::Viewport* viewport = new osg::Viewport(0, 0, 800, 600 );
+    viewer_->getCamera()->setViewport( viewport );
 
 #ifdef USEQT
     osgQt::GraphicsWindowQt* graphicswin = new osgQt::GraphicsWindowQt( glw );
