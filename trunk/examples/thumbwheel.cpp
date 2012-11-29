@@ -25,39 +25,47 @@ $Id: PolyLines.cpp 108 2012-10-08 08:32:40Z kristofer.tingdahl@dgbes.com $
 
 #include <osg/ShapeDrawable>
 #include <osg/MatrixTransform>
-#include <osgManipulator/TabBoxDragger>
+#include <osgGeo/ThumbWheel>
 
 
 int main( int argc, char** argv )
 {
     osgGeo::Viewer viewer( argc, argv );
 
-    osg::Group* sceneroot = new osg::Group;
-    osg::Camera* hudcamera = new osg::Camera;
-    
-    sceneroot->addChild( hudcamera );
+    osg::ref_ptr<osg::Camera> hudcamera = new osg::Camera;
+    hudcamera->setGraphicsContext( viewer.getCamera()->getGraphicsContext() );
+    hudcamera->setName("HUD Camera");
+    hudcamera->setProjectionMatrix(osg::Matrix::ortho2D(0,viewer.width(),0,viewer.height()));
+    hudcamera->setViewport( viewer.getCamera()->getViewport() );
+    hudcamera->setClearMask(GL_DEPTH_BUFFER_BIT);
     hudcamera->setReferenceFrame(osg::Transform::ABSOLUTE_RF);
     hudcamera->setViewMatrix(osg::Matrix::identity());
-    hudcamera->setClearMask(GL_DEPTH_BUFFER_BIT);
-    hudcamera->setRenderOrder(osg::Camera::POST_RENDER);
+    
+    //draw subgraph after main camera view.
+    hudcamera->setRenderOrder(osg::Camera::POST_RENDER, 1 );
+    
+    //we don't want the camera to grab event focus from the viewers main cam(s).
     hudcamera->setAllowEventFocus(false);
-    hudcamera->setName("HUD Camera" );
-    hudcamera->setProjectionMatrix(osg::Matrix::ortho2D(0,viewer.width(),0,viewer.height()));
     
-    osg::Matrix mat;
-    mat.makeTranslate( 200, 200, -200 );
-    mat.preMult( osg::Matrix::scale( 200, 200, 200 ) );
+    osg::ref_ptr<osgViewer::View> hudview = new osgViewer::View;
+    hudview->setCamera( hudcamera );
+    viewer.addView( hudview );
     
-    osgManipulator::TabBoxDragger* tbd = new osgManipulator::TabBoxDragger;
-    hudcamera->addChild( tbd );
-    tbd->setupDefaultGeometry();
-    tbd->setMatrix( mat );
-    tbd->setHandleEvents( true );
+    osg::Group* sceneroot = new osg::Group;
+    
+    osgGeo::ThumbWheel* wheel = new osgGeo::ThumbWheel;
+
     
     osg::Geode* geode = new osg::Geode;
+    osg::MatrixTransform* trans = new osg::MatrixTransform;
+    trans->setMatrix( osg::Matrix::scale(osg::Vec3f(100,100,100)) );
+    trans->getOrCreateStateSet()->setMode( GL_RESCALE_NORMAL, GL_TRUE);
+    trans->addChild( geode );
     geode->addDrawable( new osg::ShapeDrawable(new osg::Box) );
-    sceneroot->addChild( geode );
-
+    sceneroot->addChild( trans );
+    hudview->setSceneData( wheel );
+    
+    viewer.setSceneData( sceneroot );
 
     return viewer.run();
 }
