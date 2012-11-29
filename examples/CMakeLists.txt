@@ -14,6 +14,7 @@ set ( RUNTIMELIBS
 
 if ( USEQT )
     add_definitions( -DUSEQT )
+    include_directories( ${QT_QTCORE_INCLUDE_DIR} )
     list( APPEND RUNTIMELIBS
 	${QT_QTCORE_LIBRARY} 
 	${QT_QTGUI_LIBRARY} 
