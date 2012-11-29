@@ -30,6 +30,7 @@ $Id: PolyLines.cpp 108 2012-10-08 08:32:40Z kristofer.tingdahl@dgbes.com $
 #endif
 
 #include <osgViewer/CompositeViewer>
+#include <osgViewer/ViewerEventHandlers>
 #include <osgGA/TrackballManipulator>
 
 namespace osgGeo
@@ -74,6 +75,7 @@ Viewer::Viewer( int argc, char** argv )
     compositeviewer_ = new osgViewer::CompositeViewer;
     view_ = new osgViewer::View;
     view_->setCameraManipulator( new osgGA::TrackballManipulator );
+    view_->addEventHandler( new osgViewer::StatsHandler );
     compositeviewer_->addView( view_ );
 
 #ifdef USEQT
