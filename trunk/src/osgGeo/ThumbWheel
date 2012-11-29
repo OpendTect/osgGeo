@@ -22,8 +22,11 @@ $Id: Horizon3D 108 2012-10-08 08:32:40Z kristofer.tingdahl@dgbes.com $
 */
 
 #include <osgGeo/Common>
-#include <osgManipulator/Dragger>
-#include <osgManipulator/Projector>
+#include <osg/Node>
+#include <osgGA/EventQueue>
+
+
+namespace osg { class Geode; class NodeVisitor; }
 
 namespace osgGeo
 {
@@ -32,30 +35,20 @@ namespace osgGeo
  * Wheel for performing rotation
  */
 
-class OSGGEO_EXPORT ThumbWheel : public osgManipulator::Dragger
+class OSGGEO_EXPORT ThumbWheel : public osg::Node
 {
 public:
     ThumbWheel();
     ThumbWheel(const ThumbWheel&,const osg::CopyOp&);
-
-    META_Node(osgGeo,ThumbWheel)
-
-    /** Handle pick events on dragger and generate TranslateInLine commands. */
-    virtual bool handle(const osgManipulator::PointerInfo& pi, const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& us);
-
-    /** Setup default geometry for dragger. */
-    void setupDefaultGeometry();
-
-    inline void setCheckForNodeInNodePath(bool onOff) { _checkForNodeInNodePath = onOff; }
+    
+    void accept(osg::NodeVisitor&);
+    osg::BoundingSphere computeBound() const;
 
 protected:
+    bool handleEvents( osgGA::EventQueue::Events& );
+    ~ThumbWheel();
+    osg::Geode* _geode;
 
-    virtual ~ThumbWheel();
-
-    osg::ref_ptr<osgManipulator::LineProjector>		_projector;
-    osg::Vec3d						_startProjectedPoint;
-
-    bool                            			_checkForNodeInNodePath;
 };
 
 
