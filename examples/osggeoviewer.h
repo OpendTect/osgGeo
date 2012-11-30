@@ -84,6 +84,7 @@ Viewer::Viewer( int argc, char** argv )
     
     osgQt::GLWidget* glw = new osgQt::GLWidget;
     widget_ = glw;
+    glw->setGeometry(0, 0, 800, 600 );
 #endif
     
     osg::Viewport* viewport = new osg::Viewport(0, 0, 800, 600 );
