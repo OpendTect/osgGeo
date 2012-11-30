@@ -26,6 +26,7 @@ $Id: PolyLines.cpp 108 2012-10-08 08:32:40Z kristofer.tingdahl@dgbes.com $
 #include <osg/ShapeDrawable>
 #include <osg/MatrixTransform>
 #include <osgGeo/ThumbWheel>
+#include <osgManipulator/TabBoxDragger>
 
 
 int main( int argc, char** argv )
@@ -54,15 +55,17 @@ int main( int argc, char** argv )
     osg::Group* sceneroot = new osg::Group;
     
     osgGeo::ThumbWheel* wheel = new osgGeo::ThumbWheel;
+    osgGeo::ThumbWheelEventHandler* handler= new osgGeo::ThumbWheelEventHandler;
+    handler->addThumbWheel( wheel );
+    viewer.getCamera()->addEventCallback( handler );
 
-    
     osg::Geode* geode = new osg::Geode;
     osg::MatrixTransform* trans = new osg::MatrixTransform;
     trans->setMatrix( osg::Matrix::scale(osg::Vec3f(100,100,100)) );
     trans->getOrCreateStateSet()->setMode( GL_RESCALE_NORMAL, GL_TRUE);
     trans->addChild( geode );
-    geode->addDrawable( new osg::ShapeDrawable(new osg::Box) );
     sceneroot->addChild( trans );
+    geode->addDrawable( new osg::ShapeDrawable(new osg::Box) );
     hudview->setSceneData( wheel );
     
     viewer.setSceneData( sceneroot );
