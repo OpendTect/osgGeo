@@ -24,12 +24,14 @@ $Id: Horizon3D 108 2012-10-08 08:32:40Z kristofer.tingdahl@dgbes.com $
 #include <osgGeo/Common>
 #include <osg/Node>
 #include <osgGA/EventQueue>
+#include <osgGA/GUIEventHandler>
 
 
 namespace osg { class Geode; class NodeVisitor; }
 
 namespace osgGeo
 {
+
 
 /**
  * Wheel for performing rotation
@@ -39,17 +41,53 @@ class OSGGEO_EXPORT ThumbWheel : public osg::Node
 {
 public:
     ThumbWheel();
-    ThumbWheel(const ThumbWheel&,const osg::CopyOp&);
     
     void accept(osg::NodeVisitor&);
     osg::BoundingSphere computeBound() const;
+    
+    void setShape(short dim,const osg::Vec2& min,const osg::Vec2& max);
+    const osg::Vec2& getMin() const { return _min; }
+    const osg::Vec2& getMax() const { return _max; }
+    void setAngle(float);
+    float getAngle() const { return _currentangle; }
 
 protected:
-    bool handleEvents( osgGA::EventQueue::Events& );
+    friend class OSGGEO_EXPORT ThumbWheelEventHandler;
+    void updateCoords();
+    char getMousePosStatus(const osg::Vec2& mousepos ) const;
+    //!<\retval 0 is not close
+    //!<\retval 1 is close
+    //!<\retval 2 is over
+    
+    bool handleEvent( const osgGA::GUIEventAdapter& ea );
     ~ThumbWheel();
-    osg::Geode* _geode;
+    
+    osg::Vec2 _min;
+    osg::Vec2 _max;
 
+    osg::Geode* _geode;
+    bool _istracking;
+    float _startpos;
+    float _currentangle;
+    short _dim;
 };
+
+
+class OSGGEO_EXPORT ThumbWheelEventHandler : public osgGA::GUIEventHandler
+{
+public:
+    void addThumbWheel(ThumbWheel* t)
+    { _thumbwheels.push_back(osg::ref_ptr<ThumbWheel>(t)); }
+    void removeThumbWheel(ThumbWheel* t);
+    
+    
+protected:
+    bool handle (const osgGA::GUIEventAdapter &ea, osgGA::GUIActionAdapter &aa,
+		 osg::Object*, osg::NodeVisitor*);
+    std::vector<osg::ref_ptr<ThumbWheel> > _thumbwheels;
+};
+
+
 
 
 }

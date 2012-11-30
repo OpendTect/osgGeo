@@ -25,30 +25,26 @@
 
 using namespace osgGeo;
 
+#define TEXUNIT 0
+#define RESOLUTION 10
+#define TEXTURELENGTH (30/180*M_PI)
+
 ThumbWheel::ThumbWheel()
     : _geode( new osg::Geode )
+    , _istracking( false )
+    , _currentangle( 0 )
 {
-    setNumChildrenRequiringEventTraversal( 1 );
     _geode->ref();
     
     osg::Geometry* geometry = new osg::Geometry;
     _geode->addDrawable( geometry );
-    osg::Vec3Array* coords = new osg::Vec3Array;
-    geometry->setVertexArray( coords );
-    coords->push_back( osg::Vec3( 200, 200, 0 ));
-    coords->push_back( osg::Vec3( 400, 200, 0 ));
-    coords->push_back( osg::Vec3( 200, 400, 0 ));
-    coords->push_back( osg::Vec3( 400, 400, 0 ));
+    geometry->setVertexArray( new osg::Vec3Array );
+    geometry->setTexCoordArray( TEXUNIT, new osg::Vec2Array );
     
-    geometry->addPrimitiveSet( new osg::DrawArrays( GL_TRIANGLE_STRIP,0, 4) );
+    setShape( 0, osg::Vec2( 200, 200 ), osg::Vec2( 400, 400 ) );
+    setAngle( 0 );
 }
 
-
-ThumbWheel::ThumbWheel( const ThumbWheel& tw, const osg::CopyOp& op )
-    : _geode( (osg::Geode*) tw._geode->clone( op ) )
-{
-    setNumChildrenRequiringEventTraversal( 1 );
-}
 
 
 ThumbWheel::~ThumbWheel()
@@ -57,165 +53,156 @@ ThumbWheel::~ThumbWheel()
 }
 
 
+void ThumbWheel::setShape( short dim, const osg::Vec2& min,const osg::Vec2& max)
+{
+    _istracking = false;
+    _dim = dim;
+    _min = min; _max = max;
+    osg::Geometry* geom = (osg::Geometry*) _geode->getDrawable( 0 );
+    osg::Vec3Array* arr = (osg::Vec3Array*) geom->getVertexArray();
+    osg::Vec2Array* tcarr = (osg::Vec2Array*) geom->getTexCoordArray( TEXUNIT );
+    
+    const int resolution = 10;
+    const float anglestep = M_PI/(resolution-1);
+    const float wheelradius = (_max[_dim]-_min[_dim])/2;
+    const float wheelcenter = (_max[_dim]+_min[_dim])/2;
+    
+    const short dim2 = _dim ? 0 : 1;
+    
+    for ( int idx=arr->size(); idx<RESOLUTION*2; idx++ )
+    {
+	arr->push_back( osg::Vec3() );
+	tcarr->push_back( osg::Vec2() );
+    }
+    
+    const float texturelength = TEXTURELENGTH;
+    for ( int idx=0; idx<RESOLUTION; idx++ )
+    {
+	const float angle = anglestep * idx;
+	osg::Vec3 v0, v1;
+	v0[2] = v1[2] = 0;
+	v0[_dim] = v1[_dim] = wheelcenter+wheelradius*cos(angle);
+	v0[dim2] = _min[dim2];
+	v1[dim2] = _max[dim2];
+	(*arr)[idx*2] = v0;
+	(*arr)[idx*2+1] = v1;
+	const float tc = angle/texturelength;
+	(*tcarr)[idx*2] = osg::Vec2( tc, 0 );
+	(*tcarr)[idx*2+1] = osg::Vec2( tc, 1 );
+    }
+    
+    if ( !geom->getNumPrimitiveSets() )
+    {
+	geom->addPrimitiveSet( new osg::DrawArrays( GL_TRIANGLE_STRIP,0, resolution*2) );
+    }
+}
+
+
+void ThumbWheel::setAngle( float angle )
+{
+    float diff = _currentangle-angle;
+    if ( diff==0 )
+	return;
+    
+    _currentangle = angle;
+    
+    osg::Geometry* geom = (osg::Geometry*) _geode->getDrawable( 0 );
+    osg::Vec2Array* tcarr = (osg::Vec2Array*) geom->getTexCoordArray( TEXUNIT );
+    
+    const float increment = diff/TEXTURELENGTH;
+    for ( int idx=0; idx<RESOLUTION; idx++ )
+    {
+	(*tcarr)[idx*2][0] += increment;
+	(*tcarr)[idx*2+1][0] += increment;
+    }
+}
+
+
 void ThumbWheel::accept( osg::NodeVisitor& nv )
 {
-    if ( nv.getVisitorType()==osg::NodeVisitor::EVENT_VISITOR)
-    {
-	osgGA::EventVisitor* evnv = dynamic_cast<osgGA::EventVisitor*>( &nv );
-	if ( evnv && !evnv->getEventHandled() )
-	{
-	    if ( handleEvents( evnv->getEvents() ) )
-		evnv->setEventHandled( true );
-	}
-    }
     return _geode->accept( nv );
 }
+
 
 osg::BoundingSphere ThumbWheel::computeBound() const
 {
     return _geode->computeBound();
 }
 
-bool ThumbWheel::handleEvents( osgGA::EventQueue::Events& events )
+char ThumbWheel::getMousePosStatus(const osg::Vec2& mousepos ) const
 {
-    for ( osgGA::EventQueue::Events::iterator iter = events.begin();
-	 iter!=events.end(); iter++ )
+    if ( mousepos[0]<_min[0] || mousepos[0]>_max[0] )
+	return 0;
+    
+    if ( mousepos[1]<_min[1] || mousepos[1]>_max[1] )
+	return 0;
+    
+    return 2;
+}
+
+
+bool ThumbWheel::handleEvent( const osgGA::GUIEventAdapter& ea )
+{
+    if ( !_istracking )
     {
-	osg::ref_ptr<osgGA::GUIEventAdapter> ea = *iter;
-	if ( ea->getEventType()==osgGA::GUIEventAdapter::PUSH )
+	if ( ea.getEventType()==osgGA::GUIEventAdapter::PUSH &&
+	     ea.getButton()==1 )
 	{
+	    const osg::Vec2 mousepos( ea.getX(), ea.getY() );
+	    if ( getMousePosStatus( mousepos )==2 )
+	    {
+		_istracking = true;
+		_startpos = mousepos[_dim];
+		return true;
+	    }
+	}
+	else if ( ea.getEventType()==osgGA::GUIEventAdapter::SCROLL )
+	{
+	    //TODO
 	    return false;
 	}
+	
+	return false;
     }
     
-    return false;
+    if ( ea.getEventType()==osgGA::GUIEventAdapter::RELEASE && ea.getButton()==1)
+    {
+	_istracking = false;
+	return true;
+    }
+    
+    if ( ea.getEventType()==osgGA::GUIEventAdapter::RESIZE ||
+	ea.getEventType()==osgGA::GUIEventAdapter::DOUBLECLICK )
+    {
+	//Just quit
+	_istracking = false;
+	return false;
+    }
+    
+    if ( ea.getEventType()==osgGA::GUIEventAdapter::MOVE )
+    {
+	const osg::Vec2 mousepos( ea.getX(), ea.getY() );
+	const float movement = mousepos[_dim] - _startpos;
+	const float diffangle = movement * 2 / (_max[_dim]-_min[_dim]);
+	setAngle( _currentangle + diffangle );
+    }
+        
+    return true;
 }
 
-/*
-bool ThumbWheel::handle(const osgManipulator::PointerInfo& pointer, const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa)
+
+bool ThumbWheelEventHandler::handle (const osgGA::GUIEventAdapter &ea,
+				     osgGA::GUIActionAdapter&,
+				     osg::Object*,
+				     osg::NodeVisitor *)
 {
-    // Check if the dragger node is in the nodepath.
-    if (_checkForNodeInNodePath)
+    bool handled = false;
+    for ( std::vector<osg::ref_ptr<ThumbWheel> >::iterator iter=_thumbwheels.begin();
+	 iter!=_thumbwheels.end(); ++iter )
     {
-        if (!pointer.contains(this)) return false;
+	if ( iter->get()->handleEvent( ea ) )
+	    handled = true;
     }
-
-    switch (ea.getEventType())
-    {
-        // Pick start.
-        case (osgGA::GUIEventAdapter::PUSH):
-	{
-	    // Get the LocalToWorld matrix for this node and set it for the projector.
-	    osg::NodePath nodePathToRoot;
-	    computeNodePathToRoot(*this,nodePathToRoot);
-	    osg::Matrix localToWorld = osg::computeLocalToWorld(nodePathToRoot);
-	    _projector->setLocalToWorld(localToWorld);
-
-	    if (_projector->project(pointer, _startProjectedPoint))
-	    {
-		// Generate the motion command.
-		osg::ref_ptr<osgManipulator::TranslateInLineCommand> cmd = new osgManipulator::TranslateInLineCommand(_projector->getLineStart(),
-										      _projector->getLineEnd());
-		cmd->setStage(osgManipulator::MotionCommand::START);
-		cmd->setLocalToWorldAndWorldToLocal(_projector->getLocalToWorld(),_projector->getWorldToLocal());
-
-		// Dispatch command.
-		dispatch(*cmd);
-
-		aa.requestRedraw();
-	    }
-	    return true;
-	}
-
-        // Pick move.
-        case (osgGA::GUIEventAdapter::DRAG):
-	{
-	    osg::Vec3d projectedPoint;
-	    if (_projector->project(pointer, projectedPoint))
-	    {
-		// Generate the motion command.
-		osg::ref_ptr<osgManipulator::TranslateInLineCommand> cmd = new osgManipulator::TranslateInLineCommand(_projector->getLineStart(),
-										      _projector->getLineEnd());
-		cmd->setStage(osgManipulator::MotionCommand::MOVE);
-		cmd->setLocalToWorldAndWorldToLocal(_projector->getLocalToWorld(),_projector->getWorldToLocal());
-		cmd->setTranslation(projectedPoint - _startProjectedPoint);
-
-		// Dispatch command.
-		dispatch(*cmd);
-
-		aa.requestRedraw();
-	    }
-	    return true;
-	}
-
-        // Pick finish.
-        case (osgGA::GUIEventAdapter::RELEASE):
-	{
-	    osg::Vec3d projectedPoint;
-	    if (_projector->project(pointer, projectedPoint))
-	    {
-		osg::ref_ptr<osgManipulator::TranslateInLineCommand> cmd = new osgManipulator::TranslateInLineCommand(_projector->getLineStart(),
-			_projector->getLineEnd());
-
-		cmd->setStage(osgManipulator::MotionCommand::FINISH);
-		cmd->setLocalToWorldAndWorldToLocal(_projector->getLocalToWorld(),_projector->getWorldToLocal());
-
-		// Dispatch command.
-		dispatch(*cmd);
-
-		aa.requestRedraw();
-	    }
-
-	    return true;
-	}
-        default:
-            return false;
-    }
+    
+    return handled;
 }
-
-void ThumbWheel::setupDefaultGeometry()
-{
-    osg::ref_ptr<osg::Geode> geode = new osg::Geode;
-
-    osg::Geometry* geom = new osg::Geometry;
-    geode->addDrawable( geom );
-
-    osg::Vec3Array* vertices = new osg::Vec3Array;
-    geom->setVertexArray( vertices );
-    vertices->push_back( osg::Vec3f(-100,-50,100) );
-    vertices->push_back( osg::Vec3f(100,-50,100) );
-    vertices->push_back( osg::Vec3f(-100,50,-100) );
-    vertices->push_back( osg::Vec3f(100,50,-100) );
-
-    geom->addPrimitiveSet( new osg::DrawArrays(GL_TRIANGLE_STRIP, 0, 4 ) );
-
-
-    const osg::Vec4ub frontcol( 255, 255, 255, 255 );
-    const osg::Vec4ub backcol( 0, 0, 0, 255 );
-    osg::ref_ptr<osg::Image> image = new osg::Image;
-    image->allocateImage( 4, 4, 1, GL_RGB, GL_UNSIGNED_BYTE );
-
-#define mSetCol( col ) \
-{ \
-    *imageptr++ = col[0]; \
-    *imageptr++ = col[1]; \
-    *imageptr++ = col[2]; \
-}
-
-    unsigned char* imageptr = image->data();
-    for ( int idx=0; idx<4; idx++ )
-	mSetCol( frontcol );
-
-    for ( int idx=0; idx<3; idx++ )
-    {
-	mSetCol( frontcol );
-	mSetCol( backcol );
-	mSetCol( backcol );
-	mSetCol( frontcol );
-    }
-
-    geom->getOrCreateStateSet()->setTextureAttribute( 0, new osg::Texture2D( image ) );
-
-    addChild(geode);
-}
- */
