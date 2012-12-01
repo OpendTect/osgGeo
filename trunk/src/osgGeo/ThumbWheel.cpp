@@ -14,12 +14,11 @@
 #include <osgGeo/ThumbWheel>
 
 
-
-//#include <osg/ShapeDrawable>
 #include <osg/Geometry>
 #include <osg/Geode>
 #include <osg/Vec4ub>
 #include <osgGA/EventVisitor>
+#include <osg/Image>
 #include <osg/Texture2D>
 //#include <osg/Material>
 
@@ -27,7 +26,83 @@ using namespace osgGeo;
 
 #define TEXUNIT 0
 #define RESOLUTION 10
-#define TEXTURELENGTH (30/180*M_PI)
+#define TEXTURELENGTH (30.0f/180*M_PI)
+#define IMAGEHEIGHT 8
+#define IMAGEWIDTH  8
+
+unsigned char imagedata[] =
+    {   255, 255, 255, 255,
+	255, 255, 255, 255,
+	255, 255, 255, 255,
+	255, 255, 255, 255,
+	255, 255, 255, 255,
+	255, 255, 255, 255,
+	255, 255, 255, 255,
+	255, 255, 255, 255,
+	
+	255, 255, 255, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	255, 255, 255, 255,
+	
+	255, 255, 255, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	255, 255, 255, 255,
+	
+	255, 255, 255, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	255, 255, 255, 255,
+	
+	255, 255, 255, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	255, 255, 255, 255,
+
+	255, 255, 255, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	255, 255, 255, 255,
+
+	255, 255, 255, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	255, 255, 255, 255,
+	
+	255, 255, 255, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	255, 255, 255, 255
+    };
 
 ThumbWheel::ThumbWheel()
     : _geode( new osg::Geode )
@@ -36,12 +111,26 @@ ThumbWheel::ThumbWheel()
 {
     _geode->ref();
     
-    osg::Geometry* geometry = new osg::Geometry;
-    _geode->addDrawable( geometry );
-    geometry->setVertexArray( new osg::Vec3Array );
-    geometry->setTexCoordArray( TEXUNIT, new osg::Vec2Array );
+    _wheelgeometry = new osg::Geometry;
+    _wheelgeometry->ref();
+    _wheelgeometry->setVertexArray( new osg::Vec3Array );
+    _wheelgeometry->setTexCoordArray( TEXUNIT, new osg::Vec2Array );
     
-    setShape( 0, osg::Vec2( 200, 200 ), osg::Vec2( 400, 400 ) );
+    osg::Image* image = new osg::Image();
+    image->setImage( IMAGEHEIGHT, IMAGEWIDTH, 1, GL_RGBA, GL_RGBA,
+		    GL_UNSIGNED_BYTE, imagedata, osg::Image::NO_DELETE );
+    osg::Texture2D* texture = new osg::Texture2D;
+    texture->setWrap( osg::Texture::WRAP_S, osg::Texture::CLAMP_TO_EDGE );
+    texture->setWrap( osg::Texture::WRAP_T, osg::Texture::REPEAT );
+
+    texture->setImage( image );
+    _wheelgeometry->getOrCreateStateSet()->setTextureAttributeAndModes( TEXUNIT, texture );
+    
+    _outlinegeometry = new osg::Geometry;
+    _geode->addDrawable( _outlinegeometry );
+    _outlinegeometry->setVertexArray( _wheelgeometry->getVertexArray() );
+    
+    setShape( 0, osg::Vec2( 200, 200 ), osg::Vec2( 400,  250 ) );
     setAngle( 0 );
 }
 
@@ -50,6 +139,7 @@ ThumbWheel::ThumbWheel()
 ThumbWheel::~ThumbWheel()
 {
     _geode->unref();
+    _wheelgeometry->unref();
 }
 
 
@@ -58,9 +148,8 @@ void ThumbWheel::setShape( short dim, const osg::Vec2& min,const osg::Vec2& max)
     _istracking = false;
     _dim = dim;
     _min = min; _max = max;
-    osg::Geometry* geom = (osg::Geometry*) _geode->getDrawable( 0 );
-    osg::Vec3Array* arr = (osg::Vec3Array*) geom->getVertexArray();
-    osg::Vec2Array* tcarr = (osg::Vec2Array*) geom->getTexCoordArray( TEXUNIT );
+    osg::Vec3Array* arr = (osg::Vec3Array*) _wheelgeometry->getVertexArray();
+    osg::Vec2Array* tcarr = (osg::Vec2Array*) _wheelgeometry->getTexCoordArray( TEXUNIT );
     
     const int resolution = 10;
     const float anglestep = M_PI/(resolution-1);
@@ -87,34 +176,47 @@ void ThumbWheel::setShape( short dim, const osg::Vec2& min,const osg::Vec2& max)
 	(*arr)[idx*2] = v0;
 	(*arr)[idx*2+1] = v1;
 	const float tc = angle/texturelength;
-	(*tcarr)[idx*2] = osg::Vec2( tc, 0 );
-	(*tcarr)[idx*2+1] = osg::Vec2( tc, 1 );
+	(*tcarr)[idx*2] = osg::Vec2( 0, tc );
+	(*tcarr)[idx*2+1] = osg::Vec2( 1, tc );
     }
     
-    if ( !geom->getNumPrimitiveSets() )
+    if ( !_wheelgeometry->getNumPrimitiveSets() )
     {
-	geom->addPrimitiveSet( new osg::DrawArrays( GL_TRIANGLE_STRIP,0, resolution*2) );
+	_wheelgeometry->addPrimitiveSet( new osg::DrawArrays( GL_TRIANGLE_STRIP,0, resolution*2) );
+    }
+    
+    if ( !_outlinegeometry->getNumPrimitiveSets() )
+    {
+	osg::DrawElementsUByte* primitive = new osg::DrawElementsUByte( GL_LINE_STRIP );
+	primitive->push_back( 0 );
+	primitive->push_back( 1 );
+	primitive->push_back( arr->size()-1 );
+	primitive->push_back( arr->size()-2 );
+	primitive->push_back( 0 );
+	_outlinegeometry->addPrimitiveSet( primitive );
     }
 }
 
 
 void ThumbWheel::setAngle( float angle )
 {
-    float diff = _currentangle-angle;
+    float diff = angle-_currentangle;
     if ( diff==0 )
 	return;
     
     _currentangle = angle;
     
-    osg::Geometry* geom = (osg::Geometry*) _geode->getDrawable( 0 );
-    osg::Vec2Array* tcarr = (osg::Vec2Array*) geom->getTexCoordArray( TEXUNIT );
+    osg::Vec2Array* tcarr = (osg::Vec2Array*) _wheelgeometry->getTexCoordArray( TEXUNIT );
     
     const float increment = diff/TEXTURELENGTH;
     for ( int idx=0; idx<RESOLUTION; idx++ )
     {
-	(*tcarr)[idx*2][0] += increment;
-	(*tcarr)[idx*2+1][0] += increment;
+	(*tcarr)[idx*2][1] += increment;
+	(*tcarr)[idx*2+1][1] += increment;
     }
+    
+    tcarr->dirty();
+    _wheelgeometry->dirtyDisplayList();
 }
 
 
@@ -129,7 +231,25 @@ osg::BoundingSphere ThumbWheel::computeBound() const
     return _geode->computeBound();
 }
 
-char ThumbWheel::getMousePosStatus(const osg::Vec2& mousepos ) const
+void ThumbWheel::addRotateCallback( osg::NodeCallback* nc )
+{
+    if ( !_cb )
+	_cb = nc;
+    else
+	_cb->addNestedCallback( nc );
+}
+
+
+void ThumbWheel::removeRotateCallback( osg::NodeCallback* nc )
+{
+    if ( nc==_cb )
+	_cb = _cb->getNestedCallback();
+    else
+	_cb->removeNestedCallback( nc );
+}
+
+
+char ThumbWheel::getMousePosStatus( const osg::Vec2& mousepos ) const
 {
     if ( mousepos[0]<_min[0] || mousepos[0]>_max[0] )
 	return 0;
@@ -143,16 +263,24 @@ char ThumbWheel::getMousePosStatus(const osg::Vec2& mousepos ) const
 
 bool ThumbWheel::handleEvent( const osgGA::GUIEventAdapter& ea )
 {
+    const osg::Vec2 mousepos( ea.getX(), ea.getY() );
+    const char mouseposstatus = getMousePosStatus( mousepos );
+    
+    if ( mouseposstatus )
+	showWheel( true );
+    else if ( !_istracking )
+	showWheel( false );
+	
     if ( !_istracking )
     {
 	if ( ea.getEventType()==osgGA::GUIEventAdapter::PUSH &&
 	     ea.getButton()==1 )
 	{
-	    const osg::Vec2 mousepos( ea.getX(), ea.getY() );
-	    if ( getMousePosStatus( mousepos )==2 )
+	    if ( mouseposstatus==2 )
 	    {
 		_istracking = true;
 		_startpos = mousepos[_dim];
+		_startangle = _currentangle;
 		return true;
 	    }
 	}
@@ -179,15 +307,30 @@ bool ThumbWheel::handleEvent( const osgGA::GUIEventAdapter& ea )
 	return false;
     }
     
-    if ( ea.getEventType()==osgGA::GUIEventAdapter::MOVE )
-    {
-	const osg::Vec2 mousepos( ea.getX(), ea.getY() );
-	const float movement = mousepos[_dim] - _startpos;
-	const float diffangle = movement * 2 / (_max[_dim]-_min[_dim]);
-	setAngle( _currentangle + diffangle );
-    }
+    const float movement = mousepos[_dim] - _startpos;
+    const float diffangle = movement * 2 / (_max[_dim]-_min[_dim]);
+    setAngle( _startangle + diffangle );
+    
+    if ( diffangle && _cb )
+	(*_cb)( this, 0 );
         
     return true;
+}
+
+
+void ThumbWheel::showWheel( bool yn )
+{
+    const bool wheelshown =
+	_geode->getDrawableIndex( _wheelgeometry )!=_geode->getNumDrawables();
+    
+    if ( wheelshown==yn )
+	return;
+    
+    if ( yn )
+	_geode->addDrawable( _wheelgeometry );
+    else
+	_geode->removeDrawable( _wheelgeometry );
+
 }
 
 
