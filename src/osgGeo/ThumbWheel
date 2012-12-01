@@ -45,7 +45,8 @@ public:
     void accept(osg::NodeVisitor&);
     osg::BoundingSphere computeBound() const;
     
-    void setShape(short dim,const osg::Vec2& min,const osg::Vec2& max);
+    void setShape(short dim,const osg::Vec2& min,const osg::Vec2& max,
+		  float zval = 0);
     const osg::Vec2& getMin() const { return _min; }
     const osg::Vec2& getMax() const { return _max; }
     void setAngle(float);
@@ -93,6 +94,15 @@ protected:
     bool handle (const osgGA::GUIEventAdapter &ea, osgGA::GUIActionAdapter &aa,
 		 osg::Object*, osg::NodeVisitor*);
     std::vector<osg::ref_ptr<ThumbWheel> > _thumbwheels;
+};
+
+class OSGGEO_EXPORT ThumbWheelEventNodeVisitor : public osg::NodeVisitor
+{
+public:
+    ThumbWheelEventNodeVisitor(float deltaangle);
+    float getDeltaAngle() const { return _deltaangle; }
+protected:
+    float _deltaangle;
 };
 
 }

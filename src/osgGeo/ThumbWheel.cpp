@@ -114,6 +114,7 @@ ThumbWheel::ThumbWheel()
     _wheelgeometry = new osg::Geometry;
     _wheelgeometry->ref();
     _wheelgeometry->setVertexArray( new osg::Vec3Array );
+    _wheelgeometry->setNormalArray( new osg::Vec3Array );
     _wheelgeometry->setTexCoordArray( TEXUNIT, new osg::Vec2Array );
     
     osg::Image* image = new osg::Image();
@@ -130,7 +131,7 @@ ThumbWheel::ThumbWheel()
     _geode->addDrawable( _outlinegeometry );
     _outlinegeometry->setVertexArray( _wheelgeometry->getVertexArray() );
     
-    setShape( 0, osg::Vec2( 200, 200 ), osg::Vec2( 400,  250 ) );
+    setShape( 0, osg::Vec2( 200, 200 ), osg::Vec2( 400,  250 ), 0 );
     setAngle( 0 );
 }
 
@@ -143,12 +144,14 @@ ThumbWheel::~ThumbWheel()
 }
 
 
-void ThumbWheel::setShape( short dim, const osg::Vec2& min,const osg::Vec2& max)
+void ThumbWheel::setShape( short dim, const osg::Vec2& min,const osg::Vec2& max,
+			   float zval )
 {
     _istracking = false;
     _dim = dim;
     _min = min; _max = max;
-    osg::Vec3Array* arr = (osg::Vec3Array*) _wheelgeometry->getVertexArray();
+    osg::Vec3Array* varr = (osg::Vec3Array*) _wheelgeometry->getVertexArray();
+    osg::Vec3Array* narr = (osg::Vec3Array*) _wheelgeometry->getNormalArray();
     osg::Vec2Array* tcarr = (osg::Vec2Array*) _wheelgeometry->getTexCoordArray( TEXUNIT );
     
     const int resolution = 10;
@@ -158,9 +161,10 @@ void ThumbWheel::setShape( short dim, const osg::Vec2& min,const osg::Vec2& max)
     
     const short dim2 = _dim ? 0 : 1;
     
-    for ( int idx=arr->size(); idx<RESOLUTION*2; idx++ )
+    for ( int idx=varr->size(); idx<RESOLUTION*2; idx++ )
     {
-	arr->push_back( osg::Vec3() );
+	varr->push_back( osg::Vec3() );
+	narr->push_back( osg::Vec3() );
 	tcarr->push_back( osg::Vec2() );
     }
     
@@ -168,13 +172,16 @@ void ThumbWheel::setShape( short dim, const osg::Vec2& min,const osg::Vec2& max)
     for ( int idx=0; idx<RESOLUTION; idx++ )
     {
 	const float angle = anglestep * idx;
-	osg::Vec3 v0, v1;
-	v0[2] = v1[2] = 0;
+	osg::Vec3 v0, v1, normal;
+	v0[2] = v1[2] = zval;
 	v0[_dim] = v1[_dim] = wheelcenter+wheelradius*cos(angle);
 	v0[dim2] = _min[dim2];
 	v1[dim2] = _max[dim2];
-	(*arr)[idx*2] = v0;
-	(*arr)[idx*2+1] = v1;
+	normal[_dim] = cos(angle);
+	normal[2] = sin(angle);
+	normal[dim2] = 0;
+	(*varr)[idx*2] = v0;
+	(*varr)[idx*2+1] = v1;
 	const float tc = angle/texturelength;
 	(*tcarr)[idx*2] = osg::Vec2( 0, tc );
 	(*tcarr)[idx*2+1] = osg::Vec2( 1, tc );
@@ -190,11 +197,15 @@ void ThumbWheel::setShape( short dim, const osg::Vec2& min,const osg::Vec2& max)
 	osg::DrawElementsUByte* primitive = new osg::DrawElementsUByte( GL_LINE_STRIP );
 	primitive->push_back( 0 );
 	primitive->push_back( 1 );
-	primitive->push_back( arr->size()-1 );
-	primitive->push_back( arr->size()-2 );
+	primitive->push_back( varr->size()-1 );
+	primitive->push_back( varr->size()-2 );
 	primitive->push_back( 0 );
 	_outlinegeometry->addPrimitiveSet( primitive );
     }
+    
+    _wheelgeometry->dirtyDisplayList();
+    _outlinegeometry->dirtyDisplayList();
+    dirtyBound();
 }
 
 
@@ -300,6 +311,7 @@ bool ThumbWheel::handleEvent( const osgGA::GUIEventAdapter& ea )
     }
     
     if ( ea.getEventType()==osgGA::GUIEventAdapter::RESIZE ||
+	ea.getEventType()==osgGA::GUIEventAdapter::MOVE ||
 	ea.getEventType()==osgGA::GUIEventAdapter::DOUBLECLICK )
     {
 	//Just quit
@@ -308,14 +320,24 @@ bool ThumbWheel::handleEvent( const osgGA::GUIEventAdapter& ea )
     }
     
     const float movement = mousepos[_dim] - _startpos;
-    const float diffangle = movement * 2 / (_max[_dim]-_min[_dim]);
-    setAngle( _startangle + diffangle );
+    const float deltaAngleSinceStart = movement * 2 / (_max[_dim]-_min[_dim]);
+    const float newAngle = _startangle + deltaAngleSinceStart;
+    const float deltaangle = _currentangle-newAngle;
+    setAngle( newAngle );
     
-    if ( diffangle && _cb )
-	(*_cb)( this, 0 );
+    if ( deltaangle && _cb )
+    {
+	ThumbWheelEventNodeVisitor nv( deltaangle );
+	(*_cb)( this, &nv );
+    }
         
     return true;
 }
+
+
+ThumbWheelEventNodeVisitor::ThumbWheelEventNodeVisitor( float deltaangle )
+    : _deltaangle( deltaangle )
+{}
 
 
 void ThumbWheel::showWheel( bool yn )
