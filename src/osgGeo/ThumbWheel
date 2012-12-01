@@ -27,7 +27,7 @@ $Id: Horizon3D 108 2012-10-08 08:32:40Z kristofer.tingdahl@dgbes.com $
 #include <osgGA/GUIEventHandler>
 
 
-namespace osg { class Geode; class NodeVisitor; }
+namespace osg { class Geode; class NodeVisitor; class Geometry; }
 
 namespace osgGeo
 {
@@ -50,7 +50,10 @@ public:
     const osg::Vec2& getMax() const { return _max; }
     void setAngle(float);
     float getAngle() const { return _currentangle; }
-
+    
+    void addRotateCallback(osg::NodeCallback *nc);
+    void removeRotateCallback(osg::NodeCallback *nc);
+    
 protected:
     friend class OSGGEO_EXPORT ThumbWheelEventHandler;
     void updateCoords();
@@ -59,6 +62,7 @@ protected:
     //!<\retval 1 is close
     //!<\retval 2 is over
     
+    void showWheel(bool yn);
     bool handleEvent( const osgGA::GUIEventAdapter& ea );
     ~ThumbWheel();
     
@@ -66,10 +70,14 @@ protected:
     osg::Vec2 _max;
 
     osg::Geode* _geode;
+    osg::Geometry* _wheelgeometry;
+    osg::Geometry* _outlinegeometry;
     bool _istracking;
     float _startpos;
+    float _startangle;
     float _currentangle;
     short _dim;
+    osg::ref_ptr<osg::NodeCallback> _cb;
 };
 
 
@@ -86,9 +94,6 @@ protected:
 		 osg::Object*, osg::NodeVisitor*);
     std::vector<osg::ref_ptr<ThumbWheel> > _thumbwheels;
 };
-
-
-
 
 }
 
