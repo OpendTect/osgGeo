@@ -63,7 +63,8 @@ RandomLineNode::RandomLineNode( const RandomLineNode& b,
 	    setTexture( b._texture );
     }
     
-    setPath( *b._pathcoords, *b._pathindices );
+    setPath( *b._pathcoords );
+    setTextureMapping( *b._pathindices );
 }
 
 
@@ -84,11 +85,17 @@ void RandomLineNode::setTexture( osgGeo::LayeredTexture* t )
 }
 
 
-void RandomLineNode::setPath( const osg::Vec2Array& coords,
-			      const osg::UIntArray& indices )
+void RandomLineNode::setPath( const osg::Vec2Array& coords )
+{
+    *_pathcoords = coords;
+    
+    _updatecount++;
+}
+
+
+void RandomLineNode::setTextureMapping( const osg::UIntArray& indices )
 {
     *_pathindices = indices;
-    *_pathcoords = coords;
     
     _updatecount++;
 }
