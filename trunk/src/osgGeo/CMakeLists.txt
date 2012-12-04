@@ -36,6 +36,7 @@ set ( LIB_PUBLIC_HEADERS
 	MarkerSet
     PolyLine
     OneSideRender
+    RandomLine
     TexturePlane
     Vec2i
     ThumbWheel )

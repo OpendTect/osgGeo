@@ -51,14 +51,16 @@ public:
     void			setTexture(osgGeo::LayeredTexture*);
     osgGeo::LayeredTexture*	getTexture()		{ return _texture; }
     
-    void			setPath(const osg::Vec2Array& coords,
+    void			setPath(const osg::Vec2Array& coords);
+    const osg::Vec2Array&	getPath() const	{ return *_pathcoords; }
+    void			setTextureMapping(
 				     const osg::UIntArray& indices);
-				/*!<Sets the path. The indices corresponds to
-				    columns in the texture, so the texture will
-				    be in sync with the path. */
+				/*!<There shoud be one indice per coord on the
+				    path, corresponding to
+				    columns in the texture. */
 				     
-    const osg::UIntArray&	getKnotIndices() const	{ return *_pathindices;}
-    const osg::Vec2Array&	getKnotCoords() const	{ return *_pathcoords; }
+    const osg::UIntArray&	getTextureMapping() const { return *_pathindices;}
+    
     
     void			setZRange(float top, float bottom );
     float			getBottom() const	{ return _bottom; }
