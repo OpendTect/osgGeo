@@ -110,6 +110,7 @@ ThumbWheel::ThumbWheel()
     , _currentangle( 0 )
 {
     _geode->ref();
+    _geode->getOrCreateStateSet()->setMode( GL_LIGHTING, osg::StateAttribute::OFF );
     
     _wheelgeometry = new osg::Geometry;
     _wheelgeometry->ref();
