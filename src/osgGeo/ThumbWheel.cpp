@@ -110,13 +110,13 @@ ThumbWheel::ThumbWheel()
     , _currentangle( 0 )
 {
     _geode->ref();
-    _geode->getOrCreateStateSet()->setMode( GL_LIGHTING, osg::StateAttribute::OFF );
     
     _wheelgeometry = new osg::Geometry;
     _wheelgeometry->ref();
     _wheelgeometry->setVertexArray( new osg::Vec3Array );
     _wheelgeometry->setNormalArray( new osg::Vec3Array );
     _wheelgeometry->setTexCoordArray( TEXUNIT, new osg::Vec2Array );
+    _wheelgeometry->setNormalBinding( osg::Geometry::BIND_PER_VERTEX );
     
     osg::Image* image = new osg::Image();
     image->setImage( IMAGEHEIGHT, IMAGEWIDTH, 1, GL_RGBA, GL_RGBA,
@@ -131,6 +131,11 @@ ThumbWheel::ThumbWheel()
     _outlinegeometry = new osg::Geometry;
     _geode->addDrawable( _outlinegeometry );
     _outlinegeometry->setVertexArray( _wheelgeometry->getVertexArray() );
+
+    osg::ref_ptr<osg::Vec3Array> outlineNormals = new osg::Vec3Array;
+    outlineNormals->push_back( osg::Vec3(0.0f,0.0f,1.0f) );
+    _outlinegeometry->setNormalArray( outlineNormals.get() );
+    _outlinegeometry->setNormalBinding( osg::Geometry::BIND_OVERALL );
     
     setShape( 0, osg::Vec2( 200, 200 ), osg::Vec2( 400,  250 ), 0 );
     setAngle( 0 );
@@ -186,6 +191,7 @@ void ThumbWheel::setShape( short dim, const osg::Vec2& min,const osg::Vec2& max,
 	const float tc = angle/texturelength;
 	(*tcarr)[idx*2] = osg::Vec2( 0, tc );
 	(*tcarr)[idx*2+1] = osg::Vec2( 1, tc );
+	(*narr)[idx*2] = (*narr)[idx*2+1] = normal;
     }
     
     if ( !_wheelgeometry->getNumPrimitiveSets() )
