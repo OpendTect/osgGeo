@@ -20,13 +20,13 @@
 #include <osgGA/EventVisitor>
 #include <osg/Image>
 #include <osg/Texture2D>
-//#include <osg/Material>
+
 
 using namespace osgGeo;
 
+#define DEGREESPERTICK 20.0f
 #define TEXUNIT 0
 #define RESOLUTION 10
-#define TEXTURELENGTH (30.0f/180*M_PI)
 #define IMAGEHEIGHT 8
 #define IMAGEWIDTH  8
 
@@ -174,7 +174,8 @@ void ThumbWheel::setShape( short dim, const osg::Vec2& min,const osg::Vec2& max,
 	tcarr->push_back( osg::Vec2() );
     }
     
-    const float texturelength = TEXTURELENGTH;
+    const float degreespertick = DEGREESPERTICK;
+    const float radspertick = (degreespertick/180*M_PI);
     for ( int idx=0; idx<RESOLUTION; idx++ )
     {
 	const float angle = anglestep * idx;
@@ -188,7 +189,7 @@ void ThumbWheel::setShape( short dim, const osg::Vec2& min,const osg::Vec2& max,
 	normal[dim2] = 0;
 	(*varr)[idx*2] = v0;
 	(*varr)[idx*2+1] = v1;
-	const float tc = angle/texturelength;
+	const float tc = angle/radspertick;
 	(*tcarr)[idx*2] = osg::Vec2( 0, tc );
 	(*tcarr)[idx*2+1] = osg::Vec2( 1, tc );
 	(*narr)[idx*2] = (*narr)[idx*2+1] = normal;
@@ -226,7 +227,10 @@ void ThumbWheel::setAngle( float angle )
     
     osg::Vec2Array* tcarr = (osg::Vec2Array*) _wheelgeometry->getTexCoordArray( TEXUNIT );
     
-    const float increment = diff/TEXTURELENGTH;
+    const float degreespertick = DEGREESPERTICK;
+    const float radspertick = (degreespertick/180*M_PI);
+
+    const float increment = diff/radspertick;
     for ( int idx=0; idx<RESOLUTION; idx++ )
     {
 	(*tcarr)[idx*2][1] += increment;
@@ -378,3 +382,4 @@ bool ThumbWheelEventHandler::handle (const osgGA::GUIEventAdapter &ea,
     
     return handled;
 }
+
