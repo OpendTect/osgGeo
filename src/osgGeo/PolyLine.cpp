@@ -29,13 +29,14 @@ namespace osgGeo
 {
 
 PolyLineNode::PolyLineNode()
-    : _needsUpdate( true )
+    : _needsUpdate(true)
     , _radius(5)
     , _maxRadius(-1)
     , _screenSizeScaling(false)
-    , _geometry( new osg::Geometry )
+    , _geometry(new osg::Geometry)
     , _arrayModifiedCount(0)
     , _resolution(4)
+    , _arraymodcount(0)
 {
     setNumChildrenRequiringUpdateTraversal( 1 );
 }
@@ -50,6 +51,8 @@ PolyLineNode::PolyLineNode( const PolyLineNode& node, const osg::CopyOp& co )
     , _geometry((osg::Geometry*)node._geometry->clone(co))
     , _arrayModifiedCount(0)
     , _resolution(4)
+    , _arraymodcount(0)
+    , _needsUpdate(true)
 {
     setNumChildrenRequiringUpdateTraversal( 1 );
 }
@@ -62,87 +65,47 @@ PolyLineNode::~PolyLineNode()
 
 void PolyLineNode::traverse( osg::NodeVisitor& nv )
 {
-    if ( nv.getVisitorType()==osg::NodeVisitor::UPDATE_VISITOR )
-    {
-	if ( needsUpdate() )
-	    updateGeometry();
-    }
-    else if ( nv.getVisitorType()==osg::NodeVisitor::CULL_VISITOR )
+    if ( nv.getVisitorType()==osg::NodeVisitor::CULL_VISITOR )
     {
 	osgUtil::CullVisitor* cv = dynamic_cast<osgUtil::CullVisitor*>(&nv);
+	if ( needsUpdate(cv) )
+	    updateGeometry( cv );
 
 	if ( getStateSet() )
 	    cv->pushStateSet( getStateSet() );
 
-	    cv->addDrawable( _geometry, cv->getModelViewMatrix() );
+	cv->addDrawable( _geometry, cv->getModelViewMatrix() );
 
 	if ( getStateSet() )
 	    cv->popStateSet();
     }
 }
 
-#define mMid(t) \
-    ( (max##t + min##t)/2 )
-
-#define mMax(t) \
-    max##t = t >= max##t ? t : max##t;
-
-#define mMin(t) \
-    min##t = t > min##t ? min##t : t;\
 
 osg::BoundingSphere PolyLineNode::computeBound() const
 {
-    osg::Vec3Array* arr = dynamic_cast<osg::Vec3Array*>( _array.get());
-    osg::BoundingSphere bs;
-    if ( !arr )
-	return bs;
-    
-    float maxx=0, maxy=0, maxz=0, minx=0, miny=0, minz=0;
-    osg::Vec3 p = arr->at( 0 );
-    maxx = minx = p.x();
-    maxy = miny = p.y();
-    maxz = minz = p.z();
-	
-    for ( unsigned int pidx=0; pidx<arr->size(); pidx++ )
-    {
-	osg::Vec3 p = arr->at( pidx );
-	const float x = p.x();
-	const float y = p.y();
-	const float z = p.z();
-	mMax(x)
-	mMax(y)
-	mMax(z)
-	
-	mMin(x)
-	mMin(y)
-	mMin(z)
-    }
-
-    const osg::Vec3 maxvec( maxx, maxy, maxz );
-    const osg::Vec3 minvec( minx, miny, minz );
-    const osg::Vec3 resvec = maxvec - minvec;
-    const float len = resvec.length();
-    bs._radius = len / 2;
-    bs._center = osg::Vec3( mMid(x), mMid(y), mMid(z) );
-    return bs;
+   return _bs;
 }
 
 
 void PolyLineNode::setVertexArray( osg::Array* arr )
 {
     _array = arr;
+    _needsUpdate = true;
 }
 
 
 void PolyLineNode::setRadius( const float& rad )
 {
     _radius = rad;
+    _needsUpdate = true;
 }
 
 
-void PolyLineNode::setColor( const osg::Vec4& color )
+void PolyLineNode::setResolution( int res )
 {
-    _color = color;
+    _resolution = res;
+    _needsUpdate = true;
 }
 
 
@@ -152,7 +115,7 @@ void PolyLineNode::getOrthoVecs( const osg::Vec3& w, osg::Vec3& u, osg::Vec3& v 
     if ( w.x() > w.y() )
     {
 	factor = 1/sqrt( w.x()*w.x() + w.y()*w.y() );
-	float u0 = -w.z() * factor;
+	float u0 = -w.z() * factor ;
 	float u1 = 0;
 	float u2 = w.x()*factor;
 	u.set( u0, u1, u2 );
@@ -161,45 +124,74 @@ void PolyLineNode::getOrthoVecs( const osg::Vec3& w, osg::Vec3& u, osg::Vec3& v 
     {
 	factor = 1/sqrt( w.y()*w.y() + w.z()*w.z() );
 	float u0 = 0;
-	float u1 = w.z() * factor;
+	float u1 = w.z() * factor ;
 	float u2 = -w.y()* factor;
 	u.set( u0, u1, u2 );
     }
+    
     u.normalize();
     v = w ^ u;
     v.normalize();
 }
 
 
-unsigned int getMaxIndex( const osg::DrawElementsUInt* indices )
+int getMaxIndex( const osg::DrawElementsUInt* indices )
 {
-    unsigned int max = 0;
+    int max = 0;
     for ( int idx=0; idx<indices->size(); idx++ )
     {
-	const unsigned val = indices->at( idx );
+	const int val = (int)indices->at( idx );
     	max = max > val ? max : val;
     }
     
     return max;
 }
 
+#define mScale( vec )\
+    vec[0] *= scale[0]; \
+    vec[1] *= scale[1]; \
+    vec[2] *= scale[2];
 
-#define mAddVertex(vec,pos)\
-    coords->push_back( vec ); \
-    norm = vec - pos; \
-    norm.normalize();\
+#define mAddVertex(vec,pos) \
+    coords->push_back( vec * invmodelmatrix ); \
+    bbox.expandBy( pos* invmodelmatrix ); \
+    norm = ( (vec* invmodelmatrix) - (pos* invmodelmatrix) ); \
+    norm.normalize(); \
+    mScale( norm ) \
     normals->push_back( norm ); \
     triindices->push_back( ci++ );
 
-bool PolyLineNode::updateGeometry()
+#define mAddCap( croner, p ) \
+	   	coords->push_back( croner[idx] * invmodelmatrix  ); \
+		triindices->push_back( ci++ ); \
+		normals->push_back( norm * invmodelmatrix  ); \
+		coords->push_back( p * invmodelmatrix ); \
+		triindices->push_back( ci++ ); \
+		normals->push_back( norm * invmodelmatrix ); \
+
+bool PolyLineNode::updateGeometry( const osg::CullStack* cullstack )
 {
-     osg::Vec3Array* arr = dynamic_cast<osg::Vec3Array*>(_array.get());
-     if ( !arr || !_needsUpdate )
+    osg::Vec3Array* arr = dynamic_cast<osg::Vec3Array*>(_array.get());
+    if ( !arr )
 	 return false;
+
+    const osg::Matrix modelviewmatrix = 
+	*const_cast<osg::CullStack*>(cullstack)->getModelViewMatrix();
+    const osg::Matrix invmodelmatrix = osg::Matrix::inverse( modelviewmatrix );
+
+    osg::Vec3d translation;
+    osg::Quat rotation;
+    osg::Vec3d scale;
+    osg::Quat so;
+    modelviewmatrix.decompose( translation, rotation, scale, so );
 
     osg::ref_ptr<osg::Vec3Array> coords = new osg::Vec3Array;
     osg::ref_ptr<osg::Vec3Array> normals = new osg::Vec3Array;
-   
+
+    for ( unsigned int idx=0; idx<_geometry->getNumPrimitiveSets(); idx++ )
+	_geometry->removePrimitiveSet( idx );
+  
+    osg::BoundingBox bbox;
     const unsigned int primsz = _primitivesets.size();
     int ci = 0;
     for ( unsigned int primidx=0; primidx<primsz; primidx++ )
@@ -211,37 +203,43 @@ bool PolyLineNode::updateGeometry()
 	    dynamic_cast<const osg::DrawElementsUInt*>( ps );
 	if ( !indices )
 	    continue;
-	const unsigned int maxprimsz = getMaxIndex( indices );
+	const int maxprimsz = getMaxIndex( indices );
 	bool doonce = true;
 	osg::DrawElementsUInt* triindices =
 		new osg::DrawElementsUInt(osg::PrimitiveSet::TRIANGLE_STRIP, 0);
 	for ( unsigned int cidx=0; cidx<indices->size(); cidx++ )
 	{
-	    const unsigned int pidx = indices->at( cidx );
-	    const osg::Vec3  p0 = arr->at( pidx );
-	    const osg::Vec3  p1 = arr->at( pidx < maxprimsz-1 ? pidx+1 : pidx );
-	    const osg::Vec3  p2 = arr->at( pidx < maxprimsz-2 ? pidx+2 : pidx );
+	    const int pidx = (int) indices->at( cidx );
+	    const osg::Vec3  p0 = arr->at( pidx ) * modelviewmatrix;
+	    const osg::Vec3  p1 
+		= arr->at( pidx <= maxprimsz-1 ? pidx+1 : pidx ) * modelviewmatrix;
+	    const osg::Vec3  p2 
+		= arr->at( pidx <= maxprimsz-2 ? pidx+2 : pidx ) * modelviewmatrix;
 	    osg::Vec3 vec01 = p1 - p0; vec01.normalize();
 	    osg::Vec3 vec12 = p2 - p1; vec12.normalize();
 	    const bool doreverse = vec01 * vec12 < -0.5f;
-	    const osg::Vec3 planenormal =
-		doreverse ? vec12 - vec01 : vec01 + vec12;
-	   
+	    const osg::Vec3 planenormal = 
+			doreverse ? vec12 - vec01 : vec01 + vec12;
+	    osg::Vec3 norm = planenormal;
+	    norm.normalize();
 	    if ( doonce )
 	    {
 		osg::Vec3 curu,curv;
 		getOrthoVecs( vec01, curu, curv );
 		for ( int idx=0; idx<_resolution; idx++ )
 		{
-		    float angl = idx * 2 * M_PI / _resolution;
-		    const osg::Vec3 vec1 = ( curu * cos(angl) ) + ( curv * sin(angl) );
-		    corners1[idx] = vec1*_radius + p0;
+		    const float angl = idx * 2 * M_PI / _resolution;
+		    const osg::Vec3 vec = curv*sin( angl ) + curu*cos( angl );
+		    corners1[idx] = vec*_radius + p0;
+		    mAddCap( corners1, p0 ) 
 		}
 
+		coords->push_back( corners1[0] * invmodelmatrix ); 
+		triindices->push_back( ci++ );
+		normals->push_back( norm * invmodelmatrix  );
 		doonce = false;
 	    }
 
-	    osg::Vec3 norm;
 	    const osg::Plane plane( planenormal, p1 );
 	    for ( int idx=0; idx<_resolution; idx++ )
 	    {
@@ -260,17 +258,12 @@ bool PolyLineNode::updateGeometry()
 		norm.normalize();
 		for ( int idx=0; idx<_resolution; idx++ )
 		{
-		    coords->push_back( corners2[idx] ); 
-		    triindices->push_back( ci++ );
-		    normals->push_back( norm*0.5 );
-		    coords->push_back( p1 ); 
-		    triindices->push_back( ci++ );
-		    normals->push_back( norm*0.5 );
+		     mAddCap( corners2, p1 ) 
 		}
 	    
-	       coords->push_back( corners2[0] ); 
-	       triindices->push_back( ci++ );
-	       normals->push_back( norm*0.5 );
+		coords->push_back( corners2[0] * invmodelmatrix ); 
+		triindices->push_back( ci++ );
+		normals->push_back( norm * invmodelmatrix  );
 	    }
 	
 	    for ( int idx=0; idx<_resolution; idx++ )
@@ -286,24 +279,39 @@ bool PolyLineNode::updateGeometry()
     _geometry->setVertexArray( coords );
     _geometry->setNormalArray( normals.get() );
     _geometry->setNormalBinding( osg::Geometry::BIND_PER_VERTEX );
-    osg::Vec4Array* colors = new osg::Vec4Array;
-    colors->push_back( _color );
-    _geometry->setColorArray( colors );
     _geometry->setColorBinding(osg::Geometry::BIND_OVERALL); 
     _needsUpdate = false;
+    _arraymodcount = _array->getModifiedCount();
+    
+    _bs = bbox;
+
+    dirtyBound();
     return true;
 }
 
 
-bool PolyLineNode::needsUpdate() const
+bool PolyLineNode::needsUpdate( const osg::CullStack* ) const
 {
-    return _needsUpdate;
+    if ( _needsUpdate || _arraymodcount!=_array->getModifiedCount() )
+	return true;
+
+    for ( int idx=_primitivesets.size()-1; idx>=0; idx-- )
+    {
+	//if ( _primitivesets[idx]->getModifiedCount()!=
+	//     _primitivesetmodcount[idx] )
+	//{
+	//    return true;
+	//}
+    }
+
+    return false;
 }
 
 
 void PolyLineNode::addPrimitiveSet( osg::PrimitiveSet* ps )
 {
     _primitivesets.push_back( ps );
+    _needsUpdate = true;
 }
 
 
@@ -322,6 +330,7 @@ int PolyLineNode::getPrimitiveSetIndex( const osg::PrimitiveSet* ps ) const
 void PolyLineNode::removePrimitiveSet( int idx )
 {
     _primitivesets.erase( _primitivesets.begin()+idx );
+    _needsUpdate = true;
 }
 
 
