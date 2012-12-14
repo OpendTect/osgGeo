@@ -29,17 +29,28 @@ namespace osgGeo
 /* Autotransform with the option to restore proportions. */
 class OSGGEO_EXPORT AutoTransform : public osg::AutoTransform
 {
-	
-	public :
-		AutoTransform();
-		AutoTransform(const AutoTransform& pat,const osg::CopyOp& copyop = osg::CopyOp::SHALLOW_COPY);
-		virtual void accept(osg::NodeVisitor& nv);
+    public :
+	AutoTransform();
+	AutoTransform(const AutoTransform& pat,const osg::CopyOp& copyop = osg::CopyOp::SHALLOW_COPY);
+	virtual void accept(osg::NodeVisitor& nv);
 
-		void setRestoreProportions(bool restoreProportions) { _restoreProportions = restoreProportions; _matrixDirty=true; }
-		bool getRestoreProportions() const { return _restoreProportions; }
+	void setRestoreProportions(bool restoreProportions) { _restoreProportions = restoreProportions; _matrixDirty=true; dirtyBound(); }
+	bool getRestoreProportions() const { return _restoreProportions; }
 
-	protected :
-		bool				_restoreProportions;
+
+	virtual bool computeLocalToWorldMatrix(osg::Matrix& matrix,osg::NodeVisitor* nv) const;
+	virtual bool computeWorldToLocalMatrix(osg::Matrix& matrix,osg::NodeVisitor* nv) const;
+
+
+    protected :
+	bool				_restoreProportions;
+	bool				_scaledBack;
+
+	mutable bool			_invMatrixDirty;
+	mutable osg::Matrixd		_cachedInvMatrix;			
+
+	osg::Vec3d			_modelViewScale;
+	osg::Matrix			_lastModelViewMatrix;
 };
 
 }
