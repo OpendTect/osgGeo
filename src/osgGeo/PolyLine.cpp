@@ -138,7 +138,7 @@ void PolyLineNode::getOrthoVecs( const osg::Vec3& w, osg::Vec3& u, osg::Vec3& v 
 int getMaxIndex( const osg::DrawElementsUInt* indices )
 {
     int max = 0;
-    for ( int idx=0; idx<indices->size(); idx++ )
+    for ( unsigned int idx=0; idx<indices->size(); idx++ )
     {
 	const int val = (int)indices->at( idx );
     	max = max > val ? max : val;
