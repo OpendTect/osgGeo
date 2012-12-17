@@ -135,12 +135,12 @@ void PolyLineNode::getOrthoVecs( const osg::Vec3& w, osg::Vec3& u, osg::Vec3& v 
 }
 
 
-int getMaxIndex( const osg::DrawElementsUInt* indices )
+int getMaxIndex( const osg::PrimitiveSet* ps )
 {
     int max = 0;
-    for ( unsigned int idx=0; idx<indices->size(); idx++ )
+    for ( unsigned int idx=0; idx<ps->getNumIndices(); idx++ )
     {
-	const int val = (int)indices->at( idx );
+	const int val = (int)ps->index( idx );
     	max = max > val ? max : val;
     }
     
@@ -155,7 +155,7 @@ int getMaxIndex( const osg::DrawElementsUInt* indices )
 #define mAddVertex(vec,pos) \
     coords->push_back( vec * invmodelmatrix ); \
     bbox.expandBy( pos* invmodelmatrix ); \
-    norm = ( (vec* invmodelmatrix) - (pos* invmodelmatrix) ); \
+    norm = ( (vec * invmodelmatrix) - (pos* invmodelmatrix) ); \
     norm.normalize(); \
     mScale( norm ) \
     normals->push_back( norm ); \
@@ -167,7 +167,7 @@ int getMaxIndex( const osg::DrawElementsUInt* indices )
 		normals->push_back( norm * invmodelmatrix  ); \
 		coords->push_back( p * invmodelmatrix ); \
 		triindices->push_back( ci++ ); \
-		normals->push_back( norm * invmodelmatrix ); \
+		normals->push_back( norm * invmodelmatrix );
 
 bool PolyLineNode::updateGeometry( const osg::CullStack* cullstack )
 {
@@ -199,17 +199,13 @@ bool PolyLineNode::updateGeometry( const osg::CullStack* cullstack )
 	osg::Vec3* corners1 = new osg::Vec3[_resolution];
 	osg::Vec3* corners2 = new osg::Vec3[_resolution];
 	const osg::PrimitiveSet* ps = _primitivesets.at( primidx );
-	const osg::DrawElementsUInt* indices = 
-	    dynamic_cast<const osg::DrawElementsUInt*>( ps );
-	if ( !indices )
-	    continue;
-	const int maxprimsz = getMaxIndex( indices );
+	const int maxprimsz = getMaxIndex( ps );
 	bool doonce = true;
 	osg::DrawElementsUInt* triindices =
 		new osg::DrawElementsUInt(osg::PrimitiveSet::TRIANGLE_STRIP, 0);
-	for ( unsigned int cidx=0; cidx<indices->size(); cidx++ )
+	for ( unsigned int cidx=0; cidx<ps->getNumIndices(); cidx++ )
 	{
-	    const int pidx = (int) indices->at( cidx );
+	    const int pidx = (int) ps->index( cidx );
 	    const osg::Vec3  p0 = arr->at( pidx ) * modelviewmatrix;
 	    const osg::Vec3  p1 
 		= arr->at( pidx <= maxprimsz-1 ? pidx+1 : pidx ) * modelviewmatrix;
@@ -220,7 +216,7 @@ bool PolyLineNode::updateGeometry( const osg::CullStack* cullstack )
 	    const bool doreverse = vec01 * vec12 < -0.5f;
 	    const osg::Vec3 planenormal = 
 			doreverse ? vec12 - vec01 : vec01 + vec12;
-	    osg::Vec3 norm = planenormal;
+	    osg::Vec3 norm = -planenormal;
 	    norm.normalize();
 	    if ( doonce )
 	    {
@@ -258,7 +254,7 @@ bool PolyLineNode::updateGeometry( const osg::CullStack* cullstack )
 		norm.normalize();
 		for ( int idx=0; idx<_resolution; idx++ )
 		{
-		     mAddCap( corners2, p1 ) 
+		    mAddCap( corners2, p1 ) 
 		}
 	    
 		coords->push_back( corners2[0] * invmodelmatrix ); 
