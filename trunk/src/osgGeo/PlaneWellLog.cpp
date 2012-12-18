@@ -51,10 +51,10 @@ PlaneWellLog::PlaneWellLog()
     ,_revscale( false)
     ,_isFilled( false )
     ,_constantsizefactor( 1 )
-    ,_minShapeValue(.0 )
+    ,_minShapeValue(mMAX )
     ,_minFillValue( mMAX )
     ,_maxShapeValue( -mMAX )
-    ,_maxFillValue( .0 )
+    ,_maxFillValue(-mMAX )
     ,_shiftValue( 0 )
     ,_dispSide( Left )
     ,_repeatNumber( 1 )
@@ -605,6 +605,11 @@ void PlaneWellLog::clearLog()
     _fillLog->clear();
     _fillLogDepths->clear();
     clearCoords();
+    _minShapeValue =  mMAX ;
+    _minFillValue  =  mMAX ;
+    _maxShapeValue = -mMAX ;
+    _maxFillValue  = -mMAX;
+
 }
 
 
