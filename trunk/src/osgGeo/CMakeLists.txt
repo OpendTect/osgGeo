@@ -24,7 +24,7 @@ configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/Config)
 
 set ( LIB_PUBLIC_HEADERS 
-	AutoTransform
+    AutoTransform
     Line3
     Export
     Common
@@ -33,7 +33,8 @@ set ( LIB_PUBLIC_HEADERS
     Horizon3D
     Horizon3D2
     LayeredTexture
-	MarkerSet
+    MarkerSet
+    PlaneWellLog
     PolyLine
     OneSideRender
     RandomLine
@@ -43,15 +44,17 @@ set ( LIB_PUBLIC_HEADERS
 
 add_library( ${LIB_NAME} SHARED
     ${LIB_PUBLIC_HEADERS}
-	AutoTransform.cpp
+    AutoTransform.cpp
     Palette.cpp
+    PlaneWellLog
     ShaderUtility.cpp
     PolyLine.cpp
     Horizon3DBase.cpp
     Horizon3D.cpp
     Horizon3D2.cpp
     LayeredTexture.cpp
-	MarkerSet.cpp
+    MarkerSet.cpp
+    PlaneWellLog.cpp
     OneSideRender.cpp
     Line3.cpp
     RandomLine.cpp
