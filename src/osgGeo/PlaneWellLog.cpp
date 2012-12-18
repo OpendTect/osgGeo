@@ -218,11 +218,11 @@ void PlaneWellLog::calcCoordinates( const osg::Vec3& normal, float screensize )
 	    const int idx2 = idx1+1;
 	    const float shpFactor1 = _coordLinedTriFactors->at( 2*idx ) ;
 	    const float shpFactor2 = _coordLinedTriFactors->at( 2*idx + 1 ) ;
-	    if ( _logLinedTriPoints->size() > nrsample && 
+	    if ( (int)_logLinedTriPoints->size() > nrsample && 
 		std::find(_outFillIndex.begin(),_outFillIndex.end(), idx) 
 			    != _outFillIndex.end() )
 	    {
-		if( idx < _logLinedTriPoints->size() )
+		if( idx < (int)_logLinedTriPoints->size() )
 		{
 		    (*_logLinedTriPoints)[idx1] = 
 			pathcrd + appliedDir * shpFactor1;
@@ -246,7 +246,7 @@ void PlaneWellLog::calcCoordinates( const osg::Vec3& normal, float screensize )
     _triangleStrip->dirtyDisplayList();
 
     const osg::BoundingBox& geometryBox = _lineGeometry->getBound();
-    _lineGeometryWidth = abs( geometryBox.xMax() - geometryBox.xMin() );
+    _lineGeometryWidth = fabs( geometryBox.xMax() - geometryBox.xMin() );
 
 }
 
@@ -378,9 +378,10 @@ osg::Vec3 PlaneWellLog::calcNormal( const osg::Vec3& projdir ) const
 float expectDepth(.0);
 #define DIFFLIMITATION 0.005
 
-bool serachDapth( float val )
+bool searchDepth( float val )
 {
-    return ( ( val == expectDepth ) || abs(val - expectDepth ) <= DIFFLIMITATION );
+    return ( ( val == expectDepth ) || 
+	fabs(val - expectDepth ) <= DIFFLIMITATION );
 }
 
 
@@ -402,7 +403,7 @@ void PlaneWellLog::updateFilledLogColor()
 	osg::Vec3f pos = _logPath->at(idx);
 	expectDepth = pos[2];
 	osg::FloatArray::iterator it = find_if( 
-	    _fillLogDepths->begin(), _fillLogDepths->end(), serachDapth ) ; 
+	    _fillLogDepths->begin(), _fillLogDepths->end(), searchDepth ) ; 
 	size_t findex = std::distance(_fillLogDepths->begin(), it);
 	if(findex == _fillLogDepths->size())
 	{
@@ -678,7 +679,7 @@ float PlaneWellLog::calcWorldWidth( const osgUtil::CullVisitor* cv )
     osg::Vec3 newwldpnt = screenToWorld( scrPnt,
 	const_cast<osgUtil::CullVisitor*>(cv)->getCurrentCamera() );
     
-    worldWidth = abs( newwldpnt[0] - worldPnt[0] );
+    worldWidth = fabs( newwldpnt[0] - worldPnt[0] );
 
     if ( !_resizewhenzooming ) 
 	worldWidth = nsize1*_constantsizefactor;
@@ -693,7 +694,4 @@ void PlaneWellLog::clearFactors()
   _coordLinedFactors->clear();
   _coordLinedTriFactors->clear();
 }
-
-
-
 
