@@ -1,0 +1,222 @@
+#ifndef OSGGEO_PLANEWELLLOG_H
+#define OSGGEO_PLANEWELLLOG_H
+
+/* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
+Copyright 2012 dGB Beheer B.V.
+
+osgGeo is free software; you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>
+
+$Id$
+
+*/
+
+#include <osg/Node>
+#include <osgGeo/Common>
+#include <osg/Geode>
+#include <osg/Vec3>
+
+namespace osg 
+{ 
+    class Geometry; 
+    class Geode; 
+    class Shape;
+    class Array;
+    class FrameStamp;
+    class LineWidth;
+}
+
+namespace osgUtil
+{
+    class CullVisitor;
+}
+
+namespace osgGeo
+{
+
+
+class OSGGEO_EXPORT PlaneWellLog : public osg::Node
+{
+public:
+				PlaneWellLog();
+
+    void			setPath( osg::Vec3Array* );
+    osg::Vec3Array*		getPath() { return _logPath;}
+
+    void			setShapeLog( osg::FloatArray* );
+				/*!<Linked with path. Start is assumed to be
+				    start of path.*/
+    osg::FloatArray*		getShapeLog() {return _shapeLog;}
+    void			setMaxShapeValue( float );
+    const float			getMaxShapeValue() const {return _maxShapeValue;}
+
+    void			setMinShapeValue( float );
+    const float			getMinShapeValue() const {return _minShapeValue;}
+
+    void			setFillLogValues( osg::FloatArray* );
+				/*!<Linked with path. Start is assumed to be
+				    start of path. */
+    osg::FloatArray*		getFillLogValues() {return _fillLog;}
+
+    void			setFillLogDepths( osg::FloatArray* );
+    osg::FloatArray*		getFillLogDepths() {return _fillLogDepths;}
+
+
+    void			setMaxFillValue( float );
+    const float			getMaxFillValue() const {return _maxFillValue;}
+
+    void			setMinFillValue( float );
+    const float			getMinFillValue() const {return _minFillValue;}
+
+    void			setLineColor( osg::Vec4d );
+    osg::Vec4d			getLineColor() const;
+
+    void			setFillLogColorTab( osg::Vec4Array* );
+    osg::Vec4Array*		getFillLogColotTab() 
+				{ return _colorTable; }
+
+    void			setLineWidth(float);
+    const float			getLineWidth() const;
+
+    void			setShowLog(bool);
+    bool			getShowLog() const { return _showLog; }
+	
+    void			setScreenWidth( float );
+    const float			getScreenWidth() const 	{return _screenWidth;}
+	
+    void			setSeisLogStyle(bool);
+    const bool 			getSeisLogStyle() const {return _seisstyle;}
+
+    void			setLogFill(bool);
+
+    void			setRevScale( bool yn) 
+				{ _revscale = yn; }
+
+    void			setFillRevScale( bool yn) 
+				{ _fillrevscale = yn; }
+
+    void 			setLogConstantSize(bool);
+    bool 			logConstantSize() const 
+				{ return !_resizewhenzooming;}
+    void 			setLogConstantSizeFactor(float);
+    float 			logConstantSizeFactor() const 
+				{ return _constantsizefactor;}
+
+    void			setShift( float );
+    const float			getShift() const { return _shiftValue; }
+
+    enum			DisplaySide { Left, Right };
+    void			setDisplaySide( DisplaySide );
+    DisplaySide			getDisplaySide() { return _dispSide; }
+
+    bool			getDisplayStatus();
+    void			setRepeatNumber( unsigned int );
+    unsigned int		getRepeatNumber() { return _repeatNumber; }
+    void			setRepeatGap ( float );
+    float			getRepeatGap() { return _repeatGap; }
+
+    void			clearLog();
+
+protected:
+				
+    osg::ref_ptr<osg::Vec4Array>_colorTable;
+    osg::ref_ptr<osg::Vec3Array>_logPath;	
+    osg::FloatArray*		_shapeLog;	
+    osg::FloatArray*		_fillLog;
+    osg::FloatArray*		_fillLogDepths;	
+    osg::ref_ptr<osg::Group>	_nonshadinggroup;
+    void		    	traverse( osg::NodeVisitor& );
+				~PlaneWellLog();
+
+private:
+    void			calcCoordinates( const osg::Vec3& normal, 
+						float screensize );
+    void			calcFactors();
+
+    float	    		getShapeFactor(float logval, float minval,
+					       float maxval) const;
+
+    unsigned int		getLogItem();	
+    void			clearDraw();
+    bool			eyeChanged(const osg::Vec3);
+
+    osg::Vec2			worldToScreen(const osg::Vec3& worldPosition,
+					    	    const osg::Camera* ca);
+
+    osg::Vec3			screenToWorld( const osg::Vec2d& screenPosition, 
+						    const osg::Camera* ca );
+
+    float			calcWorldWidth( const osgUtil::CullVisitor* cv);
+
+    osg::Vec3			updateNormal( const osg::Vec3 projDir ); 
+    osg::Vec3			calcNormal( const osg::Vec3& projdir) const;
+    osg::Vec3			getPrjDirection( 
+					const osgUtil::CullVisitor* cv)const;
+    void			updateFilledLogColor();
+    void		        clearFactors();
+    void			clearCoords();
+    void			buildLineGeometry();
+    void			buildTriangleGeometry();
+
+
+    bool				_isFilled;
+    bool				_showLog;
+    bool  		    		_seisstyle;
+    bool		    		_revscale;
+    bool		    		_fillrevscale;
+    bool		    		_resizewhenzooming;
+    bool				_clrTblChanged;
+    bool				_screenSizeChanged;
+
+    bool				_forceCoordRecalculation;
+    bool				_forceRebuild;
+
+    float				_maxShapeValue;
+    float				_minShapeValue;
+    float				_screenWidth;
+    float				_shiftValue;
+    float				_maxFillValue;
+    float				_minFillValue;
+    float		    		_constantsizefactor;
+    float				_lineGeometryWidth;
+    unsigned int			_repeatNumber;
+    float				_repeatGap;
+    DisplaySide				_dispSide;
+    osg::Vec2	    			_screensize;
+    osg::Vec3	    			_preProjDir; 
+    osg::ref_ptr<osg::Vec4Array>	_LogColors;
+    osg::ref_ptr<osg::Vec3Array>	_logLinedPoints;
+    osg::ref_ptr<osg::Vec3Array>	_logLinedTriPoints;
+    osg::ref_ptr<osg::FloatArray>	_coordLinedFactors;
+    osg::ref_ptr<osg::FloatArray>	_coordLinedTriFactors;
+
+    osg::ref_ptr<osg::Geode>		_geode;
+    osg::ref_ptr<osg::DrawArrays>	_linePrimitiveSet;
+    osg::ref_ptr<osg::Geometry>		_lineGeometry;
+    osg::ref_ptr<osg::LineWidth>	_lineWidth;
+    osg::ref_ptr<osg::Vec4Array>	_lineColor;
+
+    osg::ref_ptr<osg::Geometry>		_triangleStrip;
+    osg::ref_ptr<osg::DrawArrays>	_trianglePrimitiveSet;
+    std::vector<int>			_outFillIndex;
+
+
+    enum				{LOGLINE_ONLY,SEISMIC_ONLY,
+					    LOGFILL_ONLY,LOGLNFL_BOTH};
+
+};
+
+
+} // namespace
+
+#endif //OSGGEO_PLANEWELLLOG_H
