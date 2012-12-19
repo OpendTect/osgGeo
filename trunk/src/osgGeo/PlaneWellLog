@@ -124,6 +124,8 @@ public:
     unsigned int		getRepeatNumber() { return _repeatNumber; }
     void			setRepeatGap ( float );
     float			getRepeatGap() { return _repeatGap; }
+    void			setFullFilled( bool );
+    bool			getFullFilled() { return _isFullFilled; }
 
     void			clearLog();
 
@@ -180,6 +182,7 @@ private:
 
     bool				_forceCoordRecalculation;
     bool				_forceRebuild;
+    bool				_isFullFilled;
 
     float				_maxShapeValue;
     float				_minShapeValue;
