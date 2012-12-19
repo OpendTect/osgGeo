@@ -21,6 +21,8 @@ $Id$
 #include <osgGeo/PlaneWellLog>
 #include <osg/MatrixTransform>
 #include <osgViewer/Viewer>
+#include <osg/PolygonOffset>
+#include <osg/PolygonMode>
 #include <osg/LineWidth>
 #include <osg/Vec3>
 
@@ -50,6 +52,7 @@ PlaneWellLog::PlaneWellLog()
     ,_seisstyle( false )
     ,_revscale( false)
     ,_isFilled( false )
+    ,_isFullFilled( false )
     ,_constantsizefactor( 1 )
     ,_minShapeValue(mMAX )
     ,_minFillValue( mMAX )
@@ -91,12 +94,18 @@ void PlaneWellLog::buildLineGeometry()
     normals->push_back( osg::Vec3 (0.0f,-1.0f,0.0f ) );
     _lineGeometry->setNormalArray( normals.get());
     _lineGeometry->setNormalBinding( osg::Geometry::BIND_OVERALL );
-    _linePrimitiveSet = new osg::DrawArrays( osg::PrimitiveSet::LINE_STRIP, 0, 0 );
+    _linePrimitiveSet = new osg::DrawArrays(
+	osg::PrimitiveSet::LINE_STRIP, 0, 0 );
     _lineGeometry->addPrimitiveSet( _linePrimitiveSet );
     _lineWidth = new osg::LineWidth();
     _lineWidth->setWidth(1.0);
+    osg::PolygonOffset* polyoffset = new osg::PolygonOffset;
+    polyoffset->setFactor(1.0f);
+    polyoffset->setUnits(1.0f);
     getOrCreateStateSet()->setAttributeAndModes( _lineWidth );
     getStateSet()->setMode( GL_LIGHTING, osg::StateAttribute::OFF );
+    getStateSet()->setAttributeAndModes( 
+	polyoffset,osg::StateAttribute::OVERRIDE|osg::StateAttribute::ON );
 }
 
 
@@ -115,7 +124,8 @@ void PlaneWellLog::buildTriangleGeometry()
     _triangleStrip->setColorArray( _LogColors.get() );
     _triangleStrip->setColorBinding( osg::Geometry::BIND_PER_VERTEX );
 
-    _trianglePrimitiveSet = new osg::DrawArrays( osg::PrimitiveSet::TRIANGLE_STRIP, 0, 0 );
+    _trianglePrimitiveSet = new osg::DrawArrays(
+	osg::PrimitiveSet::TRIANGLE_STRIP, 0, 0 );
 
     _triangleStrip->addPrimitiveSet( _trianglePrimitiveSet );
     _triangleStrip->setDataVariance( osg::Object::DYNAMIC );
@@ -181,7 +191,8 @@ osg::Vec3 PlaneWellLog::getPrjDirection( const osgUtil::CullVisitor* cv ) const
 {
     osg::Vec3 projDir( 0, 0, 0 );
     if( !cv ) return projDir;
-    const osg::Camera* ca = const_cast<osgUtil::CullVisitor*>(cv)->getCurrentCamera();
+    const osg::Camera* ca = 
+	const_cast<osgUtil::CullVisitor*>(cv)->getCurrentCamera();
     osg::Vec3 up;
     osg::Vec3 eye;
     osg::Vec3 center;
@@ -267,7 +278,7 @@ void PlaneWellLog::calcFactors()
 	for ( int idx=0; idx<nrsamp; idx++ )
 	{
 	    float logval = _shapeLog->at(idx);
-	    if ( _dispSide == Left ) 
+	    if ( _dispSide == Left && !_isFullFilled) 
 		logval = _maxShapeValue - logval;
 	    meanlogval += logval/nrsamp;
 	}
@@ -280,9 +291,10 @@ void PlaneWellLog::calcFactors()
     {
 	float logval = _shapeLog->at( idx );
 
-	if ( ( item == LOGLNFL_BOTH && _revscale ) || 
+	if ( !_isFullFilled && 
+	   ( ( item == LOGLNFL_BOTH && _revscale ) || 
 	     ( item == LOGLINE_ONLY && _revscale ) ||
-	     ( item == SEISMIC_ONLY && _dispSide == Left ) )
+	     ( item == SEISMIC_ONLY && _dispSide == Left ) ) )
 	{
 	    logval = _maxShapeValue - logval;
 	}
@@ -352,7 +364,7 @@ unsigned int PlaneWellLog::getLogItem()
 }
 
 
-float PlaneWellLog::getShapeFactor( float val, float minval, float maxval ) const
+float PlaneWellLog::getShapeFactor(float val, float minval, float maxval )const
 {
     float res = (val-minval)/(maxval-minval);
     if ( res<0 ) res = 0;
@@ -375,16 +387,6 @@ osg::Vec3 PlaneWellLog::calcNormal( const osg::Vec3& projdir ) const
 }
 
 
-float expectDepth(.0);
-#define DIFFLIMITATION 0.005
-
-bool searchDepth( float val )
-{
-    return ( ( val == expectDepth ) || 
-	fabs(val - expectDepth ) <= DIFFLIMITATION );
-}
-
-
 void PlaneWellLog::updateFilledLogColor()
 {
     if ( !_shapeLog->size() || !_isFilled )
@@ -394,24 +396,33 @@ void PlaneWellLog::updateFilledLogColor()
     int   colindex = 0;
 
     const int nrsamp = _logPath->size();
-    float step = 1;
     _outFillIndex.clear();
+
+    osg::FloatArray::iterator itmin = std::min_element(
+	_fillLogDepths->begin(), _fillLogDepths->end());
+    float minFillZ = *itmin;
+
+    osg::FloatArray::iterator itmax = std::max_element(
+	_fillLogDepths->begin(), _fillLogDepths->end());
+    float maxFillZ = *itmax;
 
     for ( int idx=0; idx<nrsamp; idx++ )
     {
-	int index = int( idx*step+.5 );
 	osg::Vec3f pos = _logPath->at(idx);
-	expectDepth = pos[2];
-	osg::FloatArray::iterator it = find_if( 
-	    _fillLogDepths->begin(), _fillLogDepths->end(), searchDepth ) ; 
-	size_t findex = std::distance(_fillLogDepths->begin(), it);
-	if(findex == _fillLogDepths->size())
+
+	if( pos[2] < minFillZ || pos[2] > maxFillZ )
 	{
 	    _outFillIndex.push_back( idx );
 	    continue;
 	}
-	index = (int)findex;
-        float filllogval = _fillLog->at( index );
+
+	osg::FloatArray::iterator it  = _fillLogDepths->begin();
+
+	while ( fabs(*it) < fabs( pos[2]) )
+	    ++it;
+
+	size_t findex = std::distance(_fillLogDepths->begin(), it);
+	float filllogval = _fillLog->at( (int)findex );
 	colindex = (int)( ( filllogval-_minFillValue ) / colstep );
 	colindex = ( colindex > 255 ) ? 255 : colindex;
 	colindex = ( colindex < 0   ) ? 0   : colindex;
@@ -419,7 +430,6 @@ void PlaneWellLog::updateFilledLogColor()
 	(*_LogColors)[2*idx+1] =  _colorTable->at( colindex );
     }
 
-    _triangleStrip->setColorArray( _LogColors );
     _clrTblChanged = false;
 
 }
@@ -589,6 +599,11 @@ void PlaneWellLog::setFillLogDepths( osg::FloatArray* depths )
     _fillLogDepths = depths; 
 }
 
+void PlaneWellLog::setFullFilled( bool isFullPanel )
+{
+    _isFullFilled = isFullPanel;
+    _forceRebuild = true;
+}
 
 void PlaneWellLog::clearCoords()
 {
@@ -672,7 +687,8 @@ float PlaneWellLog::calcWorldWidth( const osgUtil::CullVisitor* cv )
     if( !cv ) 
 	return 0;
 
-    osg::Viewport* viewport = const_cast<osgUtil::CullVisitor*>(cv)->getViewport();
+    osg::Viewport* viewport = 
+	const_cast<osgUtil::CullVisitor*>(cv)->getViewport();
     float szpixel = viewport->height();
     float nsize1 = _screenWidth / szpixel; 
     int hnum = (int)_logPath->size() / 2;
