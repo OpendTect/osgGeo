@@ -215,13 +215,14 @@ void PlaneWellLog::calcCoordinates( const osg::Vec3& normal, float screensize )
 
     const bool dofill = ( getLogItem() != LOGLINE_ONLY );
     const osg::Vec3 appliedDir = normal * screensize;
-
+    const osg::Vec3 emptyPnt( 0, 0, 0 );
     for ( int idx=0; idx<nrsample; idx++ )
     {
 	const float shpFactor = _coordLinedFactors->at( idx ) ;
 	const osg::Vec3 pathcrd = _logPath->at( idx );
 	
-	(*_logLinedPoints)[idx]= pathcrd + appliedDir * shpFactor;
+	(*_logLinedPoints)[idx]= ( _lineWidth->getWidth() > 0 )
+	    ? ( pathcrd + appliedDir * shpFactor ) : emptyPnt;
 
 	if ( dofill )
 	{
@@ -389,7 +390,17 @@ osg::Vec3 PlaneWellLog::calcNormal( const osg::Vec3& projdir ) const
 
 void PlaneWellLog::updateFilledLogColor()
 {
-    if ( !_shapeLog->size() || !_isFilled )
+    if( getLogItem() == SEISMIC_ONLY )
+    {
+	for ( int idx=0; idx<_logPath->size(); idx++ )
+	{
+	    (*_LogColors)[2*idx] =  _colorTable->at( 1 );
+	    (*_LogColors)[2*idx+1] =  _colorTable->at( 1);
+	}
+	return ;
+    }
+    
+    if ( !_shapeLog->size() || !_isFilled)
 	return;
 
     float colstep = ( _maxFillValue - _minFillValue ) / 255;
