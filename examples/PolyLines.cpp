@@ -25,7 +25,7 @@ $Id$
 #include <osgGeo/PolyLine>
 #include <osgViewer/Viewer> 
 #include <osg/MatrixTransform>
-#include <osgGA/TrackBallManipulator>
+#include <osgGA/TrackballManipulator>
 #include <osg/Material>
 
 
