@@ -418,6 +418,7 @@ int main( int argc, char** argv )
 
 	    osg::Vec4f borderCol( I/255.0f, J/255.0f, K/255.0f, L/255.0f );
 	    laytex->setDataLayerBorderColor( lastId, borderCol );
+	    continue;
 	}
 
 	if ( args.read(pos, "--opacity", opacity) )
