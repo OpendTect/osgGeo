@@ -147,53 +147,32 @@ int getMaxIndex( const osg::PrimitiveSet* ps )
     return max;
 }
 
-#define mScale( vec )\
-    vec[0] *= scale[0]; \
-    vec[1] *= scale[1]; \
-    vec[2] *= scale[2];
 
-#define mAddVertex(vec,pos) \
-    coords->push_back( vec * invmodelmatrix ); \
-    bbox.expandBy( pos* invmodelmatrix ); \
-    norm = ( (vec * invmodelmatrix) - (pos* invmodelmatrix) ); \
-    norm.normalize(); \
-    mScale( norm ) \
+#define mAddVertex(vec,pos)\
+    coords->push_back( vec ); \
+    norm = vec - pos; \
+    norm.normalize();\
     normals->push_back( norm ); \
     triindices->push_back( ci++ );
 
 #define mAddCap( croner, p ) \
-	   	coords->push_back( croner[idx] * invmodelmatrix  ); \
+	   	coords->push_back( croner[idx] ); \
 		triindices->push_back( ci++ ); \
-		normals->push_back( norm * invmodelmatrix  ); \
-		coords->push_back( p * invmodelmatrix ); \
-		triindices->push_back( ci++ ); \
-		normals->push_back( norm * invmodelmatrix );
+		normals->push_back( norm ); \
+		coords->push_back( p ); triindices->push_back( ci++ ); \
+		normals->push_back( norm ); \
 
-bool PolyLineNode::updateGeometry( const osg::CullStack* cullstack )
+bool PolyLineNode::updateGeometry( const osg::CullStack* )
 {
     osg::Vec3Array* arr = dynamic_cast<osg::Vec3Array*>(_array.get());
     if ( !arr )
 	 return false;
-
-    const osg::Matrix modelviewmatrix = 
-	*const_cast<osg::CullStack*>(cullstack)->getModelViewMatrix();
-    const osg::Matrix invmodelmatrix = osg::Matrix::inverse( modelviewmatrix );
-
-    osg::Vec3d translation;
-    osg::Quat rotation;
-    osg::Vec3d scale;
-    osg::Quat so;
-    modelviewmatrix.decompose( translation, rotation, scale, so );
-
+    _geometry->getPrimitiveSetList().clear();
+    osg::BoundingBox bbox;
+    int ci = 0;
     osg::ref_ptr<osg::Vec3Array> coords = new osg::Vec3Array;
     osg::ref_ptr<osg::Vec3Array> normals = new osg::Vec3Array;
-
-    for ( unsigned int idx=0; idx<_geometry->getNumPrimitiveSets(); idx++ )
-	_geometry->removePrimitiveSet( idx );
-  
-    osg::BoundingBox bbox;
     const unsigned int primsz = _primitivesets.size();
-    int ci = 0;
     for ( unsigned int primidx=0; primidx<primsz; primidx++ )
     {
 	osg::Vec3* corners1 = new osg::Vec3[_resolution];
@@ -206,11 +185,9 @@ bool PolyLineNode::updateGeometry( const osg::CullStack* cullstack )
 	for ( unsigned int cidx=0; cidx<ps->getNumIndices(); cidx++ )
 	{
 	    const int pidx = (int) ps->index( cidx );
-	    const osg::Vec3  p0 = arr->at( pidx ) * modelviewmatrix;
-	    const osg::Vec3  p1 
-		= arr->at( pidx <= maxprimsz-1 ? pidx+1 : pidx ) * modelviewmatrix;
-	    const osg::Vec3  p2 
-		= arr->at( pidx <= maxprimsz-2 ? pidx+2 : pidx ) * modelviewmatrix;
+	    const osg::Vec3  p0 = arr->at( pidx );
+	    const osg::Vec3  p1 = arr->at( pidx <= maxprimsz-1 ? pidx+1 : pidx );
+	    const osg::Vec3  p2 = arr->at( pidx <= maxprimsz-2 ? pidx+2 : pidx );
 	    osg::Vec3 vec01 = p1 - p0; vec01.normalize();
 	    osg::Vec3 vec12 = p2 - p1; vec12.normalize();
 	    const bool doreverse = vec01 * vec12 < -0.5f;
@@ -224,15 +201,15 @@ bool PolyLineNode::updateGeometry( const osg::CullStack* cullstack )
 		getOrthoVecs( vec01, curu, curv );
 		for ( int idx=0; idx<_resolution; idx++ )
 		{
-		    const float angl = idx * 2 * M_PI / _resolution;
-		    const osg::Vec3 vec = curv*sin( angl ) + curu*cos( angl );
-		    corners1[idx] = vec*_radius + p0;
-		    mAddCap( corners1, p0 ) 
+		    float angl = idx * 2 * M_PI / _resolution;
+		    const osg::Vec3 vec1 = ( curu * cos(angl) ) + ( curv * sin(angl) );
+		    corners1[idx] = vec1*_radius + p0;
+		    mAddCap( corners1, p0 );
 		}
 
-		coords->push_back( corners1[0] * invmodelmatrix ); 
+		coords->push_back( corners1[0] );
 		triindices->push_back( ci++ );
-		normals->push_back( norm * invmodelmatrix  );
+		normals->push_back( norm );
 		doonce = false;
 	    }
 
@@ -254,12 +231,12 @@ bool PolyLineNode::updateGeometry( const osg::CullStack* cullstack )
 		norm.normalize();
 		for ( int idx=0; idx<_resolution; idx++ )
 		{
-		    mAddCap( corners2, p1 ) 
+		    mAddCap( corners2, p1 );
 		}
 	    
-		coords->push_back( corners2[0] * invmodelmatrix ); 
-		triindices->push_back( ci++ );
-		normals->push_back( norm * invmodelmatrix  );
+		coords->push_back( corners2[0] );
+	        triindices->push_back( ci++ );
+		normals->push_back( norm );
 	    }
 	
 	    for ( int idx=0; idx<_resolution; idx++ )
@@ -272,7 +249,7 @@ bool PolyLineNode::updateGeometry( const osg::CullStack* cullstack )
 	_geometry->addPrimitiveSet( triindices );
     }
    
-    _geometry->setVertexArray( coords );
+    _geometry->setVertexArray( coords.get() );
     _geometry->setNormalArray( normals.get() );
     _geometry->setNormalBinding( osg::Geometry::BIND_PER_VERTEX );
     _geometry->setColorBinding(osg::Geometry::BIND_OVERALL); 
