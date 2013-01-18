@@ -202,7 +202,7 @@ bool PolyLineNode::updateGeometry( const osg::CullStack* )
 		for ( int idx=0; idx<_resolution; idx++ )
 		{
 		    float angl = idx * 2 * M_PI / _resolution;
-		    const osg::Vec3 vec1 = ( curu * cos(angl) ) + ( curv * sin(angl) );
+		    const osg::Vec3 vec1 = curu*cos(angl) + curv*sin(angl);
 		    corners1[idx] = vec1*_radius + p0;
 		    mAddCap( corners1, p0 );
 		}
@@ -270,11 +270,11 @@ bool PolyLineNode::needsUpdate( const osg::CullStack* ) const
 
     for ( int idx=_primitivesets.size()-1; idx>=0; idx-- )
     {
-	//if ( _primitivesets[idx]->getModifiedCount()!=
-	//     _primitivesetmodcount[idx] )
-	//{
-	//    return true;
-	//}
+	if ( _primitivesets[idx]->getModifiedCount()!=
+	     _primitivesetmodcount[idx] )
+	{
+	    return true;
+	}
     }
 
     return false;
@@ -283,6 +283,7 @@ bool PolyLineNode::needsUpdate( const osg::CullStack* ) const
 
 void PolyLineNode::addPrimitiveSet( osg::PrimitiveSet* ps )
 {
+    _primitivesetmodcount.push_back( ps->getModifiedCount() );
     _primitivesets.push_back( ps );
     _needsUpdate = true;
 }
@@ -302,6 +303,7 @@ int PolyLineNode::getPrimitiveSetIndex( const osg::PrimitiveSet* ps ) const
 
 void PolyLineNode::removePrimitiveSet( int idx )
 {
+    _primitivesetmodcount.erase( _primitivesetmodcount.begin()+idx );
     _primitivesets.erase( _primitivesets.begin()+idx );
     _needsUpdate = true;
 }

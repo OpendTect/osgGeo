@@ -74,7 +74,8 @@ protected:
     int				_resolution;
     unsigned int		_arraymodcount;
     osg::BoundingSphere		_bs;
-
+    std::vector<unsigned int>	_primitivesetmodcount;
+    
     std::vector<osg::ref_ptr<osg::PrimitiveSet> >	_primitivesets;
 };
 
