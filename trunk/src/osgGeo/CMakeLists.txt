@@ -25,6 +25,7 @@ configure_file(
 
 set ( LIB_PUBLIC_HEADERS 
     AutoTransform
+    AxesNode
     Line3
     Export
     Common
@@ -45,6 +46,7 @@ set ( LIB_PUBLIC_HEADERS
 add_library( ${LIB_NAME} SHARED
     ${LIB_PUBLIC_HEADERS}
     AutoTransform.cpp
+    AxesNode.cpp
     Palette.cpp
     PlaneWellLog
     ShaderUtility.cpp
@@ -68,7 +70,8 @@ target_link_libraries(
     ${OSGGEO_OSGUTIL_LIBRARY}
     ${OSGGEO_OSGGA_LIBRARY}
     ${OSGGEO_OSGMANIPULATOR_LIBRARY}
-    ${OSGGEO_OSGDB_LIBRARY} )
+    ${OSGGEO_OSGDB_LIBRARY}
+    ${OSGGEO_OSGTEXT_LIBRARY})
 
 install(FILES
     ${LIB_PUBLIC_HEADERS}
