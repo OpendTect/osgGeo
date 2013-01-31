@@ -33,8 +33,8 @@ namespace osgGeo
 
 AxesNode::AxesNode()
     : _needsUpdate(true)
-    , _radius(1.2)
-    , _length(11)
+    , _radius(1)
+    , _length(10)
     , _root(new osg::Group)
 {
     setNumChildrenRequiringUpdateTraversal( 1 );
@@ -44,8 +44,8 @@ AxesNode::AxesNode()
 AxesNode::AxesNode( const AxesNode& node, const osg::CopyOp& co )
     : osg::Node(node,co)
     , _needsUpdate(true)
-    , _radius(1.2)
-    , _length(11)
+    , _radius(1)
+    , _length(10)
     , _root(new osg::Group)
 {
     setNumChildrenRequiringUpdateTraversal( 1 );
@@ -145,7 +145,7 @@ osg::ref_ptr<osg::Node> arrowNode( const float rad, const float len,
 
     osg::ref_ptr<osg::Geode> arrowgeode = new osg::Geode();
     osg::ref_ptr<osg::Material> mat = new osg::Material;
-    const float fac = 0.4f;
+    const float fac = 0.3f;
     osg::Vec4 ambcolor( color.r()*fac, color.g()*fac, color.b()*fac, 1.0f );
     mat->setDiffuse( osg::Material::FRONT_AND_BACK, color );
     mat->setAmbient( osg::Material::FRONT_AND_BACK, ambcolor );
@@ -185,9 +185,9 @@ bool AxesNode::updateGeometry()
     spheregeode->getOrCreateStateSet()->setAttribute( mat );
     spheregeode->addDrawable( sphere );
     _root->addChild( spheregeode );
-    _root->addChild( arrowNode( _radius, _length, red, osg::Vec3(0,1,0),  "N"));
-    _root->addChild( arrowNode( _radius, _length, green, osg::Vec3(1,0,0),"E"));
-    _root->addChild( arrowNode( _radius, _length, blue, osg::Vec3(0,0,-1),"Z"));
+    _root->addChild( arrowNode(_radius,_length,red,osg::Vec3(0,1,0),  "N") );
+    _root->addChild( arrowNode(_radius,_length,green,osg::Vec3(1,0,0),"E") );
+    _root->addChild( arrowNode(_radius,_length,blue,osg::Vec3(0,0,-1),"Z") );
     _needsUpdate = false;
     return true;
 }

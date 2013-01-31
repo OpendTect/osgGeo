@@ -58,7 +58,6 @@ protected:
        
     float			_radius;
     float			_length;
-    osg::ref_ptr<osg::Geometry>	_geometry;
     osg::ref_ptr<osg::Group>	_root;
     bool			_needsUpdate;
 };
