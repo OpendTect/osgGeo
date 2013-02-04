@@ -176,12 +176,17 @@ public:
     void		planTiling(int brickSize,
 			    std::vector<float>& xTickMarks,
 			    std::vector<float>& yTickMarks) const;
+			// brickSize will be ceiled to power of two
 
     osg::StateSet*	createCutoutStateSet(const osg::Vec2f& origin,
 			    const osg::Vec2f& opposite,
 			    std::vector<TextureCoordData>&) const;
 
     void		useShaders(bool yn=true);
+    void		allowBorderedTextures(bool yn=true);
+			/* Allows internal texture tile sizes
+			   to be not only 2^N but also (2^N)+2 */
+
     const osg::Image*	getCompositeTextureImage();
 
     void		setMaxTextureCopySize(unsigned int width_x_height);
@@ -206,9 +211,9 @@ protected:
     void		setDataLayerTextureUnit(int id,int unit);
     void		raiseUndefChannelRefCount(bool yn, int idx=-1);
 
-    static void		divideAxis(float totalSize,
+    void		divideAxis(float totalSize,
 				   int brickSize,
-				   std::vector<float>& tickMarks);
+				   std::vector<float>& tickMarks) const;
 
     void 		getVertexShaderCode(std::string& code,
 				const std::vector<int>& activeUnits) const;
@@ -238,6 +243,7 @@ protected:
     bool				_invertUndefLayers;
 
     bool				_useShaders;
+    bool				_allowBorderedTextures;
     int					_compositeLayerId;
     bool				_compositeLayerUpdate;
 };
