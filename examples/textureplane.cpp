@@ -253,7 +253,8 @@ int main( int argc, char** argv )
     osg::ApplicationUsage* usage = args.getApplicationUsage();
     usage->setCommandLineUsage( "textureplane [options]" );
     usage->setDescription( "3D view of tiled plane with layered set of textures or one default texture" );
-    usage->addCommandLineOption( "--bricksize <n>", "Desired brick size" );
+    usage->addCommandLineOption( "--bricksize <n>", "Brick size [power-of-2]" );
+    usage->addCommandLineOption( "--brickborders", "Allow bordered texture tiles" );
     usage->addCommandLineOption( "--dim <n>", "Thin dimension [0,2]" );
     usage->addCommandLineOption( "--help | --usage", "Command line info" );
     usage->addCommandLineOption( "--image <path> [origin-opt] [scale-opt] [opacity-opt] [colormap-opt] [rgbamap-opt] [udfimage-opt] [border-opt] [udfcolor-opt] [filter-opt]", "Add texture layer" );
@@ -322,6 +323,11 @@ int main( int argc, char** argv )
 
 
     osg::ref_ptr<osgGeo::LayeredTexture> laytex = new osgGeo::LayeredTexture();
+
+    while ( args.read("--brickborders") )
+	laytex->allowBorderedTextures();
+
+
     const int firstId = laytex->addDataLayer();
     int lastId = firstId;
 
