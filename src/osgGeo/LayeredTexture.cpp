@@ -1256,7 +1256,7 @@ osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, co
 	if ( !srcImage || !srcImage->s() || !srcImage->t() )
 	    continue;
 
-	const float eps = 1e3;
+	const float eps = 1e-3;
 	const bool xBorderCrossing = localOrigin.x()<-eps || localOpposite.x()>srcImage->s()+eps;
 	const bool yBorderCrossing = localOrigin.y()<-eps || localOpposite.y()>srcImage->t()+eps;
 
@@ -1298,16 +1298,22 @@ osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, co
 				getTextureSize(size.y()) );
 
 	bool useTextureBorder = false;
-	if ( _allowBorderedTextures && !xBorderCrossing && !yBorderCrossing && tileSize!=size )
+	if ( _allowBorderedTextures && !xBorderCrossing && !yBorderCrossing )
 	{
-	    const osgGeo::Vec2i altTileSize(
-		    2 + tileSize.x() / (tileSize.x()==size.x() ? 1 : 2),
-		    2 + tileSize.y() / (tileSize.y()==size.y() ? 1 : 2) );
+	    const bool xProfit = size.x() != tileSize.x() &&
+				 size.x()-2 <= tileSize.x()/2;
+	    const bool yProfit = size.y() != tileSize.y() &&
+				 size.y()-2 <= tileSize.y()/2;
 
-	    if ( altTileSize.x()-size.x()>=0 && altTileSize.y()-size.y()>=0 )
+	    if ( xProfit || yProfit )
 	    {
+		if ( xProfit )
+		    tileSize.x() /= 2;
+		if ( yProfit )
+		    tileSize.y() /= 2;
+
+		tileSize += osgGeo::Vec2i( 2, 2 );
 		useTextureBorder = true;
-		tileSize = altTileSize;
 	    }
 	}
 
