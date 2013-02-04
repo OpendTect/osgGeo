@@ -547,6 +547,7 @@ LayeredTexture::LayeredTexture()
     , _stackUndefColor( 0.0f, 0.0f, 0.0f, 0.0f )
     , _invertUndefLayers( false )
     , _useShaders( true )
+    , _allowBorderedTextures( false )
     , _compositeLayerUpdate( true )
 {
     _compositeLayerId = addDataLayer();
@@ -565,6 +566,7 @@ LayeredTexture::LayeredTexture( const LayeredTexture& lt,
     , _stackUndefChannel( lt._stackUndefChannel )
     , _stackUndefColor( lt._stackUndefColor )
     , _useShaders( lt._useShaders )
+    , _allowBorderedTextures( lt._allowBorderedTextures )
     , _compositeLayerId( lt._compositeLayerId )
     , _compositeLayerUpdate( lt._compositeLayerUpdate )
 {
@@ -1136,7 +1138,7 @@ void LayeredTexture::planTiling( int brickSize, std::vector<float>& xTickMarks, 
 
 
 void LayeredTexture::divideAxis( float totalSize, int brickSize,
-				 std::vector<float>& tickMarks )
+				 std::vector<float>& tickMarks ) const
 {
     if ( totalSize <= 1.0f ) 
     {
@@ -1145,7 +1147,7 @@ void LayeredTexture::divideAxis( float totalSize, int brickSize,
 	return;
     }
 
-    const int overlap = 2;
+    const int overlap = _allowBorderedTextures ? 0 : 2;
     // One to avoid seam (lower LOD needs more), one because layers
     // may mutually disalign.
 
@@ -1254,6 +1256,10 @@ osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, co
 	if ( !srcImage || !srcImage->s() || !srcImage->t() )
 	    continue;
 
+	const float eps = 1e3;
+	const bool xBorderCrossing = localOrigin.x()<-eps || localOpposite.x()>srcImage->s()+eps;
+	const bool yBorderCrossing = localOrigin.y()<-eps || localOpposite.y()>srcImage->t()+eps;
+
 	osgGeo::Vec2i size( (int) ceil(localOpposite.x()+0.5),
 			    (int) ceil(localOpposite.y()+0.5) );
 
@@ -1288,8 +1294,23 @@ osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, co
 	    tileOrigin = osgGeo::Vec2i( 0, 0 );
 	}
 
-	const osgGeo::Vec2i tileSize( getTextureSize(size.x()),
-				      getTextureSize(size.y()) );
+	osgGeo::Vec2i tileSize( getTextureSize(size.x()),
+				getTextureSize(size.y()) );
+
+	bool useTextureBorder = false;
+	if ( _allowBorderedTextures && !xBorderCrossing && !yBorderCrossing && tileSize!=size )
+	{
+	    const osgGeo::Vec2i altTileSize(
+		    2 + tileSize.x() / (tileSize.x()==size.x() ? 1 : 2),
+		    2 + tileSize.y() / (tileSize.y()==size.y() ? 1 : 2) );
+
+	    if ( altTileSize.x()-size.x()>=0 && altTileSize.y()-size.y()>=0 )
+	    {
+		useTextureBorder = true;
+		tileSize = altTileSize;
+	    }
+	}
+
 	overshoot += tileSize - size;
 
 	if ( tileOrigin.x()<overshoot.x() || tileOrigin.y()<overshoot.y() )
@@ -1317,6 +1338,12 @@ osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, co
 	copyImageTile( *srcImage, *tileImage, tileOrigin, tileSize );
 #endif
 
+	if ( useTextureBorder )
+	{
+	    tileSize -= osgGeo::Vec2i( 2, 2 );
+	    tileOrigin += osgGeo::Vec2i( 1, 1 );
+	}
+
 	osg::Vec2f tc00, tc01, tc10, tc11;
 	tc00.x() = (localOrigin.x() - tileOrigin.x()) / tileSize.x();
 	tc00.y() = (localOrigin.y() - tileOrigin.y()) / tileSize.y();
@@ -1328,16 +1355,17 @@ osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, co
 	tcData.push_back( TextureCoordData( layer->_textureUnit, tc00, tc01, tc10, tc11 ) );
 
 	osg::Texture::WrapMode xWrapMode = osg::Texture::CLAMP_TO_EDGE;
-	if ( layer->_borderColor[0]>=0.0f && (tc00.x()<0.0f || tc11.x()>1.0f) )
+	if ( layer->_borderColor[0]>=0.0f && xBorderCrossing )
 	    xWrapMode = osg::Texture::CLAMP_TO_BORDER;
 
 	osg::Texture::WrapMode yWrapMode = osg::Texture::CLAMP_TO_EDGE;
-	if ( layer->_borderColor[0]>=0.0f && (tc00.y()<0.0f || tc11.y()>1.0f) )
+	if ( layer->_borderColor[0]>=0.0f && yBorderCrossing )
 	    yWrapMode = osg::Texture::CLAMP_TO_BORDER;
 
 	osg::ref_ptr<osg::Texture2D> texture = new osg::Texture2D( tileImage.get() );
 	texture->setWrap( osg::Texture::WRAP_S, xWrapMode );
 	texture->setWrap( osg::Texture::WRAP_T, yWrapMode );
+	texture->setBorderWidth( useTextureBorder ? 1 : 0 );
 
 	osg::Texture::FilterMode filterMode = layer->_filterType==Nearest ? osg::Texture::NEAREST : osg::Texture::LINEAR;
 	texture->setFilter( osg::Texture::MAG_FILTER, filterMode );
@@ -1808,6 +1836,12 @@ void LayeredTexture::useShaders( bool yn )
 {
     _useShaders = yn;
     _tilingInfo->_retilingNeeded = true;
+}
+
+
+void LayeredTexture::allowBorderedTextures( bool yn )
+{
+    _allowBorderedTextures = yn;
 }
 
 
