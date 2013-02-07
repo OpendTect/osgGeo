@@ -536,9 +536,10 @@ struct TilingInfo
 
 //============================================================================
 
+#define MIN_ID	0
 
 LayeredTexture::LayeredTexture()
-    : _freeId( 1 )
+    : _freeId( MIN_ID )
     , _updateSetupStateSet( false )
     , _maxTextureCopySize( 32*32 )
     , _tilingInfo( new TilingInfo )
@@ -675,11 +676,12 @@ int LayeredTexture::getDataLayerID( int idx ) const
 
 int LayeredTexture::getDataLayerIndex( int id ) const
 {
-    int size = _dataLayers.size();
-    if ( id<size )	
-	size = id;	// Optimization since layers are ID-sorted
+    // Optimization since layers are ID-sorted
+    unsigned int maxIdx = id - MIN_ID;
+    if ( maxIdx >= _dataLayers.size() )
+	maxIdx = _dataLayers.size()-1;
 
-    for ( int idx=size-1; idx>=0; idx-- )
+    for ( int idx=maxIdx; idx>=0; idx-- )
     {
 	if ( _dataLayers[idx]->_id==id )
 	    return idx;
@@ -1343,13 +1345,13 @@ osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, co
 #else
 	copyImageTile( *srcImage, *tileImage, tileOrigin, tileSize );
 #endif
-
+/*
 	if ( useTextureBorder )
 	{
 	    tileSize -= osgGeo::Vec2i( 2, 2 );
 	    tileOrigin += osgGeo::Vec2i( 1, 1 );
 	}
-
+*/
 	osg::Vec2f tc00, tc01, tc10, tc11;
 	tc00.x() = (localOrigin.x() - tileOrigin.x()) / tileSize.x();
 	tc00.y() = (localOrigin.y() - tileOrigin.y()) / tileSize.y();
@@ -1369,9 +1371,10 @@ osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, co
 	    yWrapMode = osg::Texture::CLAMP_TO_BORDER;
 
 	osg::ref_ptr<osg::Texture2D> texture = new osg::Texture2D( tileImage.get() );
+	texture->setResizeNonPowerOfTwoHint( false );
 	texture->setWrap( osg::Texture::WRAP_S, xWrapMode );
 	texture->setWrap( osg::Texture::WRAP_T, yWrapMode );
-	texture->setBorderWidth( useTextureBorder ? 1 : 0 );
+	//texture->setBorderWidth( useTextureBorder ? 1 : 0 );
 
 	osg::Texture::FilterMode filterMode = layer->_filterType==Nearest ? osg::Texture::NEAREST : osg::Texture::LINEAR;
 	texture->setFilter( osg::Texture::MAG_FILTER, filterMode );
