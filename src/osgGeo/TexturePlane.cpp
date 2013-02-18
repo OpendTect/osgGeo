@@ -37,6 +37,7 @@ TexturePlaneNode::TexturePlaneNode()
     : _center( 0, 0, 0 )
     , _width( 1, 1, 0 )
     , _textureBrickSize( 64 )
+    , _isBrickSizeStrict( false )
     , _needsUpdate( true )
     , _swapTextureAxes( false )
     , _boundingGeometry( 0 )
@@ -56,6 +57,7 @@ TexturePlaneNode::TexturePlaneNode( const TexturePlaneNode& node, const osg::Cop
     , _center( node._center )
     , _width( node._width )
     , _textureBrickSize( node._textureBrickSize )
+    , _isBrickSizeStrict( node._isBrickSizeStrict )
     , _needsUpdate( true )
     , _swapTextureAxes( node._swapTextureAxes )
     , _boundingGeometry( 0 )
@@ -165,10 +167,10 @@ bool TexturePlaneNode::updateGeometry()
     cleanUp();
 
     _texture->useShaders( _useShaders );
-    _texture->assignTextureUnits();
+    _texture->reInitTiling();
 
     std::vector<float> sOrigins, tOrigins;
-    _texture->planTiling( _textureBrickSize, sOrigins, tOrigins );
+    _texture->planTiling( _textureBrickSize, sOrigins, tOrigins, _isBrickSizeStrict );
     const int nrs = sOrigins.size()-1;
     const int nrt = tOrigins.size()-1;
 
@@ -301,9 +303,10 @@ const osg::Vec3& TexturePlaneNode::getCenter() const
 { return _center; }
 
 
-void TexturePlaneNode::setTextureBrickSize( short nt )
+void TexturePlaneNode::setTextureBrickSize( short sz, bool strict )
 {
-    _textureBrickSize = nt;
+    _textureBrickSize = sz;
+    _isBrickSizeStrict = strict;
 }
 
     
