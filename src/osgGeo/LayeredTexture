@@ -61,6 +61,7 @@ protected:
 
 struct LayeredTextureData;
 struct TilingInfo;
+struct TextureInfo;
 class LayerProcess;
 
 
@@ -89,7 +90,6 @@ public:
     osg::Vec2f		envelopeCenter() const;
     osg::Vec2f		textureEnvelopeSize() const;
     osg::Vec2f		imageEnvelopeSize() const;
-    bool		needsRetiling() const;
 
     void		setDataLayerImage(int id,const osg::Image*);
 			/*!Preferred image formats: GL_LUMINANCE, GL_ALPHA,
@@ -168,42 +168,65 @@ public:
 	osg::Vec2f	_tc00, _tc01, _tc10, _tc11;
     };
 
-    osg::StateSet*	getSetupStateSet();
-    void		setupStateSetUpdate()	{ _updateSetupStateSet=true; }
+    bool		needsRetiling() const;
+    void		reInitTiling();
 
-    void		assignTextureUnits();
-
-    void		planTiling(int brickSize,
-			    std::vector<float>& xTickMarks,
-			    std::vector<float>& yTickMarks) const;
-			// brickSize will be ceiled to power of two
+    bool /* as_asked */	planTiling(unsigned short brickSize,
+				   std::vector<float>& xTickMarks,
+				   std::vector<float>& yTickMarks,
+				   bool strict=true) const;
+			/*!If not strict, the brick size of the returned tiling
+			   might be chosen smaller for performance reasons. */
 
     osg::StateSet*	createCutoutStateSet(const osg::Vec2f& origin,
 			    const osg::Vec2f& opposite,
 			    std::vector<TextureCoordData>&) const;
+			/*!If needsRetiling() is true, call reInitTiling()
+			   first, followed by the optional planTiling(.),
+			   and next (re)create your CutoutStateSets. */
+
+    osg::StateSet*	getSetupStateSet();
+    void		updateSetupStateSet()	{ _updateSetupStateSet=true; }
 
     void		useShaders(bool yn=true);
-    void		allowBorderedTextures(bool yn=true);
-			/* Allows internal texture tile sizes
-			   to be not only 2^N but also (2^N)+2 */
+
+    enum TextureSizePolicy { PowerOf2, BorderedPowerOf2, AnySize };
+			/*!BorderedPowerOf2 is deprecated since OpenGL 3.0
+			   and does not act correctly for higher versions.
+			   Unclear whether it does for early versions. */
+
+    void		setTextureSizePolicy(TextureSizePolicy);
+    TextureSizePolicy	getTextureSizePolicy() const;
+
+    void		setMaxTextureCopySize(unsigned int width_x_height);
+			/*!The size of a non-power-of-2 texture layer will
+			   upper bound the optimal tile size at some texture
+			   size policies. Therefore, a power-of-2 scaled copy
+			   is created for small non-power-of-2 textures. */
+
+    void		setGraphicsContextID(int id=-1);
+			/*!Without a valid ID, the texture hardware info is
+			   automatically derived from all known contexts. */
+    int			getGraphicsContextID() const;
+
+    int			maxTextureSize() const;
+    int			nrTextureUnits() const;
 
     const osg::Image*	getCompositeTextureImage();
 
-    void		setMaxTextureCopySize(unsigned int width_x_height);
-			/* The size of a non-power-of-2 texture layer will upper
-			   bound the tile size. Therefore, a power-of-2 scaled
-			   copy is created for small non-power-of-2 textures. */
-
     static int		image2TextureChannel(int channel,GLenum format);
-    static int		getTextureSize(unsigned short nr);
+    static int		powerOf2Ceil(unsigned short nr);
 
 protected:
 			~LayeredTexture();
-    void		updateSetupStateSet();
+    void		assignTextureUnits();
     void		checkForModifiedImages();
     void		buildShaders();
     void		createColSeqTexture();
+    void		updateSetupStateSetIfNeeded();
+    void		updateTextureInfoIfNeeded() const;
     void		updateTilingInfoIfNeeded() const;
+    TextureSizePolicy	usedTextureSizePolicy() const;
 
     int /* nrProc */	getProcessInfo(std::vector<int>& orderedLayerIDs,
 			    int& nrUsedLayers,bool* stackIsOpaque=0) const;
@@ -211,8 +234,7 @@ protected:
     void		setDataLayerTextureUnit(int id,int unit);
     void		raiseUndefChannelRefCount(bool yn, int idx=-1);
 
-    void		divideAxis(float totalSize,
-				   int brickSize,
+    bool		divideAxis(float totalSize,int brickSize,
 				   std::vector<float>& tickMarks) const;
 
     void 		getVertexShaderCode(std::string& code,
@@ -232,9 +254,11 @@ protected:
     bool				_updateSetupStateSet;
     osg::ref_ptr<osg::StateSet>		_setupStateSet;
 
+    TextureSizePolicy			_textureSizePolicy;
     unsigned int			_maxTextureCopySize;
 
     mutable TilingInfo*			_tilingInfo;
+    mutable TextureInfo*		_texInfo;
 
     int					_stackUndefLayerId;
     int					_stackUndefChannel;
@@ -243,7 +267,6 @@ protected:
     bool				_invertUndefLayers;
 
     bool				_useShaders;
-    bool				_allowBorderedTextures;
     int					_compositeLayerId;
     bool				_compositeLayerUpdate;
 };
