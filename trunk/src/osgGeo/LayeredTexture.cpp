@@ -33,7 +33,6 @@ $Id$
 #include <iostream>
 #include <cstdio>
 
-#define NR_TEXTURE_UNITS 8
 
 #if OSG_MIN_VERSION_REQUIRED(3,1,0)
      #define USE_IMAGE_STRIDE
@@ -43,7 +42,7 @@ namespace osgGeo
 {
 
 
-int LayeredTexture::getTextureSize( unsigned short nr )
+int LayeredTexture::powerOf2Ceil( unsigned short nr )
 {
     if ( nr<=256 )
     {
@@ -534,21 +533,40 @@ struct TilingInfo
 };
 
 
+struct TextureInfo
+{
+    				TextureInfo()
+				    : _isValid( false )
+				    , _contextId( -1 )
+				    , _nrUnits( 256 )
+				    , _maxSize( 65536 )
+				    , _nonPowerOf2Support( false )
+				{}
+
+    bool			_isValid;
+    int				_contextId;
+    int				_nrUnits;
+    int				_maxSize;
+    bool			_nonPowerOf2Support;
+};
+
+
 //============================================================================
 
-#define MIN_ID	0
+#define EPS			1e-5
+#define MIN_ID			1	// ID=0 used to represent ColSeqTexture
 
 LayeredTexture::LayeredTexture()
     : _freeId( MIN_ID )
     , _updateSetupStateSet( false )
     , _maxTextureCopySize( 32*32 )
     , _tilingInfo( new TilingInfo )
+    , _texInfo( new TextureInfo )
     , _stackUndefLayerId( -1 )
     , _stackUndefChannel( 0 )
     , _stackUndefColor( 0.0f, 0.0f, 0.0f, 0.0f )
     , _invertUndefLayers( false )
     , _useShaders( true )
-    , _allowBorderedTextures( false )
     , _compositeLayerUpdate( true )
 {
     _compositeLayerId = addDataLayer();
@@ -563,11 +581,11 @@ LayeredTexture::LayeredTexture( const LayeredTexture& lt,
     , _setupStateSet( 0 )
     , _maxTextureCopySize( lt._maxTextureCopySize )
     , _tilingInfo( new TilingInfo(*lt._tilingInfo) )
+    , _texInfo( new TextureInfo(*lt._texInfo) )
     , _stackUndefLayerId( lt._stackUndefLayerId )
     , _stackUndefChannel( lt._stackUndefChannel )
     , _stackUndefColor( lt._stackUndefColor )
     , _useShaders( lt._useShaders )
-    , _allowBorderedTextures( lt._allowBorderedTextures )
     , _compositeLayerId( lt._compositeLayerId )
     , _compositeLayerUpdate( lt._compositeLayerUpdate )
 {
@@ -593,6 +611,7 @@ LayeredTexture::~LayeredTexture()
 	    	   osg::intrusive_ptr_release );
 
     delete _tilingInfo;
+    delete _texInfo;
 }
 
 
@@ -735,8 +754,8 @@ void LayeredTexture::setDataLayerImage( int id, const osg::Image* image )
 	const bool retile = layer._imageSource.get()!=image || layer._imageSourceSize!=newImageSize || !layer._tileImages.size();
 #endif
 
-	const int s = getTextureSize( image->s() );
-	const int t = getTextureSize( image->t() );
+	const int s = powerOf2Ceil( image->s() );
+	const int t = powerOf2Ceil( image->t() );
 
 	bool scaleImage = s>image->s() || t>image->t();
 	scaleImage = scaleImage && s*t<=(int) _maxTextureCopySize;
@@ -1030,6 +1049,49 @@ MOVE_LAYER( moveProcessEarlier, it!=_processes.begin(), -1 )
 MOVE_LAYER( moveProcessLater, neighbor!=_processes.end(), +1 )
 
 
+void LayeredTexture::setGraphicsContextID( int id )
+{
+    _texInfo->_contextId = id;
+    _texInfo->_isValid = false;
+    updateTextureInfoIfNeeded();
+}
+
+
+int LayeredTexture::getGraphicsContextID() const
+{ return _texInfo->_contextId; }
+
+
+void LayeredTexture::updateTextureInfoIfNeeded() const
+{
+    if ( _texInfo->_isValid )
+	return;
+
+    const int maxContextID = (int) osg::GraphicsContext::getMaxContextID();
+    for( int contextID=0; contextID<=maxContextID; contextID++ )
+    {
+	if ( _texInfo->_contextId>=0 && _texInfo->_contextId!=contextID )
+	    continue;
+
+	const osg::Texture::Extensions* texExt = osg::Texture::getExtensions( contextID, _texInfo->_contextId>=0 );
+
+	if ( !texExt )
+	    continue;
+
+	if ( !_texInfo->_isValid || _texInfo->_nrUnits>texExt->numTextureUnits() )
+	    _texInfo->_nrUnits = texExt->numTextureUnits();
+
+	if ( !_texInfo->_isValid || _texInfo->_maxSize>texExt->maxTextureSize() )
+	    _texInfo->_maxSize = texExt->maxTextureSize();
+
+	if ( !_texInfo->_isValid || _texInfo->_nonPowerOf2Support )
+	    _texInfo->_nonPowerOf2Support = texExt->isNonPowerOfTwoTextureSupported( osg::Texture::LINEAR_MIPMAP_LINEAR );
+
+	_texInfo->_isValid = true;
+	_tilingInfo->_retilingNeeded = true;
+    }
+}
+
+
 void LayeredTexture::updateTilingInfoIfNeeded() const
 {
     if ( !_tilingInfo->_needsUpdate )
@@ -1070,11 +1132,11 @@ void LayeredTexture::updateTilingInfoIfNeeded() const
 	    minScale.y() = scale.y();
 
 	if ( ( minNoPow2Size.x()<=0.0f || layerSize.x()<minNoPow2Size.x()) &&
-	     (*it)->_image->s() != getTextureSize((*it)->_image->s()) )
+	     (*it)->_image->s() != powerOf2Ceil((*it)->_image->s()) )
 	    minNoPow2Size.x() = layerSize.x();
 
 	if ( ( minNoPow2Size.y()<=0.0f || layerSize.y()<minNoPow2Size.y()) &&
-	     (*it)->_image->t() != getTextureSize((*it)->_image->t()) )
+	     (*it)->_image->t() != powerOf2Ceil((*it)->_image->t()) )
 	    minNoPow2Size.y() = layerSize.y();
     }
 
@@ -1092,6 +1154,8 @@ void LayeredTexture::updateTilingInfoIfNeeded() const
 bool LayeredTexture::needsRetiling() const
 {
     updateTilingInfoIfNeeded();
+    updateTextureInfoIfNeeded();
+
     return _tilingInfo->_retilingNeeded;
 }
 
@@ -1117,64 +1181,93 @@ osg::Vec2f LayeredTexture::envelopeCenter() const
 }
 
 
-void LayeredTexture::planTiling( int brickSize, std::vector<float>& xTickMarks, std::vector<float>& yTickMarks ) const
+int LayeredTexture::maxTextureSize() const
 {
+    updateTextureInfoIfNeeded();
+    return _texInfo->_isValid ? _texInfo->_maxSize : -1;
+}
+
+
+int LayeredTexture::nrTextureUnits() const
+{
+    updateTextureInfoIfNeeded();
+    return _texInfo->_isValid ? _texInfo->_nrUnits : -1;
+}
+
+
+void LayeredTexture::reInitTiling()
+{
+    std::vector<LayeredTextureData*>::iterator lit = _dataLayers.begin();
+    for ( ; lit!=_dataLayers.end(); lit++ )
+	(*lit)->cleanUp();
+
     updateTilingInfoIfNeeded();
-    _tilingInfo->_retilingNeeded = false; 
+    updateTextureInfoIfNeeded();
+    assignTextureUnits();
 
-    const int textureSize = getTextureSize( brickSize );
-    osgGeo::Vec2i safeTileSize( textureSize, textureSize );
+    _tilingInfo->_retilingNeeded = !_texInfo->_isValid;
+}
 
-    const osg::Vec2f& maxTileSize = _tilingInfo->_maxTileSize;
-    while ( safeTileSize.x()>maxTileSize.x() && maxTileSize.x()>0.0f )
-	safeTileSize.x() /= 2;
 
-    while ( safeTileSize.y()>maxTileSize.y() && maxTileSize.y()>0.0f )
-	safeTileSize.y() /= 2;
+bool LayeredTexture::planTiling( unsigned short brickSize, std::vector<float>& xTickMarks, std::vector<float>& yTickMarks, bool strict ) const
+{
+    const osgGeo::Vec2i requestedSize( brickSize, brickSize );
+    osgGeo::Vec2i actualSize = requestedSize;
+
+    if ( !strict && _textureSizePolicy!=AnySize )
+    {
+	const int overlap = _textureSizePolicy==PowerOf2 ? 2 : 0;
+	/* One to avoid seam (lower LOD needs more),
+	   one because layers may mutually disalign. */
+
+	const int powerOf2Size = powerOf2Ceil( brickSize+overlap+1 ) / 2;
+	actualSize = osgGeo::Vec2i( powerOf2Size, powerOf2Size );
+
+	const osg::Vec2f& maxTileSize = _tilingInfo->_maxTileSize;
+	while ( actualSize.x()>maxTileSize.x() && maxTileSize.x()>0.0f )
+	    actualSize.x() /= 2;
+
+	while ( actualSize.y()>maxTileSize.y() && maxTileSize.y()>0.0f )
+	    actualSize.y() /= 2;
+
+	actualSize -= osgGeo::Vec2i( overlap, overlap );
+    }
 
     const osg::Vec2f& size = _tilingInfo->_envelopeSize;
     const osg::Vec2f& minScale = _tilingInfo->_smallestScale;
-    divideAxis( size.x()/minScale.x(), safeTileSize.x(), xTickMarks );
-    divideAxis( size.y()/minScale.y(), safeTileSize.y(), yTickMarks );
+
+    bool xRes = divideAxis( size.x()/minScale.x(), actualSize.x(), xTickMarks );
+    bool yRes = divideAxis( size.y()/minScale.y(), actualSize.y(), yTickMarks );
+
+    return xRes && yRes && actualSize==requestedSize;
 }
 
 
-void LayeredTexture::divideAxis( float totalSize, int brickSize,
+bool LayeredTexture::divideAxis( float totalSize, int brickSize,
 				 std::vector<float>& tickMarks ) const
 {
+    tickMarks.push_back( 0.0f );
+
     if ( totalSize <= 1.0f ) 
     {
-	tickMarks.push_back( 0.0f );
+	// to display something if no layers or images defined yet
 	tickMarks.push_back( 1.0f );
-	return;
+	return false;
     }
 
-    const int overlap = _allowBorderedTextures ? 0 : 2;
-    // One to avoid seam (lower LOD needs more), one because layers
-    // may mutually disalign.
+    int stepSize = _texInfo->_maxSize;
+    if ( brickSize < stepSize )
+	stepSize = brickSize<1 ? 1 : brickSize;
 
-    const int minBrickSize = getTextureSize( overlap+1 );
-    if ( brickSize < minBrickSize )
-	brickSize = minBrickSize;
+    for ( float fidx=stepSize; fidx+EPS<totalSize-1.0f; fidx += stepSize )
+	tickMarks.push_back( fidx );
 
-    float cur = 0.0f;
+    tickMarks.push_back( totalSize-1.0f );
 
-    while ( true )
-    {
-	tickMarks.push_back( cur );
-
-	if ( cur >= totalSize-1.0f )
-	    return;
-
-	if ( cur+brickSize >= totalSize )
-	    cur = totalSize-1.0f;
-	else 
-	    cur += brickSize-overlap;
-    } 
+    return stepSize==brickSize;
 }
 
 
-#ifndef USE_IMAGE_STRIDE
 static void boundedCopy( unsigned char* dest, const unsigned char* src, int len, const unsigned char* lowPtr, const unsigned char* highPtr )
 {
     if ( src>=highPtr || src+len<=lowPtr )
@@ -1228,7 +1321,6 @@ static void copyImageTile( const osg::Image& srcImage, osg::Image& tileImage, co
 
     copyImageWithStride( srcImage.data(), tileImage.data(), tileSize.y(), tileSize.x(), offset, stride, pixelSize, sourceEnd );
 }
-#endif
 
 
 osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, const osg::Vec2f& opposite, std::vector<LayeredTexture::TextureCoordData>& tcData ) const
@@ -1245,6 +1337,13 @@ osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, co
 			       smallestScale.y() * (opposite.y()+0.5) );
     globalOpposite += _tilingInfo->_envelopeOrigin;
 
+    if ( !_texInfo->_isValid )
+    {
+	// Cheap step aside into border until texture info becomes valid
+	globalOpposite.x() = _tilingInfo->_envelopeOrigin.x() - 10.0f;
+	globalOrigin.x() = globalOpposite.x() - 10.0f;
+    }
+
     for ( int idx=nrDataLayers()-1; idx>=0; idx-- )
     {
 	LayeredTextureData* layer = _dataLayers[idx];
@@ -1258,9 +1357,8 @@ osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, co
 	if ( !srcImage || !srcImage->s() || !srcImage->t() )
 	    continue;
 
-	const float eps = 1e-3;
-	const bool xBorderCrossing = localOrigin.x()<-eps || localOpposite.x()>srcImage->s()+eps;
-	const bool yBorderCrossing = localOrigin.y()<-eps || localOpposite.y()>srcImage->t()+eps;
+	bool xBorderCrossing = localOrigin.x()<-EPS || localOpposite.x()>srcImage->s()+EPS;
+	bool yBorderCrossing = localOrigin.y()<-EPS || localOpposite.y()>srcImage->t()+EPS;
 
 	osgGeo::Vec2i size( (int) ceil(localOpposite.x()+0.5),
 			    (int) ceil(localOpposite.y()+0.5) );
@@ -1296,11 +1394,32 @@ osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, co
 	    tileOrigin = osgGeo::Vec2i( 0, 0 );
 	}
 
-	osgGeo::Vec2i tileSize( getTextureSize(size.x()),
-				getTextureSize(size.y()) );
+	if ( size.x()>_texInfo->_maxSize || size.y()>_texInfo->_maxSize )
+	{
+	    std::cerr << "Cut-out exceeds maximum texture size: " << _texInfo->_maxSize << std::endl;
+	    if ( size.x() > _texInfo->_maxSize )
+	    {
+		size.x() = _texInfo->_maxSize;
+		xBorderCrossing = true;
+	    }
+	    if ( size.y() > _texInfo->_maxSize )
+	    {
+		size.y() = _texInfo->_maxSize;
+		yBorderCrossing = true;
+	    }
+	}
+
+	osgGeo::Vec2i tileSize = size;
+	if ( usedTextureSizePolicy() != AnySize )
+	{
+	    tileSize = osgGeo::Vec2i( powerOf2Ceil(size.x()),
+				      powerOf2Ceil(size.y()) );
+	}
 
 	bool useTextureBorder = false;
-	if ( _allowBorderedTextures && !xBorderCrossing && !yBorderCrossing )
+	if ( usedTextureSizePolicy()==BorderedPowerOf2 &&
+	     size.x()<srcImage->s()-1 && size.y()<srcImage->t()-1 &&
+	     !xBorderCrossing && !yBorderCrossing )
 	{
 	    const bool xProfit = size.x() != tileSize.x() &&
 				 size.x()-2 <= tileSize.x()/2;
@@ -1321,11 +1440,13 @@ osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, co
 
 	overshoot += tileSize - size;
 
+	bool resizeHint = false;
 	if ( tileOrigin.x()<overshoot.x() || tileOrigin.y()<overshoot.y() )
 	{
-	    std::cerr << "Unexpected texture size mismatch!" << std::endl;
+	    std::cerr << "Can't avoid texture resampling for this cut-out!" << std::endl;
 	    overshoot = osgGeo::Vec2i( 0, 0 );
-	    const_cast<osgGeo::Vec2i&>(tileSize) = size;
+	    tileSize = size;
+	    resizeHint = true;
 	}
 
 	if ( overshoot.x() > 0 )
@@ -1336,22 +1457,35 @@ osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, co
 	osg::ref_ptr<osg::Image> tileImage = new osg::Image;
 
 #ifdef USE_IMAGE_STRIDE
-	osg::ref_ptr<osg::Image> si = const_cast<osg::Image*>(srcImage);
-	tileImage->setUserData( si.get() );
-	tileImage->setImage( tileSize.x(), tileSize.y(), si->r(), si->getInternalTextureFormat(), si->getPixelFormat(), si->getDataType(), si->data(tileOrigin.x(),tileOrigin.y()), osg::Image::NO_DELETE, si->getPacking(), si->s() ); 
+	if ( !resizeHint ) // OpenGL crashes when resizing image with stride
+	{
+	    osg::ref_ptr<osg::Image> si = const_cast<osg::Image*>(srcImage);
+	    tileImage->setUserData( si.get() );
+	    tileImage->setImage( tileSize.x(), tileSize.y(), si->r(), si->getInternalTextureFormat(), si->getPixelFormat(), si->getDataType(), si->data(tileOrigin.x(),tileOrigin.y()), osg::Image::NO_DELETE, si->getPacking(), si->s() ); 
 
-	tileImage->ref();
-	layer->_tileImages.push_back( tileImage );
-#else
-	copyImageTile( *srcImage, *tileImage, tileOrigin, tileSize );
+	    tileImage->ref();
+	    layer->_tileImages.push_back( tileImage );
+	}
+	else
 #endif
-/*
+	    copyImageTile( *srcImage, *tileImage, tileOrigin, tileSize );
+
+	osg::Texture::WrapMode xWrapMode = osg::Texture::CLAMP_TO_EDGE;
+	if ( layer->_borderColor[0]>=0.0f && xBorderCrossing )
+	    xWrapMode = osg::Texture::CLAMP_TO_BORDER;
+
+	osg::Texture::WrapMode yWrapMode = osg::Texture::CLAMP_TO_EDGE;
+	if ( layer->_borderColor[0]>=0.0f && yBorderCrossing )
+	    yWrapMode = osg::Texture::CLAMP_TO_BORDER;
+
 	if ( useTextureBorder )
 	{
 	    tileSize -= osgGeo::Vec2i( 2, 2 );
 	    tileOrigin += osgGeo::Vec2i( 1, 1 );
+	    xWrapMode = osg::Texture::CLAMP;
+	    yWrapMode = osg::Texture::CLAMP;
 	}
-*/
+
 	osg::Vec2f tc00, tc01, tc10, tc11;
 	tc00.x() = (localOrigin.x() - tileOrigin.x()) / tileSize.x();
 	tc00.y() = (localOrigin.y() - tileOrigin.y()) / tileSize.y();
@@ -1362,19 +1496,11 @@ osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, co
 
 	tcData.push_back( TextureCoordData( layer->_textureUnit, tc00, tc01, tc10, tc11 ) );
 
-	osg::Texture::WrapMode xWrapMode = osg::Texture::CLAMP_TO_EDGE;
-	if ( layer->_borderColor[0]>=0.0f && xBorderCrossing )
-	    xWrapMode = osg::Texture::CLAMP_TO_BORDER;
-
-	osg::Texture::WrapMode yWrapMode = osg::Texture::CLAMP_TO_EDGE;
-	if ( layer->_borderColor[0]>=0.0f && yBorderCrossing )
-	    yWrapMode = osg::Texture::CLAMP_TO_BORDER;
-
 	osg::ref_ptr<osg::Texture2D> texture = new osg::Texture2D( tileImage.get() );
-	texture->setResizeNonPowerOfTwoHint( false );
+	texture->setResizeNonPowerOfTwoHint( resizeHint );
 	texture->setWrap( osg::Texture::WRAP_S, xWrapMode );
 	texture->setWrap( osg::Texture::WRAP_T, yWrapMode );
-	//texture->setBorderWidth( useTextureBorder ? 1 : 0 );
+	texture->setBorderWidth( useTextureBorder ? 1 : 0 );
 
 	osg::Texture::FilterMode filterMode = layer->_filterType==Nearest ? osg::Texture::NEAREST : osg::Texture::LINEAR;
 	texture->setFilter( osg::Texture::MAG_FILTER, filterMode );
@@ -1393,12 +1519,12 @@ osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, co
 
 osg::StateSet* LayeredTexture::getSetupStateSet()
 {
-    updateSetupStateSet();
+    updateSetupStateSetIfNeeded();
     return _setupStateSet;
 }
 
 
-void LayeredTexture::updateSetupStateSet()
+void LayeredTexture::updateSetupStateSetIfNeeded()
 {
     _lock.readLock();
 
@@ -1465,7 +1591,7 @@ void LayeredTexture::buildShaders()
     const int nrProc = getProcessInfo( orderedLayerIDs, nrUsedLayers, &stackIsOpaque );
 
     bool needColSeqTexture = false;
-    int minUnit = NR_TEXTURE_UNITS;
+    int minUnit = _texInfo->_nrUnits;
     std::vector<int> activeUnits;
 
     std::vector<int>::iterator it = orderedLayerIDs.begin();
@@ -1600,7 +1726,7 @@ int LayeredTexture::getProcessInfo( std::vector<int>& layerIDs, int& nrUsedLayer
 	if ( !nrUsedLayers )
 	{
 	    const int sz = layerIDs.size();
-	    if ( sz > NR_TEXTURE_UNITS )
+	    if ( sz > _texInfo->_nrUnits )
 	    {
 		nrUsedLayers = sz-nrPushed;
 		const bool assigningTextureUnits = !stackIsOpaque;  // Hacky
@@ -1633,7 +1759,7 @@ void LayeredTexture::createColSeqTexture()
 {
     osg::ref_ptr<osg::Image> colSeqImage = new osg::Image();
     const int nrProc = nrProcesses();
-    const int texSize = getTextureSize( nrProc );
+    const int texSize = powerOf2Ceil( nrProc );
     colSeqImage->allocateImage( 256, texSize, 1, GL_RGBA, GL_UNSIGNED_BYTE );
 
     const int rowSize = colSeqImage->getRowSizeInBytes();
@@ -1657,10 +1783,7 @@ void LayeredTexture::assignTextureUnits()
 {
     std::vector<LayeredTextureData*>::iterator lit = _dataLayers.begin();
     for ( ; lit!=_dataLayers.end(); lit++ )
-    {
-	(*lit)->cleanUp();
 	(*lit)->_textureUnit = -1;
-    }
 
     if ( _useShaders )
     {
@@ -1670,14 +1793,14 @@ void LayeredTexture::assignTextureUnits()
 
 	int unit = 0;	// Reserved for ColSeqTexture if needed
 
-	// nrUsedLayers = NR_TEXTURE_UNITS;
-	// preloading shows bad performance at many tiles!
+	// nrUsedLayers = _texInfo->_nrUnits;
+	// preloading shows bad performance in case of many tiles!
 
 	std::vector<int>::iterator iit = orderedLayerIDs.begin();
 	for ( ; iit!=orderedLayerIDs.end() && nrUsedLayers>0; iit++ )
 	{
 	    if ( (*iit)>0 )
-		setDataLayerTextureUnit( *iit, (++unit)%NR_TEXTURE_UNITS );
+		setDataLayerTextureUnit( *iit, (++unit)%_texInfo->_nrUnits );
 
 	    nrUsedLayers--;
 	}
@@ -1686,7 +1809,7 @@ void LayeredTexture::assignTextureUnits()
 	setDataLayerTextureUnit( _compositeLayerId, 0 );
 
     _updateSetupStateSet = true;
-    updateSetupStateSet();
+    updateSetupStateSetIfNeeded();
 }
 
 
@@ -1848,9 +1971,26 @@ void LayeredTexture::useShaders( bool yn )
 }
 
 
-void LayeredTexture::allowBorderedTextures( bool yn )
+void LayeredTexture::setTextureSizePolicy( TextureSizePolicy policy )
 {
-    _allowBorderedTextures = yn;
+    _textureSizePolicy = policy;
+    _tilingInfo->_retilingNeeded = true;
+}
+
+
+LayeredTexture::TextureSizePolicy LayeredTexture::getTextureSizePolicy() const
+{ return _textureSizePolicy; }
+
+
+LayeredTexture::TextureSizePolicy LayeredTexture::usedTextureSizePolicy() const
+{
+    if ( _textureSizePolicy==BorderedPowerOf2 && _texInfo->_nonPowerOf2Support )
+	return AnySize;
+
+    if ( _textureSizePolicy==AnySize && !_texInfo->_nonPowerOf2Support )
+	return PowerOf2;
+
+    return _textureSizePolicy;
 }
 
 
@@ -2003,7 +2143,7 @@ const unsigned char* LayerProcess::getColorSequencePtr() const
 void LayerProcess::setColorSequenceTextureCoord( float coord )
 {
     _colSeqTexCoord = coord;
-    _layTex.setupStateSetUpdate();
+    _layTex.updateSetupStateSet();
 }
 
 
@@ -2014,7 +2154,7 @@ float LayerProcess::getOpacity() const
 void LayerProcess::setOpacity( float opac )
 {
     _opacity = opac<=0.0f ? 0.0f : ( opac>=1.0f ? 1.0f : opac );
-    _layTex.setupStateSetUpdate();
+    _layTex.updateSetupStateSet();
 }
 
 
@@ -2026,7 +2166,7 @@ void LayerProcess::setNewUndefColor( const osg::Vec4f& color )
 			      color[idx]>=1.0f ? 1.0f : color[idx];
     }
 
-    _layTex.setupStateSetUpdate();
+    _layTex.updateSetupStateSet();
 }
 
 
@@ -2313,7 +2453,7 @@ void ColTabLayerProcess::setDataLayerID( int id, int channel )
 {
     _id = id;
     _textureChannel = channel>=0 && channel<4 ? channel : 0;
-    _layTex.setupStateSetUpdate();
+    _layTex.updateSetupStateSet();
 }
 
 
@@ -2333,7 +2473,7 @@ void ColTabLayerProcess::checkForModifiedColorSequence()
 	if ( modifiedCount != _colSeqModifiedCount )
 	{
 	    _colSeqModifiedCount = modifiedCount;
-	    _layTex.setupStateSetUpdate();
+	    _layTex.updateSetupStateSet();
 	}
     }
 }
@@ -2344,7 +2484,7 @@ void ColTabLayerProcess::setColorSequence( const ColorSequence* colSeq )
     _colorSequence = colSeq;
     _colSeqModifiedCount = -1;
     _colSeqPtr = colSeq->getRGBAValues();
-    _layTex.setupStateSetUpdate();
+    _layTex.updateSetupStateSet();
 }
 
 
@@ -2429,7 +2569,7 @@ void RGBALayerProcess::setDataLayerID( int idx, int id, int channel )
     {
 	_id[idx] = id;
 	_textureChannel[idx] = channel>=0 && channel<4 ? channel : 0;
-	_layTex.setupStateSetUpdate();
+	_layTex.updateSetupStateSet();
     }
 }
 
@@ -2443,7 +2583,7 @@ void RGBALayerProcess::turnOn( int idx, bool yn )
     if ( idx>=0 && idx<4 )
     {
 	_isOn[idx] = yn;
-	_layTex.setupStateSetUpdate();
+	_layTex.updateSetupStateSet();
     }
 }
 
