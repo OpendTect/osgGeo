@@ -104,7 +104,7 @@ int Viewer::run()
     widget_->show();
     return app_.exec();
 #else
-    return viewer_->run();
+    return compositeviewer_->run();
 #endif
 }
 
