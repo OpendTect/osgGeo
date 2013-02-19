@@ -1197,13 +1197,13 @@ int LayeredTexture::nrTextureUnits() const
 
 void LayeredTexture::reInitTiling()
 {
-    std::vector<LayeredTextureData*>::iterator lit = _dataLayers.begin();
-    for ( ; lit!=_dataLayers.end(); lit++ )
-	(*lit)->cleanUp();
-
     updateTilingInfoIfNeeded();
     updateTextureInfoIfNeeded();
     assignTextureUnits();
+
+    std::vector<LayeredTextureData*>::iterator lit = _dataLayers.begin();
+    for ( ; lit!=_dataLayers.end(); lit++ )
+	(*lit)->cleanUp();
 
     _tilingInfo->_retilingNeeded = !_texInfo->_isValid;
 }
@@ -1781,6 +1781,9 @@ void LayeredTexture::createColSeqTexture()
 
 void LayeredTexture::assignTextureUnits()
 {
+    if ( !_useShaders && getDataLayerTextureUnit(_compositeLayerId)==0 )
+	return;
+
     std::vector<LayeredTextureData*>::iterator lit = _dataLayers.begin();
     for ( ; lit!=_dataLayers.end(); lit++ )
 	(*lit)->_textureUnit = -1;
@@ -1966,8 +1969,11 @@ void LayeredTexture::getFragmentShaderCode( std::string& code, const std::vector
 
 void LayeredTexture::useShaders( bool yn )
 {
-    _useShaders = yn;
-    _tilingInfo->_retilingNeeded = true;
+    if ( _useShaders != yn )
+    {
+	_useShaders = yn;
+	_tilingInfo->_retilingNeeded = true;
+    }
 }
 
 
