@@ -190,10 +190,7 @@ public:
 
     void		useShaders(bool yn=true);
 
-    enum TextureSizePolicy { PowerOf2, BorderedPowerOf2, AnySize };
-			/*!BorderedPowerOf2 is deprecated since OpenGL 3.0
-			   and does not act correctly for higher versions.
-			   Unclear whether it does for early versions. */
+    enum TextureSizePolicy { PowerOf2, AnySize };
 
     void		setTextureSizePolicy(TextureSizePolicy);
     TextureSizePolicy	getTextureSizePolicy() const;
