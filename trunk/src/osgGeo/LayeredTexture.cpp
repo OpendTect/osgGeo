@@ -1216,9 +1216,8 @@ bool LayeredTexture::planTiling( unsigned short brickSize, std::vector<float>& x
 
     if ( !strict && _textureSizePolicy!=AnySize )
     {
-	const int overlap = _textureSizePolicy==PowerOf2 ? 2 : 0;
-	/* One to avoid seam (lower LOD needs more),
-	   one because layers may mutually disalign. */
+	const int overlap = 2;	/* One to avoid seam (lower LOD needs more),
+				   one because layers may mutually disalign. */
 
 	const int powerOf2Size = powerOf2Ceil( brickSize+overlap+1 ) / 2;
 	actualSize = osgGeo::Vec2i( powerOf2Size, powerOf2Size );
@@ -1416,28 +1415,6 @@ osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, co
 				      powerOf2Ceil(size.y()) );
 	}
 
-	bool useTextureBorder = false;
-	if ( usedTextureSizePolicy()==BorderedPowerOf2 &&
-	     size.x()<srcImage->s()-1 && size.y()<srcImage->t()-1 &&
-	     !xBorderCrossing && !yBorderCrossing )
-	{
-	    const bool xProfit = size.x() != tileSize.x() &&
-				 size.x()-2 <= tileSize.x()/2;
-	    const bool yProfit = size.y() != tileSize.y() &&
-				 size.y()-2 <= tileSize.y()/2;
-
-	    if ( xProfit || yProfit )
-	    {
-		if ( xProfit )
-		    tileSize.x() /= 2;
-		if ( yProfit )
-		    tileSize.y() /= 2;
-
-		tileSize += osgGeo::Vec2i( 2, 2 );
-		useTextureBorder = true;
-	    }
-	}
-
 	overshoot += tileSize - size;
 
 	bool resizeHint = false;
@@ -1478,14 +1455,6 @@ osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, co
 	if ( layer->_borderColor[0]>=0.0f && yBorderCrossing )
 	    yWrapMode = osg::Texture::CLAMP_TO_BORDER;
 
-	if ( useTextureBorder )
-	{
-	    tileSize -= osgGeo::Vec2i( 2, 2 );
-	    tileOrigin += osgGeo::Vec2i( 1, 1 );
-	    xWrapMode = osg::Texture::CLAMP;
-	    yWrapMode = osg::Texture::CLAMP;
-	}
-
 	osg::Vec2f tc00, tc01, tc10, tc11;
 	tc00.x() = (localOrigin.x() - tileOrigin.x()) / tileSize.x();
 	tc00.y() = (localOrigin.y() - tileOrigin.y()) / tileSize.y();
@@ -1500,7 +1469,6 @@ osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, co
 	texture->setResizeNonPowerOfTwoHint( resizeHint );
 	texture->setWrap( osg::Texture::WRAP_S, xWrapMode );
 	texture->setWrap( osg::Texture::WRAP_T, yWrapMode );
-	texture->setBorderWidth( useTextureBorder ? 1 : 0 );
 
 	osg::Texture::FilterMode filterMode = layer->_filterType==Nearest ? osg::Texture::NEAREST : osg::Texture::LINEAR;
 	texture->setFilter( osg::Texture::MAG_FILTER, filterMode );
@@ -1990,9 +1958,6 @@ LayeredTexture::TextureSizePolicy LayeredTexture::getTextureSizePolicy() const
 
 LayeredTexture::TextureSizePolicy LayeredTexture::usedTextureSizePolicy() const
 {
-    if ( _textureSizePolicy==BorderedPowerOf2 && _texInfo->_nonPowerOf2Support )
-	return AnySize;
-
     if ( _textureSizePolicy==AnySize && !_texInfo->_nonPowerOf2Support )
 	return PowerOf2;
 
