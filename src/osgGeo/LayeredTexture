@@ -213,6 +213,7 @@ public:
     int			nrTextureUnits() const;
 
     const osg::Image*	getCompositeTextureImage();
+    int			compositeLayerId()	{ return _compositeLayerId; }
 
     static int		image2TextureChannel(int channel,GLenum format);
     static int		powerOf2Ceil(unsigned short nr);
