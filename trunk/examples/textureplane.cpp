@@ -253,8 +253,8 @@ int main( int argc, char** argv )
     osg::ApplicationUsage* usage = args.getApplicationUsage();
     usage->setCommandLineUsage( "textureplane [options]" );
     usage->setDescription( "3D view of tiled plane with layered set of textures or one default texture" );
-    usage->addCommandLineOption( "--bricksize <n>", "Brick size [power-of-2]" );
-    usage->addCommandLineOption( "--brickborders", "Allow bordered texture tiles" );
+    usage->addCommandLineOption( "--bricksize <n>", "Brick size[1,->]" );
+    usage->addCommandLineOption( "--sizepolicy", "Texture size policy [0,4]" );
     usage->addCommandLineOption( "--dim <n>", "Thin dimension [0,2]" );
     usage->addCommandLineOption( "--help | --usage", "Command line info" );
     usage->addCommandLineOption( "--image <path> [origin-opt] [scale-opt] [opacity-opt] [colormap-opt] [rgbamap-opt] [udfimage-opt] [border-opt] [udfcolor-opt] [filter-opt]", "Add texture layer" );
@@ -264,6 +264,7 @@ int main( int argc, char** argv )
     usage->addCommandLineOption( "--colormap <n> <channel>", "Color map <n>  from channel [0,3]" );
     usage->addCommandLineOption( "--rgbamap <r> <g> <b> <a>", "RGBA map from channels [-1=void,3]" );
     usage->addCommandLineOption( "--filter <n>", "Filter type [0,1]" );
+    usage->addCommandLineOption( "--compositefilter <n>", "Filter type [0,1]" );
     usage->addCommandLineOption( "--udfimage <R> <B> <G> <A>", "Image RGBA undef area [-1=void,255]" );
     usage->addCommandLineOption( "--udfcolor <R> <B> <G> <A>", "New RGBA undef color [0,255]" );
     usage->addCommandLineOption( "--udfstack <R> <B> <G> <A>", "Stack RGBA undef area [0,255]" );
@@ -297,10 +298,10 @@ int main( int argc, char** argv )
 
     while ( args.read("--bricksize", brickSize) )
     {
-	if ( brickSize < 2 )
+	if ( brickSize < 1 )
 	{
-	    args.reportError( "Brick size must be at least 2" );
-	    brickSize = 2;
+	    args.reportError( "Brick size must be at least 1" );
+	    brickSize = 1;
 	}
     }
 
@@ -324,9 +325,31 @@ int main( int argc, char** argv )
 
     osg::ref_ptr<osgGeo::LayeredTexture> laytex = new osgGeo::LayeredTexture();
 
-    while ( args.read("--brickborders") )
-	laytex->allowBorderedTextures();
+    int texSizePolicy = 0;
+    while ( args.read("--sizepolicy", texSizePolicy) )
+    {
+	if ( texSizePolicy<0 || texSizePolicy>2 )
+	{
+	    args.reportError( "Texture size policy not in [0,2]" );
+	    texSizePolicy = 0;
+	}
 
+	laytex->setTextureSizePolicy( (osgGeo::LayeredTexture::TextureSizePolicy)  (texSizePolicy/2) );
+    }
+
+    int compositeFilterNr = -1;
+    while ( args.read("--compositefilter", compositeFilterNr) )
+    {
+	if ( compositeFilterNr<0 || compositeFilterNr>1 )
+	{
+	    args.reportError( "Composite filter number not in [0,1]" );
+	    compositeFilterNr = -1;
+	    continue;
+	}
+
+	const osgGeo::FilterType filter = (osgGeo::FilterType) compositeFilterNr;
+	laytex->setDataLayerFilterType( laytex->compositeLayerId(), filter );
+    }
 
     const int firstId = laytex->addDataLayer();
     int lastId = firstId;
@@ -541,6 +564,9 @@ int main( int argc, char** argv )
     osg::ref_ptr<osgGeo::TexturePlaneNode> root = new osgGeo::TexturePlaneNode();
     root->setLayeredTexture( laytex );
 
+    if ( compositeFilterNr >= 0 )
+	root->toggleShaders();
+
     // Fit to screen
     const osg::Vec2f envelopeSize = laytex->textureEnvelopeSize();
     osg::Vec3 center( laytex->envelopeCenter()/envelopeSize.x(), 0.0f );
@@ -567,7 +593,7 @@ int main( int argc, char** argv )
 
     //root->setCenter( center );  // Move texture origin to center of screen
     root->setWidth( width );
-    root->setTextureBrickSize( brickSize );
+    root->setTextureBrickSize( brickSize, texSizePolicy%2 );
 
     osg::ref_ptr<osg::Geode> geode = new osg::Geode;
     osg::ref_ptr<osg::ShapeDrawable> sphere = new osg::ShapeDrawable;
