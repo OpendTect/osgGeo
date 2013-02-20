@@ -1400,7 +1400,7 @@ osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, co
 
 	if ( size.x()>_texInfo->_maxSize || size.y()>_texInfo->_maxSize )
 	{
-	    std::cerr << "Cut-out exceeds maximum texture size: " << _texInfo->_maxSize << std::endl;
+	    std::cerr << "Cut-out exceeds maximum texture size of " << _texInfo->_maxSize << std::endl;
 	    if ( size.x() > _texInfo->_maxSize )
 	    {
 		size.x() = _texInfo->_maxSize;
@@ -1425,7 +1425,7 @@ osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, co
 	bool resizeHint = false;
 	if ( tileOrigin.x()<overshoot.x() || tileOrigin.y()<overshoot.y() )
 	{
-	    std::cerr << "Can't avoid texture resampling for this cut-out!" << std::endl;
+	    std::cerr << "Can't avoid texture resampling for this cut-out: increase MaxTextureCopySize" << std::endl ;
 	    overshoot = osgGeo::Vec2i( 0, 0 );
 	    tileSize = size;
 	    resizeHint = true;
