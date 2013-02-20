@@ -1100,10 +1100,13 @@ void LayeredTexture::updateTilingInfoIfNeeded() const
     _tilingInfo->reInit();
 
     std::vector<LayeredTextureData*>::const_iterator it = _dataLayers.begin();
-    osg::Vec2f minBound = (*it)->_origin;
-    osg::Vec2f maxBound = minBound;
+
+    osg::Vec2f minBound( 0.0f, 0.0f );
+    osg::Vec2f maxBound( 0.0f, 0.0f );
     osg::Vec2f minScale( 0.0f, 0.0f );
     osg::Vec2f minNoPow2Size( 0.0f, 0.0f );
+
+    bool validLayerFound = false;
 
     for ( ; it!=_dataLayers.end(); it++ )
     {
@@ -1118,29 +1121,31 @@ void LayeredTexture::updateTilingInfoIfNeeded() const
 
 	const osg::Vec2f bound = layerSize + (*it)->_origin;
 
-	if ( bound.x() > maxBound.x() )
+	if ( !validLayerFound || bound.x()>maxBound.x() )
 	    maxBound.x() = bound.x();
-	if ( bound.y() > maxBound.y() )
+	if ( !validLayerFound || bound.y()>maxBound.y() )
 	    maxBound.y() = bound.y();
-	if ( (*it)->_origin.x() < minBound.x() )
+	if ( !validLayerFound || (*it)->_origin.x()<minBound.x() )
 	    minBound.x() = (*it)->_origin.x();
-	if ( (*it)->_origin.y() < minBound.y() )
+	if ( !validLayerFound || (*it)->_origin.y()<minBound.y() )
 	    minBound.y() = (*it)->_origin.y();
-	if ( minScale.x()<=0.0f || scale.x()<minScale.x() )
+	if ( !validLayerFound || scale.x()<minScale.x() )
 	    minScale.x() = scale.x();
-	if ( minScale.y()<=0.0f || scale.y()<minScale.y() )
+	if ( !validLayerFound || scale.y()<minScale.y() )
 	    minScale.y() = scale.y();
 
-	if ( ( minNoPow2Size.x()<=0.0f || layerSize.x()<minNoPow2Size.x()) &&
+	if ( (!validLayerFound || layerSize.x()<minNoPow2Size.x()) &&
 	     (*it)->_image->s() != powerOf2Ceil((*it)->_image->s()) )
 	    minNoPow2Size.x() = layerSize.x();
 
-	if ( ( minNoPow2Size.y()<=0.0f || layerSize.y()<minNoPow2Size.y()) &&
+	if ( (!validLayerFound || layerSize.y()<minNoPow2Size.y()) &&
 	     (*it)->_image->t() != powerOf2Ceil((*it)->_image->t()) )
 	    minNoPow2Size.y() = layerSize.y();
+
+	validLayerFound = true;
     }
 
-    if ( minScale.x()<=0.0f ||  minScale.y()<=0.0f )
+    if ( !validLayerFound )
 	return;
 
     _tilingInfo->_envelopeSize = maxBound - minBound;
