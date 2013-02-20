@@ -1134,11 +1134,11 @@ void LayeredTexture::updateTilingInfoIfNeeded() const
 	if ( !validLayerFound || scale.y()<minScale.y() )
 	    minScale.y() = scale.y();
 
-	if ( (!validLayerFound || layerSize.x()<minNoPow2Size.x()) &&
+	if ( (minNoPow2Size.x()<=0.0f || layerSize.x()<minNoPow2Size.x()) &&
 	     (*it)->_image->s() != powerOf2Ceil((*it)->_image->s()) )
 	    minNoPow2Size.x() = layerSize.x();
 
-	if ( (!validLayerFound || layerSize.y()<minNoPow2Size.y()) &&
+	if ( (minNoPow2Size.y()<=0.0f || layerSize.y()<minNoPow2Size.y()) &&
 	     (*it)->_image->t() != powerOf2Ceil((*it)->_image->t()) )
 	    minNoPow2Size.y() = layerSize.y();
 
