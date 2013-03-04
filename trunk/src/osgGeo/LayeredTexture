@@ -86,6 +86,7 @@ public:
     int			nrDataLayers() const { return _dataLayers.size(); }
     int			getDataLayerID(int idx) const;
     int			getDataLayerIndex(int id) const;
+    bool		isDataLayerOK(int id) const;
 
     osg::Vec2f		envelopeCenter() const;
     osg::Vec2f		textureEnvelopeSize() const;

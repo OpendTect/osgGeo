@@ -709,6 +709,11 @@ int LayeredTexture::getDataLayerIndex( int id ) const
     return -1;
 }
 
+bool LayeredTexture::isDataLayerOK( int id ) const
+{
+    return getDataLayerImage( id );
+}
+
 
 void LayeredTexture::setDataLayerOrigin( int id, const osg::Vec2f& origin )
 {
@@ -1621,7 +1626,7 @@ void LayeredTexture::buildShaders()
 
 void LayeredTexture::setRenderingHint( bool stackIsOpaque )
 {
-    if ( getDataLayerIndex(_stackUndefLayerId)>=0 && _stackUndefColor[3]<1.0f )
+    if ( isDataLayerOK(_stackUndefLayerId) && _stackUndefColor[3]<1.0f )
 	stackIsOpaque = false;
 
     if ( !stackIsOpaque ) 
@@ -1853,7 +1858,7 @@ void LayeredTexture::getFragmentShaderCode( std::string& code, const std::vector
     }
 
     code += "\n";
-    const bool stackUdf = getDataLayerIndex(_stackUndefLayerId)>=0;
+    const bool stackUdf = isDataLayerOK(_stackUndefLayerId);
     code += stackUdf ? "void process( float stackudf )\n" :
 		       "void process( void )\n";
     code += "{\n"
@@ -2170,7 +2175,7 @@ void LayerProcess::getHeaderCode( std::string& code, int& nrUdf, int id, int toI
 
     code += "    {\n";
 
-    if ( _layTex.getDataLayerIndex(udfId)>=0 )
+    if ( _layTex.isDataLayerOK(udfId) )
     {
 	if ( nrUdf )
 	    code += "        oldudf = udf;\n";
@@ -2258,7 +2263,7 @@ void LayerProcess::getFooterCode( std::string& code, int& nrUdf, int stage ) con
 		"    if ( udf >= 1.0 )\n"
 	    	"        col = udfcol;\n";
 
-	const bool stackUdf = _layTex.getDataLayerIndex( _layTex.getStackUndefLayerID() )>=0;
+	const bool stackUdf = _layTex.isDataLayerOK( _layTex.getStackUndefLayerID() );
 
 	if ( !stackUdf )
 	    code += "    else if ( udf > 0.0 )\n";
@@ -2322,7 +2327,7 @@ void LayerProcess::processHeader( osg::Vec4f& col, float& udf, const osg::Vec2f&
 
     const int udfId = _layTex.getDataLayerUndefLayerID(id);
 
-    if ( _layTex.getDataLayerIndex(udfId)>=0 )
+    if ( _layTex.isDataLayerOK(udfId) )
     {
 	const float oldUdf = udf;
 	const int udfChannel = _layTex.getDataLayerUndefChannel(id);
@@ -2470,7 +2475,7 @@ const ColorSequence* ColTabLayerProcess::getColorSequence() const
 
 void ColTabLayerProcess::getShaderCode( std::string& code, int stage ) const
 {
-    if ( _layTex.getDataLayerIndex(_id)<0 )
+    if ( !_layTex.isDataLayerOK(_id) )
 	return;
 
     int nrUdf = 0;
@@ -2488,7 +2493,7 @@ void ColTabLayerProcess::getShaderCode( std::string& code, int stage ) const
 
 TransparencyType ColTabLayerProcess::getTransparencyType( bool imageOnly ) const
 {
-    if ( !_colorSequence || !_layTex.getDataLayerImage(_id) )
+    if ( !_colorSequence || !_layTex.isDataLayerOK(_id) )
 	return FullyTransparent;
 
     TransparencyType tt = _colorSequence->getTransparencyType();
@@ -2498,7 +2503,7 @@ TransparencyType ColTabLayerProcess::getTransparencyType( bool imageOnly ) const
 	return tt;
 
     const int udfId = _layTex.getDataLayerUndefLayerID(_id);
-    if ( _layTex.getDataLayerImage(udfId) )
+    if ( _layTex.isDataLayerOK(udfId) )
 	tt = addOpacity( tt, _newUndefColor[3] );
 
     return multiplyOpacity( tt, _opacity );
@@ -2507,7 +2512,7 @@ TransparencyType ColTabLayerProcess::getTransparencyType( bool imageOnly ) const
 
 void ColTabLayerProcess::doProcess( osg::Vec4f& fragColor, float stackUdf, const osg::Vec2f& globalCoord )
 {
-    if ( !_colorSequence || _layTex.getDataLayerIndex(_id)<0 )
+    if ( !_colorSequence || !_layTex.isDataLayerOK(_id) )
 	return;
 
     osg::Vec4f col;
@@ -2579,7 +2584,7 @@ void RGBALayerProcess::getShaderCode( std::string& code, int stage ) const
     int nrUdf = 0;
     for ( int idx=0; idx<4; idx++ )
     {
-	if ( _isOn[idx] && _layTex.getDataLayerIndex(_id[idx])>=0 )
+	if ( _isOn[idx] && _layTex.isDataLayerOK(_id[idx]) )
 	{
 	    getHeaderCode( code, nrUdf, _id[idx], idx, _textureChannel[idx] );
 	    code += "\n";
@@ -2592,7 +2597,16 @@ void RGBALayerProcess::getShaderCode( std::string& code, int stage ) const
 
 TransparencyType RGBALayerProcess::getTransparencyType( bool imageOnly ) const
 {
-    if ( !_isOn[3] || _layTex.getDataLayerIndex(_id[3])<0 )
+    int nrActiveChannels = 0;
+    for ( int idx=0; idx<4; idx++ )
+    {
+	if ( _isOn[idx] && _layTex.isDataLayerOK(_id[idx]) )
+	    nrActiveChannels++;
+    }
+    if ( nrActiveChannels==0 )
+	return FullyTransparent;
+
+    if ( !_isOn[3] || !_layTex.isDataLayerOK(_id[3]) )
 	return imageOnly ? Opaque : multiplyOpacity( Opaque, _opacity );
 
     TransparencyType tt = _layTex.getDataLayerTransparencyType( _id[3], _textureChannel[3] );
@@ -2604,7 +2618,7 @@ TransparencyType RGBALayerProcess::getTransparencyType( bool imageOnly ) const
     {
 	const int udfId = _layTex.getDataLayerUndefLayerID( _id[idx] );
 
-	if ( _isOn[idx] && _layTex.getDataLayerImage(udfId) )
+	if ( _isOn[idx] && _layTex.isDataLayerOK(udfId) )
 	{
 	    tt = addOpacity( tt, _newUndefColor[3] );
 	    return multiplyOpacity( tt, _opacity );
@@ -2622,7 +2636,7 @@ void RGBALayerProcess::doProcess( osg::Vec4f& fragColor, float stackUdf, const o
 
     for ( int idx=0; idx<4; idx++ )
     {
-	if ( _isOn[idx] && _layTex.getDataLayerIndex(_id[idx])>=0 )
+	if ( _isOn[idx] && _layTex.isDataLayerOK(_id[idx]) )
 	{
 	    processHeader( col, udf, globalCoord, _id[idx], idx, _textureChannel[idx] );
 	}
@@ -2647,7 +2661,7 @@ int IdentityLayerProcess::getDataLayerID( int idx ) const
 
 void IdentityLayerProcess::getShaderCode( std::string& code, int stage ) const
 {
-    if ( _layTex.getDataLayerIndex(_id)<0 )
+    if ( !_layTex.isDataLayerOK(_id) )
 	return;
 
     int nrUdf = 0;
@@ -2667,7 +2681,7 @@ TransparencyType IdentityLayerProcess::getTransparencyType( bool imageOnly ) con
 
     const int udfId = _layTex.getDataLayerUndefLayerID(_id);
 
-    if ( _layTex.getDataLayerImage(udfId) )
+    if ( _layTex.isDataLayerOK(udfId) )
 	tt = addOpacity( tt, _newUndefColor[3] );
 
     return multiplyOpacity( tt, _opacity );
@@ -2676,7 +2690,7 @@ TransparencyType IdentityLayerProcess::getTransparencyType( bool imageOnly ) con
 
 void IdentityLayerProcess::doProcess( osg::Vec4f& fragColor, float stackUdf, const osg::Vec2f& globalCoord )
 {
-    if ( _layTex.getDataLayerIndex(_id)<0 )
+    if ( !_layTex.isDataLayerOK(_id) )
 	return;
 
     osg::Vec4f col;
