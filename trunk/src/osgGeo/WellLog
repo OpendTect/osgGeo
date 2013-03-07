@@ -1,0 +1,154 @@
+#ifndef OSGGEO_WELLLOG_H
+#define OSGGEO_WELLLOG_H
+
+/* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
+Copyright 2012 dGB Beheer B.V.
+
+osgGeo is free software; you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>
+
+$Id: WellLog 164 2012-12-19 13:42:47Z ding.zheng@dgbes.com $
+
+*/
+
+#include <osg/Node>
+#include <osgGeo/Common>
+#include <osg/Geode>
+#include <osg/Vec3>
+
+namespace osg 
+{ 
+    class Geometry; 
+    class Geode; 
+    class Shape;
+    class Array;
+    class FrameStamp;
+    class LineWidth;
+}
+
+namespace osgUtil
+{
+    class CullVisitor;
+}
+
+namespace osgGeo
+{
+
+
+class OSGGEO_EXPORT WellLog : public osg::Node
+{
+public:
+				WellLog();
+
+    void			setPath( osg::Vec3Array* );
+    osg::Vec3Array*		getPath() { return _logPath; }
+
+    void			setShapeLog( osg::FloatArray* );
+				/*!<Linked with path. Start is assumed to be
+				    start of path.*/
+    osg::FloatArray*		getShapeLog() { return _shapeLog; }
+    void			setMaxShapeValue( float );
+    const float			getMaxShapeValue() const {return _maxShapeValue;}
+
+    void			setMinShapeValue( float );
+    float			getMinShapeValue() const {return _minShapeValue;}
+
+    void			setFillLogValues( osg::FloatArray* );
+				/*!<Linked with path. Start is assumed to be
+				    start of path. */
+    osg::FloatArray*		getFillLogValues() { return _fillLog; }
+
+    void			setFillLogDepths( osg::FloatArray* );
+    osg::FloatArray*		getFillLogDepths() { return _fillLogDepths; }
+
+
+    void			setMaxFillValue( float );
+    const float			getMaxFillValue() const {return _maxFillValue;}
+
+    void			setMinFillValue( float );
+    const float			getMinFillValue() const {return _minFillValue;}
+
+    void			setFillLogColorTab( osg::Vec4Array* );
+    osg::Vec4Array*		getFillLogColotTab() { return _colorTable; }
+
+    void			setShowLog(bool);
+    bool			getShowLog() const { return _showLog; }
+	
+    void			setScreenWidth( float );
+    const float			getScreenWidth() const { return _screenWidth; }
+	
+    void			setRevScale( bool yn );
+
+    void			setFillRevScale( bool yn );
+
+    void 			setLogConstantSize( bool );
+    bool 			getLogConstantSize() const 
+					    { return !_resizeWhenZooming; }
+
+    void 			setLogConstantSizeFactor( float );
+    float 			getLogConstantSizeFactor() const 
+					    { return _constantSizeFactor; }
+   
+    bool			getDisplayStatus();
+
+    virtual void		clearLog();
+
+protected:
+				~WellLog();
+    virtual osg::BoundingSphere	computeBound() = 0;
+    virtual void	    	traverse( osg::NodeVisitor& )= 0;
+    virtual float	    	getShapeFactor(float logval, float minval,
+					       float maxval) const;
+
+    void			clearDraw();
+    bool			eyeChanged( const osg::Vec3 );
+
+    float			calcWorldWidth( const osgUtil::CullVisitor* cv );
+    osg::Vec3			getPrjDirection( 
+					const osgUtil::CullVisitor* cv) const;
+    osg::ref_ptr<osg::Geode>	_geode;
+    osg::ref_ptr<osg::Group>	_nonShadingGroup;
+    osg::ref_ptr<osg::Vec4Array>_colorTable;
+    osg::ref_ptr<osg::Vec3Array>_logPath;	
+    osg::FloatArray*		_shapeLog;	                                
+    osg::FloatArray*		_fillLog;
+    osg::FloatArray*		_fillLogDepths;	
+    std::vector<int>		_outFillIndex;
+    bool			_showLog;
+    bool			_resizeWhenZooming;
+    bool			_colorTableChanged;
+    bool			_screenSizeChanged;
+    bool			_forceCoordReCalculation;
+    bool			_forceReBuild;
+    bool			_revScale;
+    bool			_fillRevScale;
+    float			_maxShapeValue;
+    float			_minShapeValue;
+    float			_screenWidth;
+    float			_maxFillValue;
+    float			_minFillValue;
+    float			_constantSizeFactor;
+    osg::Vec2	    		_screenSize;
+    osg::Vec3	    		_preProjDir; 
+
+private:
+    osg::Vec2			worldToScreen(const osg::Vec3& worldPosition,
+					    	    const osg::Camera* ca);
+    osg::Vec3			screenToWorld( const osg::Vec2d& screenPosition, 
+						    const osg::Camera* ca );
+};
+
+} // namespace
+
+#endif //OSGGEO_WellLog_H
+
