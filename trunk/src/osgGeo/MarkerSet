@@ -17,7 +17,7 @@ GNU Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-$Id: TexturePlane 108 2012-10-08 08:32:40Z kristofer.tingdahl@dgbes.com $
+$Id: MarkerSet 108 2012-12-08 08:32:40Z kristofer.tingdahl@dgbes.com $
 
 */
 
@@ -28,8 +28,6 @@ $Id: TexturePlane 108 2012-10-08 08:32:40Z kristofer.tingdahl@dgbes.com $
 #include <osg/Geode>
 #include <osg/ShapeDrawable>
 #include <osg/Shape>
-#include <osg/NodeVisitor>
-#include <osg/Switch>
 #include <osgGeo/AutoTransform>
 
 namespace osg 
@@ -39,7 +37,6 @@ namespace osg
   class Shape;
   class Array;
   class TessellationHints;
-  class Switch;
 }
 
 namespace osgGeo
@@ -48,79 +45,69 @@ namespace osgGeo
 
 class OSGGEO_EXPORT MarkerSet : public osg::Node
 {
-public:
-												MarkerSet();
-												MarkerSet(const MarkerSet&,
-												const osg::CopyOp& op =
-															osg::CopyOp::
-															DEEP_COPY_ALL);
-												META_Node(osgGeo,MarkerSet);
-												~MarkerSet();
-													 
-    void										setVertexArray(osg::Vec3Array*);
-	osg::Vec3Array*								getVertexArray() const 
-												{ return _vec3Array; }
+    public:
+				MarkerSet();
+				~MarkerSet();
+					 
+	void			setVertexArray(osg::Vec3Array*);
+	osg::Vec3Array*		getVertexArray() const { return _vertexArr; }
 
-	void										setColorArray(osg::Vec4Array*);
-	osg::Vec4Array*								getColorArray() const 
-												{ return _vec4Array; }
+	void			setNormalArray(osg::Vec3Array*);
+	osg::Vec3Array*		getNormalArray() const { return _normalArr; }
 
-	enum										MarkerType {None=-1,Box=0, Cone,
-												Cylinder, Sphere, Arrow, Cross,
-												Point, Plane};
+	void			setColorArray(osg::Vec4Array*);
+	osg::Vec4Array*		getColorArray() const { return _colorArr; }
 
-	void										setShape( MarkerType );
-	MarkerType									getShape() {return _shapeType;}
+	enum			MarkerType { None=-1,Box=0, Cone, Cylinder, 
+					     Sphere };
 
-	void										setDetail(float);
-												//!<Between 0 and 1.
-	float										getDetail();
+	void			setShape(MarkerType);
+	MarkerType		getShape() { return _shapeType; }
 
-	void										setRadius(float);
-	float										getRedius() const 
-												{ return _radius; }
+	void			setDetail(float ratio);
+				//!<Between 0 and 1.
+	float			getDetail() const 
+				{ return _hints->getDetailRatio(); }
 
-	void										setHeight(float);
-	float										getHeight() const 
-												{ return _height; }
+	void			setRadius(float);
+	float			getRadius() const { return _radius; }
 
-	void									 	setScale (double scale);
-	void 										setScale (const osg::Vec3d 
-														&scale);
-	const osg::Vec3d&							getScale(){return _vec3dScale;}
-	void										setMinimumScale(double minScale);
-    void										setMaximumScale(double maxScale);
+	void			setHeight(float);
+	float			getHeight() const { return _height; }
 
-    void										turnOn( bool );
-    bool										isOn() const;
+	void			setMinScale(double minscale);
+	double			getMinScale() const {return _minScale;}
 
-	void										setAutoTransformRotateMode(osg
-												::AutoTransform::AutoRotateMode
-												);
+	void			setMaxScale(double maxscale);
+	double			getMaxScale() const {return _maxScale;}
 
-protected:
-    osg::BoundingSphere							computeBound() const;
-    void										traverse( osg::NodeVisitor& );
-	bool										updateShapes();
-	bool										needsUpdate();
+	void			setRotateMode(osg::AutoTransform::AutoRotateMode);
+	osg::AutoTransform::AutoRotateMode
+				getRotateMode() const { return _rotateMode; }
 
-	osg::ref_ptr<osg::Shape>					_shape;
-	osg::ref_ptr<osg::Geode>					_geode;
-	osg::ref_ptr<osg::TessellationHints>		_hints;
-	osg::ref_ptr<osg::Vec3Array>				_vec3Array;
-	osg::ref_ptr<osg::Vec4Array>				_vec4Array;
-	osg::ref_ptr<osg::Group>					_nonshadinggroup;
-	osgGeo::AutoTransform::AutoRotateMode		_rotateMode;	
+    protected:
+	osg::BoundingSphere			computeBound() const;
+	void					traverse(osg::NodeVisitor&);
+	bool					updateShapes();
 
-	osg::Vec3d									_vec3dScale;
-	MarkerType									_shapeType;
-	double										_scale;
-	double										_minScale;
-	double										_maxScale;
-	float										_radius;
-	float										_height;
-	bool										_needsUpdate;
-	int											_arraymodcount;
+    private:
+	bool					needsUpdate();
+	osg::ref_ptr<osg::Shape>		_shape;
+	osg::ref_ptr<osg::TessellationHints>	_hints;
+	osg::ref_ptr<osg::Vec3Array>		_vertexArr;
+	osg::ref_ptr<osg::Vec4Array>		_colorArr;
+	osg::ref_ptr<osg::Vec3Array>		_normalArr;
+	osg::ref_ptr<osg::Group>		_nonShadingGroup;
+	osgGeo::AutoTransform::AutoRotateMode	_rotateMode;
+
+	MarkerType				_shapeType;
+	double					_minScale;
+	double					_maxScale;
+	float					_radius;
+	float					_height;
+	bool					_needsUpdate;
+	int					_arrayModCount;
+
 };
 
 }
