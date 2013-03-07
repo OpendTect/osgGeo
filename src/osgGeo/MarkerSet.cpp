@@ -14,7 +14,7 @@ GNU Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-$Id: OneSideRender.cpp 108 2012-10-08 08:32:40Z kristofer.tingdahl@dgbes.com $
+$Id: MarkerSet.cpp 108 2012-12-08 08:32:40Z kristofer.tingdahl@dgbes.com $
 
 */
 
@@ -23,196 +23,196 @@ $Id: OneSideRender.cpp 108 2012-10-08 08:32:40Z kristofer.tingdahl@dgbes.com $
 
 namespace osgGeo
 {
-
-MarkerSet::MarkerSet()
-    :_rotateMode( osgGeo::AutoTransform::ROTATE_TO_SCREEN )
-    ,_hints(new osg::TessellationHints )
-    ,_shapeType( osgGeo::MarkerSet::Box )
-    ,_vec4Array( new osg::Vec4Array )
-    ,_vec3Array( new osg::Vec3Array )
-    ,_nonshadinggroup( new osg::Group )
-    ,_geode( new osg::Geode )
-    ,_needsUpdate( true )
-    ,_arraymodcount( -1 )
-    ,_radius(0.0f)
-    ,_height(0.0f)
-{
-    setNumChildrenRequiringUpdateTraversal( 1 );
-    _hints->setDetailRatio(0.5f);
-}
-
-MarkerSet::MarkerSet( const MarkerSet& node, const osg::CopyOp& co )
-    : osg::Node(node,co)
-    ,_rotateMode( osgGeo::AutoTransform::ROTATE_TO_SCREEN )
-    ,_hints(new osg::TessellationHints )
-    ,_shapeType( osgGeo::MarkerSet::Box )
-    ,_vec4Array( new osg::Vec4Array )
-    ,_vec3Array( new osg::Vec3Array )
-    ,_nonshadinggroup( new osg::Group )
-    ,_geode( new osg::Geode )
-    ,_needsUpdate( true )
-    ,_arraymodcount( -1 )
-    ,_radius(0.0f)
-    ,_height(0.0f)
-{
-    setNumChildrenRequiringUpdateTraversal( 1 );
-    _hints->setDetailRatio(0.5f);
-}
-
-MarkerSet::~MarkerSet()
-{
-}
-
-void MarkerSet::traverse( osg::NodeVisitor& nv )
-{
-    if ( nv.getVisitorType()==osg::NodeVisitor::UPDATE_VISITOR )
+    MarkerSet::MarkerSet()
+	:_rotateMode(osgGeo::AutoTransform::ROTATE_TO_SCREEN)
+	,_hints(new osg::TessellationHints)
+	,_shapeType(osgGeo::MarkerSet::Box)
+	,_colorArr(new osg::Vec4Array)
+	,_vertexArr(new osg::Vec3Array)
+	,_nonShadingGroup(new osg::Group)
+	,_needsUpdate(true)
+	,_arrayModCount(-1)
+	,_radius(.0)
+	,_height(.0)
+	,_minScale(.0)
+	,_maxScale(.0)
+	,_normalArr(new osg::Vec3Array)
     {
-	if ( needsUpdate() )
-	    updateShapes();
+	setNumChildrenRequiringUpdateTraversal(1);
+	_hints->setDetailRatio(0.5f);
     }
 
-    if ( _nonshadinggroup ) _nonshadinggroup->accept( nv );
-}
 
-bool MarkerSet::updateShapes()
-{
-    if ( !_vec3Array || !_needsUpdate ||!_geode)
-	return false;
-
-    _nonshadinggroup->removeChildren( 0, _nonshadinggroup->getNumChildren() );
-
-    for ( unsigned int idx=0; idx<_vec3Array->size(); idx++ )
+     MarkerSet::~MarkerSet()
     {
-	osg::ref_ptr<osg::ShapeDrawable> shapedrwb;
-	osg::ref_ptr<osgGeo::AutoTransform> autotrans = 
-	    new osgGeo::AutoTransform;
-	switch(_shapeType)
+    }
+
+
+    void MarkerSet::traverse(osg::NodeVisitor& nv)
+    {
+	if (nv.getVisitorType()==osg::NodeVisitor::UPDATE_VISITOR)
 	{
-	case osgGeo::MarkerSet::Box:
-	    shapedrwb = new osg::ShapeDrawable(new osg::Box(osg::Vec3f(0,0,0),
-		_radius),_hints);
-	    break;
-	case osgGeo::MarkerSet::Cone:
-	    shapedrwb = new osg::ShapeDrawable(new osg::Cone(osg::Vec3f(0,0,0),
-		_radius,_height),_hints);
-	    break;
-	case osgGeo::MarkerSet::Sphere:
-	    shapedrwb = new osg::ShapeDrawable(new osg::Sphere(osg::Vec3f(0,0,
-		0),_radius),_hints);
-	    break;
-	case osgGeo::MarkerSet::Cylinder:
-	    shapedrwb = new osg::ShapeDrawable(new osg::Cylinder(osg::Vec3f(0,
-		0,0),_radius,_height),_hints);
-	    break;
-	default:
+	    if (needsUpdate())
+		updateShapes();
+	}
+	if (_nonShadingGroup) 
+	    _nonShadingGroup->accept(nv);
+    }
+
+
+    bool MarkerSet::updateShapes()
+    {
+	if (!_vertexArr || !_needsUpdate)
 	    return false;
+
+	_nonShadingGroup->removeChildren(0, _nonShadingGroup->getNumChildren());
+
+	for (unsigned int idx=0;idx<_vertexArr->size();idx++)
+	{
+	    osg::ref_ptr<osg::ShapeDrawable> shapeDrwB;
+	    osg::ref_ptr<osgGeo::AutoTransform> autotrans = 
+		new osgGeo::AutoTransform;
+	    switch (_shapeType)
+	    {
+	    case osgGeo::MarkerSet::Box:
+		shapeDrwB = new osg::ShapeDrawable(new osg::Box(
+				osg::Vec3f(0,0,0),_radius),_hints);
+		break;
+	    case osgGeo::MarkerSet::Cone:
+		shapeDrwB = new osg::ShapeDrawable(new osg::Cone(
+				osg::Vec3f(0,0,0),_radius,_height),_hints);
+		break;
+	    case osgGeo::MarkerSet::Sphere:
+		shapeDrwB = new osg::ShapeDrawable(new osg::Sphere(
+				osg::Vec3f(0,0,0),_radius),_hints);
+		break;
+	    case osgGeo::MarkerSet::Cylinder:
+		shapeDrwB = new osg::ShapeDrawable(new osg::Cylinder(
+				osg::Vec3f(0,0,0),_radius,_height),_hints);
+		break;
+	    default:
+		return false;
+	    }
+
+	    if (idx<_colorArr->size())
+		shapeDrwB->setColor(_colorArr->at( idx ));
+	    else
+		shapeDrwB->setColor(*(_colorArr->end()-1));
+
+	    autotrans->setPosition(_vertexArr->at(idx));
+	    autotrans->setAutoRotateMode(_rotateMode);
+	    autotrans->setMinimumScale(_minScale);
+	    autotrans->setMaximumScale(_maxScale);
+	    autotrans->setAutoScaleToScreen(true);
+	    autotrans->setRestoreProportions(true);
+
+	    osg::ref_ptr<osg::Geode> geode = new osg::Geode;
+	    geode->addDrawable(shapeDrwB);
+	    geode->getOrCreateStateSet()->setMode(GL_LIGHTING,
+						  osg::StateAttribute::ON);
+	    autotrans->addChild(geode);
+	    _nonShadingGroup->addChild(autotrans);
+	}
+	_needsUpdate = false;
+	_arrayModCount = _vertexArr->getModifiedCount();
+	return true;
+    }
+
+
+    osg::BoundingSphere MarkerSet::computeBound() const
+    {
+	osg::BoundingSphere sphere;
+	for (std::vector<osg::Vec3>::const_iterator iter = _vertexArr->begin();
+	    iter != _vertexArr->end();
+	    iter++)
+	{
+	    sphere.expandBy(*iter);
 	}
 
-	if ( idx<_vec4Array->size() )
-	    shapedrwb->setColor(_vec4Array->at(idx) );
-	else
-	    shapedrwb->setColor( *(_vec4Array->end()-1) );
-
-	autotrans->setPosition( _vec3Array->at(idx) );
-	autotrans->setAutoRotateMode( _rotateMode );
-	autotrans->setMinimumScale(_minScale);
-	autotrans->setMaximumScale(_maxScale);
-	autotrans->setAutoScaleToScreen(true);
-	autotrans->setRestoreProportions(true);
-
-	osg::ref_ptr<osg::Geode> geode = new osg::Geode;
-	geode->addDrawable( shapedrwb );
-	geode->getOrCreateStateSet()->setMode(GL_LIGHTING,
-					osg::StateAttribute::ON);
-	autotrans->addChild( geode );
-	_nonshadinggroup->addChild( autotrans );
-	
+	return sphere;
     }
 
-    _needsUpdate = false;
-    _arraymodcount = _vec3Array->getModifiedCount();
-    return true;
-}
 
-osg::BoundingSphere MarkerSet::computeBound() const
-{
-    osg::BoundingSphere sphere;
-    for ( std::vector<osg::Vec3>::const_iterator iter = _vec3Array->begin();
-	  iter != _vec3Array->end(); iter++ )
+    bool MarkerSet::needsUpdate()
     {
-	sphere.expandBy( *iter );
+	if ((int)_vertexArr->getModifiedCount()>_arrayModCount)
+	    _needsUpdate = true;
+	return _needsUpdate;
     }
 
-    return sphere;
-}
 
-bool MarkerSet::needsUpdate()
-{
-    if ( (int)_vec3Array->getModifiedCount() > _arraymodcount )
+    void MarkerSet::setVertexArray(osg::Vec3Array* arr)
+    {
+	if (arr==_vertexArr)
+	    return;
+	_vertexArr = arr;
 	_needsUpdate = true;
-    return _needsUpdate;
-}
+    }
 
 
-void MarkerSet::setVertexArray(osg::Vec3Array* arr)
-{
-    _vec3Array = arr;
-}
+    void MarkerSet::setNormalArray(osg::Vec3Array* arr)
+    {
+	if (arr==_normalArr)
+	    return;
+	_normalArr = arr;
+	_needsUpdate = true;
+    }
 
-void MarkerSet::setShape(osgGeo::MarkerSet::MarkerType shape)
-{
-    _shapeType = shape;
-    _needsUpdate = true;
-}
 
-void MarkerSet::setRadius(float radius)
-{
-    _radius = radius;
-    _needsUpdate = true;
+    void MarkerSet::setShape(osgGeo::MarkerSet::MarkerType shape)
+    {
+	_shapeType = shape;
+	_needsUpdate = true;
+    }
 
-}
 
-void MarkerSet::setHeight(float height)
-{
-    _height = height;
-    _needsUpdate = true;
-}
+    void MarkerSet::setRadius(float radius)
+    {
+	_radius = radius;
+	_needsUpdate = true;
 
-void MarkerSet::setDetail(float ratio)
-{
-    _hints->setDetailRatio(ratio);
-    _needsUpdate = true;
-}
+    }
 
-void MarkerSet::setScale ( double scale )
-{
-    _scale = scale;
-    _needsUpdate = true;
-}
 
-void MarkerSet::setScale ( const osg::Vec3d &scale )
-{
-    _vec3dScale  = scale;
-    _needsUpdate = true;
-}
+    void MarkerSet::setHeight(float height)
+    {
+	_height = height;
+	_needsUpdate = true;
+    }
 
-void MarkerSet::setMinimumScale( double minScale )
-{
-    _minScale = minScale;
-    _needsUpdate = true;
-}
 
-void MarkerSet::setMaximumScale( double maxScale )
-{
-    _maxScale = maxScale;
-    _needsUpdate = true;
-}
+    void MarkerSet::setDetail(float ratio)
+    {
+	_hints->setDetailRatio(ratio);
+	_needsUpdate = true;
+    }
 
-void MarkerSet::setAutoTransformRotateMode( osg::AutoTransform::
-					    AutoRotateMode rtMode )
-{
-    _rotateMode = rtMode;
-    _needsUpdate = true;
-}
+
+    void MarkerSet::setMinScale(double minscale)
+    {
+	_minScale = minscale;
+	_needsUpdate = true;
+    }
+
+
+    void MarkerSet::setMaxScale(double maxscale)
+    {
+	_maxScale = maxscale;
+	_needsUpdate = true;
+    }
+
+
+    void MarkerSet::setRotateMode(osg::AutoTransform::AutoRotateMode rtmode)
+    {
+	_rotateMode = rtmode;
+	_needsUpdate = true;
+    }
+
+
+    void MarkerSet::setColorArray(osg::Vec4Array* colorArr)
+    {
+	_colorArr = colorArr;
+	_needsUpdate = true;
+    }
 
 }
