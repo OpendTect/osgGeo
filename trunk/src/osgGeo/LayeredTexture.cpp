@@ -1864,7 +1864,7 @@ void LayeredTexture::getFragmentShaderCode( std::string& code, const std::vector
     code += "{\n"
 	    "    vec4 col, udfcol;\n"
 	    "    vec2 texcrd;\n"
-	    "    float a, b, udf, oldudf;\n"
+	    "    float a, b, udf, oldudf, orgcol3;\n"
 	    "\n";
 
     int stage = 0;
@@ -1941,7 +1941,7 @@ void LayeredTexture::getFragmentShaderCode( std::string& code, const std::vector
 	    "    gl_FragColor.rgb *= gl_Color.rgb;\n"
 	    "}\n";
 
-    //std::cout << code << std::endl;
+    std::cout << code << std::endl;
 }
 
 
@@ -2155,6 +2155,22 @@ const osg::Vec4f& LayerProcess::getNewUndefColor() const
 { return _newUndefColor; }
 
 
+void LayerProcess::assignOrgCol3IfNeeded( std::string& code, int toIdx ) const
+{
+    if ( toIdx!=-1 && toIdx!=3 )
+	return;
+    if ( !isUndefPerChannel() || _newUndefColor[3]<=0.0f )
+	return;
+    if ( _newUndefColor[3]>=1.0f && getTransparencyType(true)==Opaque )
+	return;
+
+    if ( toIdx==3 )
+	code += "    ";
+
+    code += "    orgcol3 = col[3];\n";
+} 
+
+
 void LayerProcess::getHeaderCode( std::string& code, int& nrUdf, int id, int toIdx, int fromIdx ) const
 {
     const int unit = _layTex.getDataLayerTextureUnit(id);
@@ -2230,13 +2246,44 @@ void LayerProcess::getHeaderCode( std::string& code, int& nrUdf, int id, int toI
 	    code += line;
 	}
 
-	if ( nrUdf++ )
+	const bool stackUdf = _layTex.isDataLayerOK( _layTex.getStackUndefLayerID() );
+	if ( stackUdf )
 	{
 	    code += "\n"
-		    "        udf = max( udf, oldudf );\n";
+		    "            if ( udf > stackudf )\n"
+		    "                udf = (udf-stackudf) / (1.0-stackudf);\n"
+		    "            else\n"
+		    "                udf = 0.0;\n";
 	}
 
-	code += "        }\n";
+	code += "        }\n"
+	    	"\n";
+
+	assignOrgCol3IfNeeded( code, toIdx );
+
+	if ( isUndefPerChannel() )
+	{
+	    code += "        if ( udf > 0.0 )\n";
+
+	    if ( _newUndefColor[3]>0.0f )
+	    {
+		const bool resultIsOpaque = _newUndefColor[3]>=1.0f && getTransparencyType(true)==Opaque;
+		if ( toIdx==3 || resultIsOpaque )
+		{
+		    sprintf( line, "            col%s = mix( col%s, %.6f, udf );\n", to, to, _newUndefColor[toIdx] );
+		}
+		else
+		{
+		    sprintf( line, "            col%s = mix(orgcol3*col%s, %.6f, udf) / col[3];\n", to, to, _newUndefColor[3]*_newUndefColor[toIdx] );
+		}
+
+		code += line;
+	    }
+	    else if ( toIdx==3 )
+		code += "            col[3] *= 1.0-udf;\n";
+	}
+	else if ( nrUdf++ )
+	    code += "        udf = max( udf, oldudf );\n";
     }
     else
     {
@@ -2244,6 +2291,7 @@ void LayerProcess::getHeaderCode( std::string& code, int& nrUdf, int id, int toI
 	code += line;
 	sprintf( line, "        col%s = texture2D( texture%d, texcrd )%s;\n", to, unit, from );
 	code += line;
+	assignOrgCol3IfNeeded( code, toIdx );
     }
 
     code += "    }\n";
@@ -2261,16 +2309,8 @@ void LayerProcess::getFooterCode( std::string& code, int& nrUdf, int stage ) con
 
 	code += "\n"
 		"    if ( udf >= 1.0 )\n"
-	    	"        col = udfcol;\n";
-
-	const bool stackUdf = _layTex.isDataLayerOK( _layTex.getStackUndefLayerID() );
-
-	if ( !stackUdf )
-	    code += "    else if ( udf > 0.0 )\n";
-	else
-	    code += "    else if ( udf > stackudf )\n"
-		    "    {\n"
-		    "        udf = (udf-stackudf) / (1.0-stackudf);\n";
+	    	"        col = udfcol;\n"
+		"    else if ( udf > 0.0 )\n";
 
 	if ( _newUndefColor[3]<=0.0f )
 	    code += "        col.a *= 1.0-udf;\n";
@@ -2278,24 +2318,17 @@ void LayerProcess::getFooterCode( std::string& code, int& nrUdf, int stage ) con
 	    code += "        col = mix( col, udfcol, udf );\n";
 	else
 	{
-	    if ( !stackUdf )
-		code += "    {\n";
-
-	    code += "        if ( col.a > 0.0 )\n"
+	    code += "    {\n"
+		    "        if ( col.a > 0.0 )\n"
 		    "        {\n"
 		    "            a = col.a;\n"
 		    "            col.a = mix( a, udfcol.a, udf );\n"
 		    "            col.rgb = mix(a*col.rgb, udfcol.a*udfcol.rgb, udf) / col.a;\n"
 		    "        }\n"
 		    "        else\n"
-		    "            col = vec4( udfcol.rgb, udf*udfcol.a );\n";
-
-	    if ( !stackUdf )                                                    
-		code += "    }\n";
+		    "            col = vec4( udfcol.rgb, udf*udfcol.a );\n"
+		    "    }\n";
 	}
-
-	if ( stackUdf )
-	    code += "    }\n";
 
 	code += "\n";
 	nrUdf = 0;
@@ -2535,12 +2568,15 @@ void ColTabLayerProcess::doProcess( osg::Vec4f& fragColor, float stackUdf, const
 
 RGBALayerProcess::RGBALayerProcess( LayeredTexture& layTex )
     : LayerProcess( layTex )
+    , _udfPerChannel( false )
 {
-   for ( int idx=0; idx<4; idx++ )
-   {
-       _id[idx] = -1;
-       _isOn[idx] = true;
-   }
+    for ( int idx=0; idx<4; idx++ )
+    {
+	_id[idx] = -1;
+	_isOn[idx] = true;
+    }
+
+    _newUndefColor = osg::Vec4f( 0.0f, 0.0f, 0.0f, 1.0f );
 }
 
 
@@ -2572,17 +2608,32 @@ bool RGBALayerProcess::isOn(int idx) const
 { return idx>=0 && idx<4 ? _isOn[idx] : false; }
 
 
+void RGBALayerProcess::applyUndefPerChannel( bool yn )
+{
+    if ( _udfPerChannel != yn )
+    {
+	_udfPerChannel = yn;
+	_layTex.updateSetupStateSet();
+    }
+}
+
+bool RGBALayerProcess::isUndefPerChannel() const
+{ return _udfPerChannel; }
+
+
 int RGBALayerProcess::getDataLayerTextureChannel( int idx ) const
 { return idx>=0 && idx<4 ? _textureChannel[idx] : -1;  } 
 
 
 void RGBALayerProcess::getShaderCode( std::string& code, int stage ) const
 {
-    code += "    col = vec4( 0.0, 0.0, 0.0, 1.0 );\n"
-	    "\n";
+    code += "    col = vec4( 0.0, 0.0, 0.0, 1.0 );\n";
+    assignOrgCol3IfNeeded( code );
+
+    code += "\n";
 
     int nrUdf = 0;
-    for ( int idx=0; idx<4; idx++ )
+    for ( int idx=3; idx>=0; idx-- )
     {
 	if ( _isOn[idx] && _layTex.isDataLayerOK(_id[idx]) )
 	{
@@ -2634,7 +2685,7 @@ void RGBALayerProcess::doProcess( osg::Vec4f& fragColor, float stackUdf, const o
     osg::Vec4f col( 0.0f, 0.0f, 0.0f, 1.0f );
     float udf = 0.0f;
 
-    for ( int idx=0; idx<4; idx++ )
+    for ( int idx=3; idx>=0; idx-- )
     {
 	if ( _isOn[idx] && _layTex.isDataLayerOK(_id[idx]) )
 	{
