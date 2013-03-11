@@ -300,6 +300,7 @@ public:
 				    has a reference to an undef channel. */
 
     const osg::Vec4f&		getNewUndefColor() const;
+    virtual bool		isUndefPerChannel() const     { return false; }
 
 protected:
     LayeredTexture&		_layTex;
@@ -321,6 +322,9 @@ protected:
 					      float stackUdf,
 					      const osg::Vec2f& coord,
 					      osg::Vec4f col,float udf) const;
+
+    void			assignOrgCol3IfNeeded(std::string& code,
+						      int toIdx=-1) const;
 };
 
 
@@ -369,6 +373,10 @@ public:
     void			turnOn(int idx,bool yn=true);
     bool			isOn(int idx=0) const;
 
+    void			applyUndefPerChannel(bool yn=true);
+    bool			isUndefPerChannel() const;
+
+
     void			getShaderCode(std::string& code,
 					      int stage) const;
 
@@ -379,6 +387,7 @@ protected:
     int 			_id[4];
     int				_textureChannel[4];
     bool			_isOn[4];
+    bool			_udfPerChannel;
 };
 
 
