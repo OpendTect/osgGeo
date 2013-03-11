@@ -40,9 +40,11 @@ set ( LIB_PUBLIC_HEADERS
     OneSideRender
     RandomLine
     TexturePlane
+    TubeWellLog
     TrackballManipulator
     Vec2i
-    ThumbWheel )
+    ThumbWheel
+    WellLog )
 
 add_library( ${LIB_NAME} SHARED
     ${LIB_PUBLIC_HEADERS}
@@ -62,9 +64,10 @@ add_library( ${LIB_NAME} SHARED
     Line3.cpp
     RandomLine.cpp
     TexturePlane.cpp
-    TrackballManipulator.cpp
-    ThumbWheel.cpp )
-
+    TubeWellLog.cpp
+    ThumbWheel.cpp
+    TrackballManipulator.cpp 
+    WellLog.cpp )
 target_link_libraries(
     ${LIB_NAME}
     ${OSGGEO_OSG_LIBRARY}
