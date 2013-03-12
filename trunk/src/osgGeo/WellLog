@@ -58,7 +58,7 @@ public:
 				    start of path.*/
     osg::FloatArray*		getShapeLog() { return _shapeLog; }
     void			setMaxShapeValue( float );
-    const float			getMaxShapeValue() const {return _maxShapeValue;}
+    float			getMaxShapeValue() const {return _maxShapeValue;}
 
     void			setMinShapeValue( float );
     float			getMinShapeValue() const {return _minShapeValue;}
@@ -73,10 +73,10 @@ public:
 
 
     void			setMaxFillValue( float );
-    const float			getMaxFillValue() const {return _maxFillValue;}
+    float			getMaxFillValue() const {return _maxFillValue;}
 
     void			setMinFillValue( float );
-    const float			getMinFillValue() const {return _minFillValue;}
+    float			getMinFillValue() const {return _minFillValue;}
 
     void			setFillLogColorTab( osg::Vec4Array* );
     osg::Vec4Array*		getFillLogColotTab() { return _colorTable; }
@@ -85,7 +85,7 @@ public:
     bool			getShowLog() const { return _showLog; }
 	
     void			setScreenWidth( float );
-    const float			getScreenWidth() const { return _screenWidth; }
+    float			getScreenWidth() const { return _screenWidth; }
 	
     void			setRevScale( bool yn );
 

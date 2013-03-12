@@ -61,12 +61,12 @@ public:
     bool			getFullFilled() { return _isFullFilled; }
 
     void			setSeisLogStyle( bool );
-    const bool 			getSeisLogStyle() const { return _seisStyle; }
+    bool 			getSeisLogStyle() const { return _seisStyle; }
 
     void			setLogFill( bool );
 
     void			setLineWidth( float );
-    const float			getLineWidth() const;
+    float			getLineWidth() const;
 
     void			setLineColor( osg::Vec4d );
     osg::Vec4d			getLineColor() const;

@@ -142,7 +142,7 @@ osg::Vec4d PlaneWellLog::getLineColor() const
 }
 
 
-const float PlaneWellLog::getLineWidth() const
+float PlaneWellLog::getLineWidth() const
 {
     return _lineWidth->getWidth();
 }
@@ -455,7 +455,7 @@ void PlaneWellLog::updateFilledLogColor()
 {
     if( getLogItem() == SEISMIC_ONLY )
     {
-	for ( int idx=0; idx<_logPath->size(); idx++ )
+	for ( unsigned int idx=0; idx<_logPath->size(); idx++ )
 	{
 	    (*_logColors)[2*idx] =  _colorTable->at( 1 );
 	    (*_logColors)[2*idx+1] =  _colorTable->at( 1);
