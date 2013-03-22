@@ -189,7 +189,14 @@ public:
     osg::StateSet*	getSetupStateSet();
     void		updateSetupStateSet()	{ _updateSetupStateSet=true; }
 
-    void		useShaders(bool yn=true);
+    void		allowShaders(bool yn=true,bool maySkipEarlyProcs=false);
+			/*! Fallback to fixed function pipeline if not enough
+			    texture units available, unless option is set to 
+			    just skip the earliest processes. */
+
+    bool		areShadersAllowed() const   { return _allowShaders; }
+    bool		areShadersUsedNow() const   { return _useShaders; }
+
 
     enum TextureSizePolicy { PowerOf2, AnySize };
 
@@ -228,7 +235,8 @@ protected:
     TextureSizePolicy	usedTextureSizePolicy() const;
 
     int /* nrProc */	getProcessInfo(std::vector<int>& orderedLayerIDs,
-			    int& nrUsedLayers,bool* stackIsOpaque=0) const;
+				       int& nrUsedLayers,bool& useShaders,
+				       bool* stackIsOpaque=0) const;
 
     void		setDataLayerTextureUnit(int id,int unit);
     void		raiseUndefChannelRefCount(bool yn, int idx=-1);
@@ -242,7 +250,7 @@ protected:
 				const std::vector<int>& activeUnits,
 				int nrProc,bool stackIsOpaque) const;
 
-    void		createCompositeTexture();
+    void		createCompositeTexture(bool dummyTexture=false);
     void		setRenderingHint(bool stackIsOpaque);
 
     OpenThreads::ReadWriteMutex		_lock;
@@ -265,9 +273,13 @@ protected:
     bool				_stackUndefBordered;
     bool				_invertUndefLayers;
 
+    bool				_allowShaders;
     bool				_useShaders;
+    bool				_maySkipEarlyProcesses;
+
     int					_compositeLayerId;
     bool				_compositeLayerUpdate;
+    bool				_retileCompositeLayer;
 };
 
 
@@ -283,7 +295,7 @@ public:
     virtual void		doProcess(osg::Vec4f& fragColor,float stackUdf,
 					  const osg::Vec2f& globalCoord)= 0;
 
-    virtual bool		isOn(int=0) const	      { return true; }
+    virtual bool		isOn(int idx=0) const	      { return true; }
 
     virtual bool		needsColorSequence() const    { return false; }
 

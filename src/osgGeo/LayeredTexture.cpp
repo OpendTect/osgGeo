@@ -22,10 +22,12 @@ $Id$
 #include <osgGeo/LayeredTexture>
 
 #include <osg/BlendFunc>
+#include <osg/FragmentProgram>
 #include <osg/Geometry>
 #include <osg/State>
 #include <osg/Texture2D>
 #include <osg/Version>
+#include <osg/VertexProgram>
 #include <osgUtil/CullVisitor>
 #include <osgGeo/Vec2i>
 
@@ -216,7 +218,7 @@ static TransparencyType getImageTransparencyType( const osg::Image* image, int t
 
 static TransparencyType addOpacity( TransparencyType tt, float opacity )
 {
-    if ( tt==TransparencyUnknown )
+    if ( tt==TransparencyUnknown || opacity<0.0 )
 	return tt;
 
     if ( opacity<=0.0f )
@@ -541,6 +543,7 @@ struct TextureInfo
 				    , _nrUnits( 256 )
 				    , _maxSize( 65536 )
 				    , _nonPowerOf2Support( false )
+				    , _shadingSupport( false )
 				{}
 
     bool			_isValid;
@@ -548,6 +551,7 @@ struct TextureInfo
     int				_nrUnits;
     int				_maxSize;
     bool			_nonPowerOf2Support;
+    bool			_shadingSupport;
 };
 
 
@@ -566,10 +570,14 @@ LayeredTexture::LayeredTexture()
     , _stackUndefChannel( 0 )
     , _stackUndefColor( 0.0f, 0.0f, 0.0f, 0.0f )
     , _invertUndefLayers( false )
-    , _useShaders( true )
+    , _allowShaders( true )
+    , _maySkipEarlyProcesses( false )
+    , _useShaders( false )
     , _compositeLayerUpdate( true )
+    , _retileCompositeLayer( false )
 {
     _compositeLayerId = addDataLayer();
+    setDataLayerBorderColor( _compositeLayerId, osg::Vec4(-1.0f,-1.0f,-1.0f,-1.0f) );
 }
 
 
@@ -585,9 +593,12 @@ LayeredTexture::LayeredTexture( const LayeredTexture& lt,
     , _stackUndefLayerId( lt._stackUndefLayerId )
     , _stackUndefChannel( lt._stackUndefChannel )
     , _stackUndefColor( lt._stackUndefColor )
+    , _allowShaders( lt._allowShaders )
+    , _maySkipEarlyProcesses( lt._maySkipEarlyProcesses )
     , _useShaders( lt._useShaders )
     , _compositeLayerId( lt._compositeLayerId )
     , _compositeLayerUpdate( lt._compositeLayerUpdate )
+    , _retileCompositeLayer( false )
 {
     for ( unsigned int idx=0; idx<lt._dataLayers.size(); idx++ )
     {
@@ -731,7 +742,7 @@ void LayeredTexture::setDataLayerScale( int id, const osg::Vec2f& scale )
     const int idx = getDataLayerIndex( id );
     if ( idx!=-1 && scale.x()>=0.0f && scale.y()>0.0f )
     {
-	_dataLayers[idx]->_scale = scale; 
+	_dataLayers[idx]->_scale = scale;
 	_tilingInfo->_needsUpdate = true;
     }
 }
@@ -789,9 +800,6 @@ void LayeredTexture::setDataLayerImage( int id, const osg::Image* image )
 	layer._imageSourceSize = newImageSize;
 	layer._imageModifiedCount = image->getModifiedCount();
 	layer.clearTransparencyType();
-
-	if ( id==_compositeLayerId && _useShaders )
-	    return;
 
 #ifdef USE_IMAGE_STRIDE
 	if ( !retile )
@@ -1058,6 +1066,7 @@ void LayeredTexture::setGraphicsContextID( int id )
 {
     _texInfo->_contextId = id;
     _texInfo->_isValid = false;
+    _texInfo->_shadingSupport = false;
     updateTextureInfoIfNeeded();
 }
 
@@ -1077,9 +1086,12 @@ void LayeredTexture::updateTextureInfoIfNeeded() const
 	if ( _texInfo->_contextId>=0 && _texInfo->_contextId!=contextID )
 	    continue;
 
+	const osg::VertexProgram::Extensions* vertExt = osg::VertexProgram::getExtensions( contextID, _texInfo->_contextId>=0 );
+	const osg::FragmentProgram::Extensions* fragExt = osg::FragmentProgram::getExtensions( contextID, _texInfo->_contextId>=0 );
+
 	const osg::Texture::Extensions* texExt = osg::Texture::getExtensions( contextID, _texInfo->_contextId>=0 );
 
-	if ( !texExt )
+	if ( !vertExt || !fragExt || !texExt )
 	    continue;
 
 	if ( !_texInfo->_isValid || _texInfo->_nrUnits>texExt->numTextureUnits() )
@@ -1090,6 +1102,9 @@ void LayeredTexture::updateTextureInfoIfNeeded() const
 
 	if ( !_texInfo->_isValid || _texInfo->_nonPowerOf2Support )
 	    _texInfo->_nonPowerOf2Support = texExt->isNonPowerOfTwoTextureSupported( osg::Texture::LINEAR_MIPMAP_LINEAR );
+
+	if ( !_texInfo->_isValid || _texInfo->_shadingSupport )
+	    _texInfo->_shadingSupport = vertExt->isVertexProgramSupported() && fragExt->isFragmentProgramSupported() && _texInfo->_nrUnits>0;
 
 	_texInfo->_isValid = true;
 	_tilingInfo->_retilingNeeded = true;
@@ -1166,7 +1181,7 @@ bool LayeredTexture::needsRetiling() const
     updateTilingInfoIfNeeded();
     updateTextureInfoIfNeeded();
 
-    return _tilingInfo->_retilingNeeded;
+    return _tilingInfo->_retilingNeeded || _retileCompositeLayer;
 }
 
 
@@ -1346,13 +1361,6 @@ osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, co
 			       smallestScale.y() * (opposite.y()+0.5) );
     globalOpposite += _tilingInfo->_envelopeOrigin;
 
-    if ( !_texInfo->_isValid )
-    {
-	// Cheap step aside into border until texture info becomes valid
-	globalOpposite.x() = _tilingInfo->_envelopeOrigin.x() - 10.0f;
-	globalOrigin.x() = globalOpposite.x() - 10.0f;
-    }
-
     for ( int idx=nrDataLayers()-1; idx>=0; idx-- )
     {
 	LayeredTextureData* layer = _dataLayers[idx];
@@ -1520,13 +1528,8 @@ void LayeredTexture::updateSetupStateSetIfNeeded()
 
     if ( _updateSetupStateSet )
     {
-	_compositeLayerUpdate = true;
-
-	if ( _useShaders )
-	    buildShaders();
-	else
-	    createCompositeTexture();
-
+	_compositeLayerUpdate = !_retileCompositeLayer;
+	buildShaders();
 	_updateSetupStateSet = false;
     }
 
@@ -1563,10 +1566,33 @@ void LayeredTexture::checkForModifiedImages()
 
 void LayeredTexture::buildShaders()
 {
-    int nrUsedLayers;
+    _useShaders = _allowShaders && _texInfo->_shadingSupport;
+
+    int nrProc, nrUsedLayers;
     std::vector<int> orderedLayerIDs;
     bool stackIsOpaque;
-    const int nrProc = getProcessInfo( orderedLayerIDs, nrUsedLayers, &stackIsOpaque );
+
+    if ( _useShaders )
+    {
+	nrProc = getProcessInfo( orderedLayerIDs, nrUsedLayers, _useShaders, &stackIsOpaque );
+    }
+
+    if ( !_useShaders )
+    {
+	const bool create = !_retileCompositeLayer;
+	_retileCompositeLayer = false;
+
+	if ( create )
+	    createCompositeTexture( !_texInfo->_isValid );
+
+	if ( !create || !_retileCompositeLayer )
+	{
+	    _setupStateSet->clear();
+	    setRenderingHint( getDataLayerTransparencyType(_compositeLayerId)==Opaque );
+	}
+
+	return;
+    }
 
     bool needColSeqTexture = false;
     int minUnit = _texInfo->_nrUnits;
@@ -1641,37 +1667,48 @@ void LayeredTexture::setRenderingHint( bool stackIsOpaque )
 }
 
 
-int LayeredTexture::getProcessInfo( std::vector<int>& layerIDs, int& nrUsedLayers, bool* stackIsOpaque ) const
+int LayeredTexture::getProcessInfo( std::vector<int>& layerIDs, int& nrUsedLayers, bool& useShaders, bool* stackIsOpaque ) const
 {
     layerIDs.empty();
     std::vector<int> skippedIDs;
     int nrProc = 0;
-    nrUsedLayers = 0;
+    nrUsedLayers = -1;
 
     if ( stackIsOpaque )
 	*stackIsOpaque = false;
+
+    if ( isDataLayerOK(_stackUndefLayerId) )
+	layerIDs.push_back( _stackUndefLayerId );
+    else if ( _stackUndefLayerId>0 )
+	skippedIDs.push_back( _stackUndefLayerId );
 
     std::vector<LayerProcess*>::const_reverse_iterator it = _processes.rbegin();
     for ( ; it!=_processes.rend(); it++ )
     {
 	const TransparencyType transparency = (*it)->getTransparencyType();
 	int nrPushed = 0;
-	for ( int idx=-2; ; idx++ )
+
+	for ( int idx=-1; ; idx++ )
 	{
+	    bool skip = transparency==FullyTransparent;
 	    int id = -1;
 
 	    if ( idx>=0 )
 	    {
 		id = (*it)->getDataLayerID( idx/2 );
+		if ( !(*it)->isOn(idx/2) || !isDataLayerOK(id) )
+		    skip = true;
 
 		if ( idx%2 )
+		{
 		    id = getDataLayerUndefLayerID(id);
-		else if ( id<0 && idx>=8 )
+		    if ( !isDataLayerOK(id) )
+			skip = true;
+		}
+		else if ( idx>=8 && id<0 )
 		    break;
 	    }
-	    else if ( idx==-1 && !nrUsedLayers )
-		id = _stackUndefLayerId;
-	    else if ( idx==-2 && (*it)->needsColorSequence() )
+	    else if ( (*it)->needsColorSequence() )
 		id = 0;		// ColSeqTexture represented by ID=0
 
 	    if ( id<0 )
@@ -1680,11 +1717,11 @@ int LayeredTexture::getProcessInfo( std::vector<int>& layerIDs, int& nrUsedLayer
 	    const std::vector<int>::iterator it1 = std::find(layerIDs.begin(),layerIDs.end(),id);
 	    const std::vector<int>::iterator it2 = std::find(skippedIDs.begin(),skippedIDs.end(),id);
 
-	    if ( !nrUsedLayers )
+	    if ( nrUsedLayers<0 )
 	    {
-		if ( transparency!=FullyTransparent )
+		if ( !skip )
 		{
-		    if ( it2 != skippedIDs.end() )
+		    if ( it2!=skippedIDs.end() )
 			skippedIDs.erase( it2 );
 		}
 		else if ( it1==layerIDs.end() && it2==skippedIDs.end() )
@@ -1693,23 +1730,27 @@ int LayeredTexture::getProcessInfo( std::vector<int>& layerIDs, int& nrUsedLayer
 
 	    if ( it1==layerIDs.end() )
 	    {
-		if ( !nrUsedLayers || transparency!=FullyTransparent )
+		if ( nrUsedLayers<0 )
 		{
-		    layerIDs.push_back( id );
-		    nrPushed++;
+		    if ( !skip )
+		    {
+			layerIDs.push_back( id );
+			nrPushed++;
+		    }
 		}
+		else if ( it2==skippedIDs.end() )
+		    layerIDs.push_back( id );
 	    }
 	}
 
-	if ( !nrUsedLayers )
+	if ( nrUsedLayers<0 )
 	{
 	    const int sz = layerIDs.size();
 	    if ( sz > _texInfo->_nrUnits )
 	    {
 		nrUsedLayers = sz-nrPushed;
-		const bool assigningTextureUnits = !stackIsOpaque;  // Hacky
-		if ( assigningTextureUnits )
-		    std::cerr << "Earliest process(es) dropped for lack of texture units" << std::endl;
+		if ( !nrProc || !_maySkipEarlyProcesses )
+		    useShaders = false;
 	    }
 	    else
 	    {
@@ -1724,7 +1765,7 @@ int LayeredTexture::getProcessInfo( std::vector<int>& layerIDs, int& nrUsedLayer
 	}
     }
 
-    if ( !nrUsedLayers )
+    if ( nrUsedLayers<0 )
 	nrUsedLayers = layerIDs.size();
 
     layerIDs.insert( layerIDs.begin()+nrUsedLayers,
@@ -1759,8 +1800,13 @@ void LayeredTexture::createColSeqTexture()
 
 void LayeredTexture::assignTextureUnits()
 {
-    if ( !_useShaders && getDataLayerTextureUnit(_compositeLayerId)==0 )
-	return;
+    _useShaders = _allowShaders && _texInfo->_shadingSupport;
+
+    std::vector<int> orderedLayerIDs;
+    int nrUsedLayers;
+
+    if ( _useShaders )
+	getProcessInfo( orderedLayerIDs, nrUsedLayers, _useShaders );
 
     std::vector<LayeredTextureData*>::iterator lit = _dataLayers.begin();
     for ( ; lit!=_dataLayers.end(); lit++ )
@@ -1768,10 +1814,6 @@ void LayeredTexture::assignTextureUnits()
 
     if ( _useShaders )
     {
-	std::vector<int> orderedLayerIDs;
-	int nrUsedLayers;
-	getProcessInfo( orderedLayerIDs, nrUsedLayers );
-
 	int unit = 0;	// Reserved for ColSeqTexture if needed
 
 	// nrUsedLayers = _texInfo->_nrUnits;
@@ -1788,6 +1830,9 @@ void LayeredTexture::assignTextureUnits()
     }
     else
 	setDataLayerTextureUnit( _compositeLayerId, 0 );
+
+    if ( _tilingInfo->_retilingNeeded || _updateSetupStateSet )
+	_retileCompositeLayer = false;
 
     _updateSetupStateSet = true;
     updateSetupStateSetIfNeeded();
@@ -1868,9 +1913,14 @@ void LayeredTexture::getFragmentShaderCode( std::string& code, const std::vector
 	    "\n";
 
     int stage = 0;
+    float minOpacity = 1.0f;
+
     std::vector<LayerProcess*>::const_reverse_iterator it = _processes.rbegin();
     for ( ; it!=_processes.rend() && nrProc--; it++ )
     {
+	if ( (*it)->getOpacity() < minOpacity )
+	    minOpacity = (*it)->getOpacity();
+
 	if ( (*it)->getTransparencyType() == FullyTransparent )
 	    continue;
 
@@ -1886,7 +1936,10 @@ void LayeredTexture::getFragmentShaderCode( std::string& code, const std::vector
     }
 
     if ( !stage )
-	code += "    gl_FragColor = vec4(1.0,1.0,1.0,1.0);\n";
+    {
+	sprintf( line, "    gl_FragColor = vec4(1.0,1.0,1.0,%.6f);\n", minOpacity );
+	code += line;
+    }
 
     code += "}\n"
 	    "\n"
@@ -1941,15 +1994,16 @@ void LayeredTexture::getFragmentShaderCode( std::string& code, const std::vector
 	    "    gl_FragColor.rgb *= gl_Color.rgb;\n"
 	    "}\n";
 
-    std::cout << code << std::endl;
+    //std::cout << code << std::endl;
 }
 
 
-void LayeredTexture::useShaders( bool yn )
+void LayeredTexture::allowShaders( bool yn, bool maySkipEarlyProcs )
 {
-    if ( _useShaders != yn )
+    if ( _allowShaders!=yn || _maySkipEarlyProcesses!=maySkipEarlyProcs )
     {
-	_useShaders = yn;
+	_allowShaders = yn;
+	_maySkipEarlyProcesses = maySkipEarlyProcs;
 	_tilingInfo->_retilingNeeded = true;
     }
 }
@@ -1989,7 +2043,7 @@ void LayeredTexture::setMaxTextureCopySize( unsigned int width_x_height )
 }
 
 
-void LayeredTexture::createCompositeTexture()
+void LayeredTexture::createCompositeTexture( bool dummyTexture )
 {
     if ( !_compositeLayerUpdate )
 	return;
@@ -1998,10 +2052,13 @@ void LayeredTexture::createCompositeTexture()
     updateTilingInfoIfNeeded();
     const osgGeo::TilingInfo& ti = *_tilingInfo;
 
-    const int width  = (int) ceil( ti._envelopeSize.x()/ti._smallestScale.x() );
-    const int height = (int) ceil( ti._envelopeSize.y()/ti._smallestScale.y() );
-    if ( width<1 || height<1 )
-	return;
+    int width  = (int) ceil( ti._envelopeSize.x()/ti._smallestScale.x() );
+    int height = (int) ceil( ti._envelopeSize.y()/ti._smallestScale.y() );
+
+    if ( dummyTexture || width<1 )
+	width = 1;
+    if ( dummyTexture || height<1 )
+	height = 1;
 
     const osg::Vec2f scale( ti._envelopeSize.x()/float(width),
 			    ti._envelopeSize.y()/float(height) );
@@ -2023,6 +2080,13 @@ void LayeredTexture::createCompositeTexture()
 
     const std::vector<LayerProcess*>& constProcs = _processes;
     std::vector<LayerProcess*>::const_reverse_iterator it;
+
+    float minOpacity = 1.0f;
+    for ( it=constProcs.rbegin(); it!=constProcs.rend(); it++ )
+    {
+	if ( (*it)->getOpacity() < minOpacity )
+	    minOpacity = (*it)->getOpacity();
+    }
 
     for ( int s=0; s<width; s++ )
     {
@@ -2049,8 +2113,10 @@ void LayeredTexture::createCompositeTexture()
 			break;
 		}
 
-		if ( fragColor[0]==-1.0f )
-		    fragColor = osg::Vec4f( 1.0f, 1.0f, 1.0f, 1.0f );
+		if ( dummyTexture )
+		    fragColor = osg::Vec4f( 0.0f, 0.0f, 0.0f, 0.0 );
+		else if ( fragColor[0]==-1.0f )
+		    fragColor = osg::Vec4f( 1.0f, 1.0f, 1.0f, minOpacity );
 	    }
 
 	    if ( udf>=1.0f )
@@ -2091,11 +2157,12 @@ void LayeredTexture::createCompositeTexture()
 
     setDataLayerImage( _compositeLayerId, image );
 
-    if ( !_useShaders )
-    {
-	_setupStateSet->clear();
-	setRenderingHint( getDataLayerTransparencyType(_compositeLayerId)==Opaque );
-    }
+    _retileCompositeLayer = _tilingInfo->_needsUpdate ||
+			    getDataLayerTextureUnit(_compositeLayerId)!=0;
+    if ( _useShaders )
+	_retileCompositeLayer = false;
+
+    _tilingInfo->_needsUpdate = false;
 }
 
 
