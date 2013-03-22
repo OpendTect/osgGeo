@@ -102,9 +102,7 @@ public:
     int			getDisperseFactor() const
 			{ return _disperseFactor; }
 
-    bool		_useShaders;
-    void		toggleShaders()
-			{ _useShaders = !_useShaders; _needsUpdate = true; }
+    void		toggleShaders();
 };
 
 

@@ -42,7 +42,6 @@ TexturePlaneNode::TexturePlaneNode()
     , _swapTextureAxes( false )
     , _boundingGeometry( 0 )
     , _disperseFactor( 0 )
-    , _useShaders( true )
 {
     osg::ref_ptr<osg::LightModel> lightModel = new osg::LightModel;
     lightModel->setTwoSided( true );
@@ -62,7 +61,6 @@ TexturePlaneNode::TexturePlaneNode( const TexturePlaneNode& node, const osg::Cop
     , _swapTextureAxes( node._swapTextureAxes )
     , _boundingGeometry( 0 )
     , _disperseFactor( node._disperseFactor )
-    , _useShaders( node._useShaders )
 {
     if ( node._texture )
     {
@@ -166,7 +164,6 @@ bool TexturePlaneNode::updateGeometry()
 
     cleanUp();
 
-    _texture->useShaders( _useShaders );
     _texture->reInitTiling();
 
     std::vector<float> sOrigins, tOrigins;
@@ -376,6 +373,13 @@ void TexturePlaneNode::swapTextureAxes( bool yn )
 
 bool TexturePlaneNode::areTextureAxesSwapped() const
 { return _swapTextureAxes; }
+
+
+void TexturePlaneNode::toggleShaders()
+{
+    if ( _texture )
+	_texture->allowShaders( !_texture->areShadersAllowed() );
+}
 
 
 } //namespace osgGeo
