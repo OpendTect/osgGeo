@@ -65,3 +65,8 @@ add_subdirectory(src)
 if( BUILD_EXAMPLES )
     add_subdirectory(examples)
 endif( BUILD_EXAMPLES )
+
+#To avoid warnings in continious integration.
+set ( DUMMY ${COINDIR} )
+set ( DUMMY ${OSGGEO_DIR} )
+set ( DUMMY ${QTDIR} )
