@@ -279,7 +279,7 @@ void PlaneWellLog::setLogFill( bool isFill )
 }
 
 
-osg::BoundingSphere PlaneWellLog::computeBound() 
+osg::BoundingSphere PlaneWellLog::computeBound() const
 {
     return _boundingSphere;
 }
