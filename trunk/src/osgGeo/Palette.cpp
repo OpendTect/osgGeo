@@ -24,9 +24,9 @@ $Id$
 namespace osgGeo
 {
 
-Palette::Palette(const ColorPointList &colorPoints)
+Palette::Palette(const ColorPointList &cp)
 {
-    _colorPoints = colorPoints;
+    _colorPoints = cp;
 }
 
 osg::Vec3 makeColor(int r, int g, int b)

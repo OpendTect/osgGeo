@@ -93,6 +93,8 @@ public:
 protected:
     bool handle (const osgGA::GUIEventAdapter &ea, osgGA::GUIActionAdapter &aa,
 		 osg::Object*, osg::NodeVisitor*);
+    bool handle (const osgGA::GUIEventAdapter &ea, osgGA::GUIActionAdapter &aa)
+	{ return osgGA::GUIEventHandler::handle( ea, aa ); }
     std::vector<osg::ref_ptr<ThumbWheel> > _thumbwheels;
 };
 
