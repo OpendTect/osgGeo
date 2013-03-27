@@ -44,7 +44,7 @@ AutoTransform::AutoTransform(const AutoTransform& pat,const osg::CopyOp& copyop)
 }
 
 
-bool AutoTransform::computeLocalToWorldMatrix(osg::Matrix& matrix,osg::NodeVisitor* nv) const
+bool AutoTransform::computeLocalToWorldMatrix(osg::Matrix& matrix,osg::NodeVisitor*) const
 {
     if ( _scaledBack && _matrixDirty )
     {

@@ -295,7 +295,7 @@ public:
     virtual void		doProcess(osg::Vec4f& fragColor,float stackUdf,
 					  const osg::Vec2f& globalCoord)= 0;
 
-    virtual bool		isOn(int idx=0) const	      { return true; }
+    virtual bool		isOn(int=0) const	      { return true; }
 
     virtual bool		needsColorSequence() const    { return false; }
 
