@@ -31,12 +31,6 @@ cmake_minimum_required (VERSION 2.6)
 
 
 list( APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMakeModules")
-if ( WIN32 )
-    add_definitions( "/W4" "/EHsc" "-DWIN32" "/wd4127" "/wd4800" )
-else()
-    set ( CMAKE_CXX_FLAGS "-Wextra -Wunused-label -Wunused-value  -Wunused-variable" )
-endif()
-
 enable_testing()
 include( CTest )
 
@@ -51,7 +45,8 @@ if( BUILD_EXAMPLES )
     endif()
 endif( BUILD_EXAMPLES )
 
-
+set ( CMAKE_INCLUDE_SYSTEM_FLAG_CXX "-isystem ")
+set ( CMAKE_INCLUDE_SYSTEM_FLAG_C "-isystem ")
 include_directories( ${osgGeo_SOURCE_DIR}/src )
 include_directories( SYSTEM ${OSG_INCLUDE_DIR} ${QT_HEADERS_DIR} )
 
