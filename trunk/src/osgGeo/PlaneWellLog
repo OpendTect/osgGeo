@@ -75,7 +75,7 @@ public:
 
 
 protected:
-    osg::BoundingSphere		computeBound() ;
+    osg::BoundingSphere		computeBound() const;
     virtual void	    	traverse( osg::NodeVisitor& );
     virtual float		getShapeFactor( float val, float minval, 
 						float maxval ) const;
