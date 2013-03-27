@@ -34,7 +34,7 @@ class Vec2i
         /** Constructor that sets all components of the vector to zero */
         Vec2i() { _v[0]=0; _v[1]=0; }
 
-        Vec2i(value_type x, value_type y) { _v[0] = x; _v[1] = y; }
+        Vec2i(value_type xval, value_type yval) { _v[0] = xval; _v[1] = yval; }
 
         inline bool operator == (const Vec2i& v) const { return _v[0]==v._v[0] && _v[1]==v._v[1]; }
         inline bool operator != (const Vec2i& v) const { return _v[0]!=v._v[0] || _v[1]!=v._v[1]; }
@@ -48,9 +48,9 @@ class Vec2i
         inline value_type* ptr() { return _v; }
         inline const value_type* ptr() const { return _v; }
 
-        inline void set( value_type x, value_type y)
+        inline void set( value_type xval, value_type yval )
         {
-            _v[0]=x; _v[1]=y;
+            _v[0]=xval; _v[1]=yval;
         }
 
         inline void set( const Vec2i& rhs)
