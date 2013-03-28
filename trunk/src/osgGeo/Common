@@ -25,8 +25,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 #endif //M_PI
 
 #if defined(_MSC_VER) 
-# define DISABLE_WARNINGS _Pragma("warning( disable : 4100 )")
-# define ENABLE_WARNINGS _Pragma("warning( enable : 4100 )")
+# define DISABLE_WARNINGS \
+__pragma(warning(push)) \
+__pragma(warning( disable : 4100 ))
+# define ENABLE_WARNINGS __pragma(warning(pop))
 #else
 # define DISABLE_WARNINGS 
 # define ENABLE_WARNINGS 
