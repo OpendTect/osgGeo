@@ -254,9 +254,11 @@ protected:
     void		setRenderingHint(bool stackIsOpaque);
 
     OpenThreads::ReadWriteMutex		_lock;
-    int					_freeId;
     std::vector<LayeredTextureData*>	_dataLayers;
     std::vector<LayerProcess*>		_processes;
+
+    std::vector<int>			_id2idxTable;
+    std::vector<int>			_releasedIds;
 
     bool				_updateSetupStateSet;
     osg::ref_ptr<osg::StateSet>		_setupStateSet;
@@ -328,11 +330,10 @@ protected:
 					      int& nrUdf,int stage) const;
 
     void			processHeader(osg::Vec4f& col,float& udf,
-					      const osg::Vec2f& coord,int id,
-                                              int toIdx=-1,int fromIdx=0) const;
+					float stackUdf,const osg::Vec2f& coord,
+					int id,int toIdx=-1,int fromIdx=0,
+					float* orgCol3=0) const;
     void			processFooter(osg::Vec4f& fragColor,
-					      float stackUdf,
-					      const osg::Vec2f& coord,
 					      osg::Vec4f col,float udf) const;
 
     void			assignOrgCol3IfNeeded(std::string& code,
