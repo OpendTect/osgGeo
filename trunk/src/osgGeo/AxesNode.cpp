@@ -26,7 +26,12 @@ $Id: AxesNode.cpp 169 2013-01-18 11:47:07Z ranojay.sen@dgbes.com $
 #include <osgUtil/CullVisitor>
 #include <osg/Material>
 #include <osg/ShapeDrawable>
+
+DISABLE_WARNINGS;
+
 #include <osgText/Text>
+
+ENABLE_WARNINGS;
 
 namespace osgGeo
 {
