@@ -2067,14 +2067,14 @@ public:
 			CompositeTextureTask(const LayeredTexture& lt,
 				    bool dummyTexture,osg::Image& image,
 				    const std::vector<LayerProcess*>& procs,
-				    float minOpacity,int start,int stop,
+				    float minOpacity,int startpixel,int stop,
 				    OpenThreads::BlockCount& ready)
 			    : _lt( lt )
 			    , _dummyTexture( dummyTexture )
 			    , _image( image )
 			    , _processList( procs )
 			    , _minOpacity( minOpacity )
-			    , _start( start>=0 ? start : 0 )
+			    , _start( startpixel>=0 ? startpixel : 0 )
 			    , _stop( stop<image.s()*image.t() ? stop : image.s()*image.t()-1 )
 			    , _readyCount( ready )
 			{}
