@@ -29,8 +29,6 @@ $Id$
 #include <vector>
 #include <osg/GL>
 
-namespace osg { class Geometry; }
-
 namespace osgGeo
 {
 
@@ -67,6 +65,8 @@ class LayerProcess;
 
 class OSGGEO_EXPORT LayeredTexture : public osg::Object
 {
+friend class CompositeTextureTask;
+
 public:
 			LayeredTexture();
 			LayeredTexture(const LayeredTexture&,
