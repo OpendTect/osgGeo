@@ -75,11 +75,14 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 	void			setHeight(float);
 	float			getHeight() const { return _height; }
 
-	void			setMinScale(double minscale);
-	double			getMinScale() const {return _minScale;}
+	void			setScreenSize(float);
+	float			getScreenSize() { return _screenSize; }
+	
+	void			setMinScale(float minscale);
+	float			getMinScale() const {return _minScale;}
 
-	void			setMaxScale(double maxscale);
-	double			getMaxScale() const {return _maxScale;}
+	void			setMaxScale(float maxscale);
+	float			getMaxScale() const {return _maxScale;}
 
 	void			setRotateMode(osg::AutoTransform::AutoRotateMode);
 	osg::AutoTransform::AutoRotateMode
@@ -101,13 +104,13 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 	osgGeo::AutoTransform::AutoRotateMode	_rotateMode;
 
 	MarkerType				_shapeType;
-	double					_minScale;
-	double					_maxScale;
+	float					_minScale;
+	float					_maxScale;
+	float					_screenSize;
 	float					_radius;
 	float					_height;
 	bool					_needsUpdate;
 	int					_arrayModCount;
-
 };
 
 }
