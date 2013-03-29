@@ -2058,6 +2058,134 @@ void LayeredTexture::setMaxTextureCopySize( unsigned int width_x_height )
 }
 
 
+//============================================================================
+
+
+class CompositeTextureTask : public osg::Referenced, public OpenThreads::Thread
+{
+public:
+			CompositeTextureTask(const LayeredTexture& lt,
+				    bool dummyTexture,osg::Image& image,
+				    const std::vector<LayerProcess*>& procs,
+				    float minOpacity,int start,int stop,
+				    OpenThreads::BlockCount& ready)
+			    : _lt( lt )
+			    , _dummyTexture( dummyTexture )
+			    , _image( image )
+			    , _processList( procs )
+			    , _minOpacity( minOpacity )
+			    , _start( start>=0 ? start : 0 )
+			    , _stop( stop<image.s()*image.t() ? stop : image.s()*image.t()-1 )
+			    , _readyCount( ready )
+			{}
+
+
+			~CompositeTextureTask()
+			{
+			    while( isRunning() )
+				OpenThreads::Thread::YieldCurrentThread();
+			}
+
+    void		run();
+
+protected:
+
+    const LayeredTexture&		_lt;
+    bool				_dummyTexture;
+    osg::Image&				_image;
+    const std::vector<LayerProcess*>&	_processList;
+    float				_minOpacity;
+    int					_start;
+    int					_stop;
+    OpenThreads::BlockCount&		_readyCount;
+};
+
+
+void CompositeTextureTask::run()
+{
+    const int idx = _lt.getDataLayerIndex( _lt._compositeLayerId );
+    const osg::Vec2f& origin = _lt._dataLayers[idx]->_origin;
+    const osg::Vec2f& scale = _lt._dataLayers[idx]->_scale;
+
+    const LayeredTextureData* udfLayer = 0;
+    const int udfIdx = _lt.getDataLayerIndex( _lt._stackUndefLayerId );
+    if ( udfIdx>=0 )
+	udfLayer = _lt._dataLayers[udfIdx];
+
+    const osg::Vec4f& udfColor = _lt._stackUndefColor;
+    const int udfChannel = _lt._stackUndefChannel;
+    float udf = 0.0f;
+
+    std::vector<LayerProcess*>::const_reverse_iterator it;
+    unsigned char* imagePtr = _image.data() + _start*4;
+    const int width = _image.s();
+
+    for ( int pixel=_start; pixel<=_stop; pixel++ ) 
+    {
+	osg::Vec2f globalCoord( origin.x()+scale.x()*(pixel%width+0.5),
+				origin.y()+scale.y()*(pixel/width+0.5) );
+
+	osg::Vec4f fragColor( -1.0f, -1.0f, -1.0f, -1.0f );
+
+	if ( udfLayer )
+	    udf = udfLayer->getTextureVec(globalCoord)[udfChannel];
+
+	if ( udf<1.0 )
+	{
+	    for ( it=_processList.rbegin(); it!=_processList.rend(); it++ )
+	    {
+		(*it)->doProcess( fragColor, udf, globalCoord );
+
+		if ( fragColor[3]>=1.0f )
+		    break;
+	    }
+
+	    if ( _dummyTexture )
+		fragColor = osg::Vec4f( 0.0f, 0.0f, 0.0f, 0.0 );
+	    else if ( fragColor[0]==-1.0f )
+		fragColor = osg::Vec4f( 1.0f, 1.0f, 1.0f, _minOpacity );
+	}
+
+	if ( udf>=1.0f )
+	    fragColor = udfColor;
+	else if ( udf>0.0 )
+	{
+	    if ( udfColor[3]<=0.0f )
+		fragColor[3] *= 1.0f-udf;
+	    else if ( udfColor[3]>=1.0f && fragColor[3]>=1.0f )
+		fragColor = fragColor*(1.0f-udf) + udfColor*udf;
+	    else if ( fragColor[3]>0.0f )
+	    {
+		const float a = fragColor[3]*(1.0f-udf);
+		const float b = udfColor[3]*udf;
+		fragColor = (fragColor*a + udfColor*b) / (a+b);
+		fragColor[3] = a+b;
+	    }
+	    else
+	    {
+		fragColor = udfColor;
+		fragColor[3] *= udf;
+	    }
+	}
+
+	fragColor *= 255.0f;
+	if ( fragColor[3]<0.5f )
+	    fragColor = osg::Vec4f( 0.0f, 0.0f, 0.0f, 0.0f );
+
+	for ( int tc=0; tc<4; tc++ )
+	{
+	    int val = (int) floor( fragColor[tc]+0.5 );
+	    val = val<=0 ? 0 : (val>=255 ? 255 : val);
+
+	    *imagePtr = (unsigned char) val;
+	    imagePtr++;
+	}
+    }
+
+    _readyCount.completed();
+}
+
+
 void LayeredTexture::createCompositeTexture( bool dummyTexture )
 {
     if ( !_compositeLayerUpdate )
@@ -2075,11 +2203,13 @@ void LayeredTexture::createCompositeTexture( bool dummyTexture )
     if ( dummyTexture || height<1 )
 	height = 1;
 
-    const osg::Vec2f scale( ti._envelopeSize.x()/float(width),
-			    ti._envelopeSize.y()/float(height) );
-
     const int idx = getDataLayerIndex( _compositeLayerId );
-    osg::Image* image = const_cast<osg::Image*>( _dataLayers[idx]->_image.get() );
+
+    _dataLayers[idx]->_origin = ti._envelopeOrigin;
+    _dataLayers[idx]->_scale = osg::Vec2f( ti._envelopeSize.x()/float(width),
+					   ti._envelopeSize.y()/float(height) );
+
+    osg::Image* image = const_cast<osg::Image*>(_dataLayers[idx]->_image.get());
 
     if ( !image || width!=image->s() || height!=image->t() )
     {
@@ -2087,16 +2217,11 @@ void LayeredTexture::createCompositeTexture( bool dummyTexture )
 	image->allocateImage( width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE );
     }
 
-    _dataLayers[idx]->_origin = ti._envelopeOrigin;
-    _dataLayers[idx]->_scale = scale;
-
-    const int udfIdx = getDataLayerIndex( _stackUndefLayerId );
-    float udf = 0.0f;
-
     std::vector<LayerProcess*> processList;
     float minOpacity = 1.0f;
 
-    for ( std::vector<LayerProcess*>::const_iterator it=_processes.begin(); it!=_processes.end(); it++ )
+    std::vector<LayerProcess*>::const_iterator it = _processes.begin();
+    for ( ; it!=_processes.end(); it++ )
     {
 	if ( (*it)->getTransparencyType() != FullyTransparent )
 	    processList.push_back( *it );
@@ -2105,73 +2230,38 @@ void LayeredTexture::createCompositeTexture( bool dummyTexture )
 	    minOpacity = (*it)->getOpacity();
     }
 
-    std::vector<LayerProcess*>::const_reverse_iterator it;
-    unsigned char* imagePtr = image->data();
+    const int nrPixels = height*width; 
+    int nrTasks = OpenThreads::GetNumberOfProcessors();
 
-    for ( int t=0; t<height; t++ )
+    if ( nrTasks<1 )
+	 nrTasks=1;
+    if ( nrTasks>nrPixels )
+	nrTasks = nrPixels;
+
+    std::vector<osg::ref_ptr<CompositeTextureTask> > tasks;
+    OpenThreads::BlockCount readyCount( nrTasks );
+    readyCount.reset();
+
+    int remainder = nrPixels%nrTasks;
+    int start = 0;
+
+    while ( start<nrPixels )
     {
-	for ( int s=0; s<width; s++ )
-	{
-	    osg::Vec2f globalCoord( (s+0.5)*scale.x(), (t+0.5)*scale.y() );
-	    globalCoord += ti._envelopeOrigin;
+	int stop = start + nrPixels/nrTasks;
+	if ( remainder )
+	    remainder--;
+	else
+	    stop--;
 
-	    osg::Vec4f fragColor( -1.0f, -1.0f, -1.0f, -1.0f );
+	osg::ref_ptr<CompositeTextureTask> task = new CompositeTextureTask( *this, dummyTexture, *image, processList, minOpacity, start, stop, readyCount );
 
-	    if ( udfIdx>=0 )
-		udf = _dataLayers[udfIdx]->getTextureVec(globalCoord)[_stackUndefChannel];
+	tasks.push_back( task.get() );
+	task->start();
 
-	    if ( udf<1.0 )
-	    {
-		for ( it=processList.rbegin(); it!=processList.rend(); it++ )
-		{
-		    (*it)->doProcess( fragColor, udf, globalCoord );
-
-		    if ( fragColor[3]>=1.0f )
-			break;
-		}
-
-		if ( dummyTexture )
-		    fragColor = osg::Vec4f( 0.0f, 0.0f, 0.0f, 0.0 );
-		else if ( fragColor[0]==-1.0f )
-		    fragColor = osg::Vec4f( 1.0f, 1.0f, 1.0f, minOpacity );
-	    }
-
-	    if ( udf>=1.0f )
-		fragColor = _stackUndefColor;
-	    else if ( udf>0.0 )
-	    {
-		if ( _stackUndefColor[3]<=0.0f )
-		    fragColor[3] *= 1.0f-udf;
-		else if ( _stackUndefColor[3]>=1.0f && fragColor[3]>=1.0f )
-		    fragColor = fragColor*(1.0f-udf) + _stackUndefColor*udf;
-		else if ( fragColor[3]>0.0f )
-		{
-		    const float a = fragColor[3]*(1.0f-udf);
-		    const float b = _stackUndefColor[3]*udf;
-		    fragColor = (fragColor*a + _stackUndefColor*b) / (a+b);
-		    fragColor[3] = a+b;
-		}
-		else
-		{
-		    fragColor = _stackUndefColor;
-		    fragColor[3] *= udf;
-		}
-	    }
-
-	    fragColor *= 255.0f;
-	    if ( fragColor[3]<0.5f )
-		fragColor = osg::Vec4f( 0.0f, 0.0f, 0.0f, 0.0f );
-
-	    for ( int tc=0; tc<4; tc++ )
-	    {
-		int val = (int) floor( fragColor[tc]+0.5 );
-		val = val<=0 ? 0 : (val>=255 ? 255 : val);
-
-		*imagePtr = (unsigned char) val;
-		imagePtr++;
-	    }
-	}
+	start = stop+1;
     }
+
+    readyCount.block();
 
     setDataLayerImage( _compositeLayerId, image );
 
