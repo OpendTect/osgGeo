@@ -32,7 +32,12 @@ static std::string dumpPath;
 
 class TexEventHandler : public osgGA::GUIEventHandler
 {
-    bool handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa)
+    bool handle( const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa, osg::Object*, osg::NodeVisitor* )
+    {
+	return handle( ea, aa );
+    }
+
+    bool handle( const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa )
     {
 	osgViewer::Viewer* viewer = dynamic_cast<osgViewer::Viewer*>(&aa);
 
