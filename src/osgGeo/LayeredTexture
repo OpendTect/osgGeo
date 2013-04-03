@@ -21,46 +21,25 @@ $Id$
 
 */
 
+#include <osgGeo/LayerProcess>
+#include <osgGeo/Common>
 #include <osg/Object>
 #include <osg/Vec2f>
 #include <osg/Vec4f>
-#include <OpenThreads/ReadWriteMutex>
-#include <osgGeo/Common>
-#include <vector>
 #include <osg/GL>
+#include <OpenThreads/ReadWriteMutex>
+#include <vector>
+
 
 namespace osgGeo
 {
 
-enum TransparencyType { TransparencyUnknown, Opaque, HasTransparencies, OnlyFullTransparencies, FullyTransparent };
-
 enum FilterType { Nearest, Linear };
-
-
-class OSGGEO_EXPORT ColorSequence
-{
-public:
-				ColorSequence(unsigned char* array=0);
-    virtual			~ColorSequence();
-
-    void			setRGBAValues(unsigned char* array);
-    unsigned char*		getRGBAValues()		 { return _arr; }
-    const unsigned char*	getRGBAValues() const	 { return _arr; }
-    void			touch();
-    unsigned int		getModifiedCount() const { return _dirtyCount; }
-    TransparencyType		getTransparencyType() const;
-
-protected:
-    unsigned char*		_arr;		//! 256*4 bytes
-    int				_dirtyCount;
-    mutable TransparencyType	_transparencyType;
-};
 
 
 struct LayeredTextureData;
 struct TilingInfo;
 struct TextureInfo;
-class LayerProcess;
 
 
 class OSGGEO_EXPORT LayeredTexture : public osg::Object
@@ -283,144 +262,6 @@ protected:
     bool				_compositeLayerUpdate;
     bool				_retileCompositeLayer;
 };
-
-
-class OSGGEO_EXPORT LayerProcess : public osg::Referenced
-{
-public:
-				LayerProcess(LayeredTexture&);
-    virtual void		getShaderCode(std::string& code,
-					      int stage) const		= 0;
-    virtual int			getDataLayerID(int idx=0) const		= 0;
-    virtual TransparencyType	getTransparencyType(
-					bool imageOnly=false) const	= 0;
-    virtual void		doProcess(osg::Vec4f& fragColor,float stackUdf,
-					  const osg::Vec2f& globalCoord)= 0;
-
-    virtual bool		isOn(int=0) const	      { return true; }
-
-    virtual bool		needsColorSequence() const    { return false; }
-
-    virtual void		checkForModifiedColorSequence()		{};
-    const unsigned char*	getColorSequencePtr() const;
-    void			setColorSequenceTextureCoord(float);
-
-    void			setOpacity(float opacity);
-    float			getOpacity() const;
-
-    void			setNewUndefColor(const osg::Vec4f&);
-				/*! Can only overrule undef color from
-				    source layer(s) if at least one layer 
-				    has a reference to an undef channel. */
-
-    const osg::Vec4f&		getNewUndefColor() const;
-    virtual bool		isUndefPerChannel() const     { return false; }
-
-protected:
-    LayeredTexture&		_layTex;
-    const unsigned char*	_colSeqPtr;
-    float			_colSeqTexCoord;
-    osg::Vec4f			_newUndefColor;
-    float			_opacity;
-
-    void			getHeaderCode(std::string& code,
-					      int& nrUdf,int id,
-					      int toIdx=-1,int fromIdx=0) const;
-    void			getFooterCode(std::string& code,
-					      int& nrUdf,int stage) const;
-
-    void			processHeader(osg::Vec4f& col,float& udf,
-					float stackUdf,const osg::Vec2f& coord,
-					int id,int toIdx=-1,int fromIdx=0,
-					float* orgCol3=0) const;
-    void			processFooter(osg::Vec4f& fragColor,
-					      osg::Vec4f col,float udf) const;
-
-    void			assignOrgCol3IfNeeded(std::string& code,
-						      int toIdx=-1) const;
-};
-
-
-class OSGGEO_EXPORT ColTabLayerProcess : public LayerProcess
-{
-public: 
-				ColTabLayerProcess(LayeredTexture&);
-
-    void			setDataLayerID(int id, int channel=0);
-    int				getDataLayerID(int idx=0) const;
-    int				getDataLayerTextureChannel() const;
-
-    void			checkForModifiedColorSequence();
-    void			setColorSequence(const ColorSequence*);
-    const ColorSequence*	getColorSequence() const;
-
-    bool			needsColorSequence() const    { return true; }
-
-    void			getShaderCode(std::string& code,
-					      int stage) const;
-
-    TransparencyType		getTransparencyType(bool imageOnly=false) const;
-    void			doProcess(osg::Vec4f& fragColor,float stackUdf,
-					  const osg::Vec2f& globalCoord);
-protected:
-    int				_id; 
-    int				_textureChannel;
-    const ColorSequence*	_colorSequence;
-    int				_colSeqModifiedCount;
-};
-
-
-class OSGGEO_EXPORT RGBALayerProcess : public LayerProcess
-{
-public:
-				RGBALayerProcess(LayeredTexture&);
-
-    void			setDataLayerID(int idx, int id, int channel=0);
-				//int idx=0 red
-				//    idx=1 green
-				//    idx=2 blue
-				//    idx=3 alpha
-    int				getDataLayerID(int idx) const;
-    int				getDataLayerTextureChannel(int idx) const;
-
-    void			turnOn(int idx,bool yn=true);
-    bool			isOn(int idx=0) const;
-
-    void			applyUndefPerChannel(bool yn=true);
-    bool			isUndefPerChannel() const;
-
-
-    void			getShaderCode(std::string& code,
-					      int stage) const;
-
-    TransparencyType		getTransparencyType(bool imageOnly=false) const;
-    void			doProcess(osg::Vec4f& fragColor,float stackUdf,
-					  const osg::Vec2f& globalCoord);
-protected:
-    int 			_id[4];
-    int				_textureChannel[4];
-    bool			_isOn[4];
-    bool			_udfPerChannel;
-};
-
-
-class OSGGEO_EXPORT IdentityLayerProcess : public LayerProcess
-{
-public:
-				IdentityLayerProcess(LayeredTexture&,int id);
-
-    int				getDataLayerID(int idx=0) const;
-
-    void			getShaderCode(std::string& code,
-					      int stage) const;
-
-    TransparencyType		getTransparencyType(bool imageOnly=false) const;
-    void			doProcess(osg::Vec4f& fragColor,float stackUdf,
-					  const osg::Vec2f& globalCoord);
-protected:
-    int				_id; 
-};
-
 
 
 } //namespace

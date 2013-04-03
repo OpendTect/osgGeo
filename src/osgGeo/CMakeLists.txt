@@ -26,7 +26,6 @@ configure_file(
 set ( LIB_PUBLIC_HEADERS 
     AutoTransform
     AxesNode
-    Line3
     Export
     Common
     Config
@@ -34,15 +33,17 @@ set ( LIB_PUBLIC_HEADERS
     Horizon3D
     Horizon3D2
     LayeredTexture
+    LayerProcess
+    Line3
     MarkerSet
     PlaneWellLog
     PolyLine
     OneSideRender
     RandomLine
     TexturePlane
+    ThumbWheel
     TrackballManipulator
     Vec2i
-    ThumbWheel
     WellLog )
 
 add_library( ${LIB_NAME} SHARED
@@ -57,10 +58,11 @@ add_library( ${LIB_NAME} SHARED
     Horizon3D.cpp
     Horizon3D2.cpp
     LayeredTexture.cpp
+    LayerProcess.cpp
+    Line3.cpp
     MarkerSet.cpp
     PlaneWellLog.cpp
     OneSideRender.cpp
-    Line3.cpp
     RandomLine.cpp
     TexturePlane.cpp
     ThumbWheel.cpp
