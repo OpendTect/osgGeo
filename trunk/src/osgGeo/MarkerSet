@@ -46,7 +46,7 @@ namespace osgGeo
 class OSGGEO_EXPORT MarkerSet : public osg::Node
 {
     public:
-				MarkerSet();
+			    	MarkerSet();
 				~MarkerSet();
 					 
 	void			setVertexArray(osg::Vec3Array*);
@@ -69,15 +69,14 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 	float			getDetail() const 
 				{ return _hints->getDetailRatio(); }
 
-	void			setRadius(float);
-	float			getRadius() const { return _radius; }
+	void			setMarkerSize(float, bool isScreensize = true);
+	float			getMarkerSize() const;
+	bool			isScreenSize() const { return _isScreenSize; }
 
-	void			setHeight(float);
-	float			getHeight() const { return _height; }
+	void			setMarkerHeightRatio(float);
+	float			getMarkerHeightRatio() const 
+				{ return _markerHeightRatio; }	
 
-	void			setScreenSize(float);
-	float			getScreenSize() { return _screenSize; }
-	
 	void			setMinScale(float minscale);
 	float			getMinScale() const {return _minScale;}
 
@@ -106,11 +105,11 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 	MarkerType				_shapeType;
 	float					_minScale;
 	float					_maxScale;
-	float					_screenSize;
-	float					_radius;
-	float					_height;
+	float					_markerSize;
+	float					_markerHeightRatio;
 	bool					_needsUpdate;
 	int					_arrayModCount;
+	bool					_isScreenSize;
 };
 
 }
