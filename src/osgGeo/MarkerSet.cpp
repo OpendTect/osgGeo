@@ -33,11 +33,9 @@ MarkerSet::MarkerSet()
     , _nonShadingGroup(new osg::Group)
     , _needsUpdate(true)
     , _arrayModCount(-1)
-    , _radius(1.0f)
-    , _height(1.0f)
-    , _screenSize(-1.f)
-    , _minScale(.001f)
-    , _maxScale(1000.0f)
+    , _markerHeightRatio(1.0f)
+    , _minScale(0.0f)
+    , _maxScale(25.5f)
     , _normalArr(new osg::Vec3Array)
 {
     setNumChildrenRequiringUpdateTraversal(1);
@@ -73,25 +71,24 @@ bool MarkerSet::updateShapes()
     for (unsigned int idx=0;idx<_vertexArr->size();idx++)
     {
 	osg::ref_ptr<osg::ShapeDrawable> shapeDrwB;
-	osg::ref_ptr<osgGeo::AutoTransform> autotrans = 
-	    new osgGeo::AutoTransform;
+
 	switch (_shapeType)
 	{
 	case osgGeo::MarkerSet::Box:
 	    shapeDrwB = new osg::ShapeDrawable(new osg::Box(
-			    osg::Vec3f(0,0,0),_radius),_hints);
+		 osg::Vec3f(0,0,0),_markerSize,_markerSize,_markerHeightRatio*_markerSize),_hints);
 	    break;
 	case osgGeo::MarkerSet::Cone:
 	    shapeDrwB = new osg::ShapeDrawable(new osg::Cone(
-			    osg::Vec3f(0,0,0),_radius,_height),_hints);
+		 osg::Vec3f(0,0,0),_markerSize,_markerHeightRatio*_markerSize),_hints);
 	    break;
 	case osgGeo::MarkerSet::Sphere:
 	    shapeDrwB = new osg::ShapeDrawable(new osg::Sphere(
-			    osg::Vec3f(0,0,0),_radius),_hints);
+		 osg::Vec3f(0,0,0),_markerSize),_hints);
 	    break;
 	case osgGeo::MarkerSet::Cylinder:
 	    shapeDrwB = new osg::ShapeDrawable(new osg::Cylinder(
-			    osg::Vec3f(0,0,0),_radius,_height),_hints);
+		osg::Vec3f(0,0,0),_markerSize,_markerHeightRatio*_markerSize),_hints);
 	    break;
 	default:
 	    return false;
@@ -102,17 +99,28 @@ bool MarkerSet::updateShapes()
 	else
 	    shapeDrwB->setColor(*(_colorArr->end()-1));
 
-	autotrans->setPosition(_vertexArr->at(idx));
-	autotrans->setAutoRotateMode(_rotateMode);
-	autotrans->setMinimumScale(_minScale);
-	autotrans->setMaximumScale(_maxScale);
-	autotrans->setAutoScaleToScreen(true);
-	autotrans->setRestoreProportions(true);
-
 	osg::ref_ptr<osg::Geode> geode = new osg::Geode;
 	geode->addDrawable(shapeDrwB);
 	geode->getOrCreateStateSet()->setMode(GL_LIGHTING,
-					      osg::StateAttribute::ON);
+	    osg::StateAttribute::OFF);
+
+	osg::ref_ptr<osg::AutoTransform> autotrans = 
+	    new osg::AutoTransform;
+	autotrans->setPosition(_vertexArr->at(idx));
+	autotrans->setAutoRotateMode(_rotateMode);
+	autotrans->setAutoScaleToScreen(true);
+
+	autotrans->setMinimumScale(0.0f);
+	autotrans->setMaximumScale(DBL_MAX);
+
+	if ( !_isScreenSize )
+	    autotrans->setScale( (double)1.0 );
+	else
+	{
+	    autotrans->setMinimumScale(_minScale);
+	    autotrans->setMaximumScale(_maxScale);
+	}
+
 	autotrans->addChild(geode);
 	_nonShadingGroup->addChild(autotrans);
     }
@@ -124,15 +132,7 @@ bool MarkerSet::updateShapes()
 
 osg::BoundingSphere MarkerSet::computeBound() const
 {
-    osg::BoundingSphere sphere;
-    for (std::vector<osg::Vec3>::const_iterator iter = _vertexArr->begin();
-	iter != _vertexArr->end();
-	iter++)
-    {
-	sphere.expandBy(*iter);
-    }
-
-    return sphere;
+   return _nonShadingGroup->getBound();
 }
 
 
@@ -169,17 +169,15 @@ void MarkerSet::setShape(osgGeo::MarkerSet::MarkerType shape)
 }
 
 
-void MarkerSet::setRadius(float radius)
+float MarkerSet::getMarkerSize() const
 {
-    _radius = radius;
-    _needsUpdate = true;
-
+    return _isScreenSize ? _markerSize : -1;
 }
 
 
-void MarkerSet::setHeight(float height)
+void MarkerSet::setMarkerHeightRatio(float markerHeightRatio)
 {
-    _height = height;
+    _markerHeightRatio = markerHeightRatio;
     _needsUpdate = true;
 }
 
@@ -191,23 +189,16 @@ void MarkerSet::setDetail(float ratio)
 }
 
 
-void MarkerSet::setMinScale(float minscale)
+void MarkerSet::setMinScale(float minScale)
 {
-    _minScale = minscale;
+    _minScale = minScale;
     _needsUpdate = true;
 }
 
 
-void MarkerSet::setMaxScale(float maxscale)
+void MarkerSet::setMaxScale(float maxScale)
 {
-    _maxScale = maxscale;
-    _needsUpdate = true;
-}
-
-
-void MarkerSet::setScreenSize(float screensize)
-{
-    _screenSize = screensize;
+    _maxScale = maxScale;
     _needsUpdate = true;
 }
 
@@ -224,3 +215,14 @@ void MarkerSet::setColorArray(osg::Vec4Array* colorArr)
     _colorArr = colorArr;
     _needsUpdate = true;
 }
+
+
+void MarkerSet::setMarkerSize(float markerSize, bool isScreenSize)
+{
+    _markerSize = markerSize;
+    _isScreenSize = isScreenSize;
+    _needsUpdate = true;
+}
+
+
+
