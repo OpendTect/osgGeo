@@ -69,9 +69,9 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 	float			getDetail() const 
 				{ return _hints->getDetailRatio(); }
 
-	void			setMarkerSize(float, bool isScreensize = true);
+	void			setMarkerSize(float, bool useScreensize = true);
 	float			getMarkerSize() const;
-	bool			isScreenSize() const { return _isScreenSize; }
+	bool			isScreenSize() const { return _useScreenSize; }
 
 	void			setMarkerHeightRatio(float);
 	float			getMarkerHeightRatio() const 
@@ -109,7 +109,7 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 	float					_markerHeightRatio;
 	bool					_needsUpdate;
 	int					_arrayModCount;
-	bool					_isScreenSize;
+	bool					_useScreenSize;
 };
 
 }
