@@ -113,7 +113,7 @@ bool MarkerSet::updateShapes()
 	autotrans->setMinimumScale(0.0f);
 	autotrans->setMaximumScale(DBL_MAX);
 
-	if ( !_isScreenSize )
+	if ( !_useScreenSize )
 	    autotrans->setScale( (double)1.0 );
 	else
 	{
@@ -171,7 +171,7 @@ void MarkerSet::setShape(osgGeo::MarkerSet::MarkerType shape)
 
 float MarkerSet::getMarkerSize() const
 {
-    return _isScreenSize ? _markerSize : -1;
+    return _useScreenSize ? _markerSize : -1;
 }
 
 
@@ -217,10 +217,10 @@ void MarkerSet::setColorArray(osg::Vec4Array* colorArr)
 }
 
 
-void MarkerSet::setMarkerSize(float markerSize, bool isScreenSize)
+void MarkerSet::setMarkerSize(float markerSize, bool useScreenSize)
 {
     _markerSize = markerSize;
-    _isScreenSize = isScreenSize;
+    _useScreenSize = useScreenSize;
     _needsUpdate = true;
 }
 
