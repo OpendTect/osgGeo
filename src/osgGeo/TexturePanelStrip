@@ -1,0 +1,146 @@
+#ifndef OSGGEO_RANDOMLINE_H
+#define OSGGEO_RANDOMLINE_H
+
+/* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
+Copyright 2011 dGB Beheer B.V.
+
+osgGeo is free software; you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>
+
+$Id: RandomLine 150 2012-12-04 22:04:51Z kristofer.tingdahl@dgbes.com $
+
+*/
+
+#include <osg/Node>
+#include <osg/Array>
+#include <osg/NodeVisitor>
+#include <osgGeo/Common>
+
+
+namespace osg { class Geometry; }
+
+
+namespace osgGeo
+{
+class LayeredTexture;
+
+/*!Class to display an arbitrary section through a 3D volume with a layered
+   texture. The section follows a path on the x-y plane, and starts/stops at
+   the z-coordinates given by setZRange().
+*/
+
+class OSGGEO_EXPORT TexturePanelStripNode : public osg::Node
+{
+public:
+				TexturePanelStripNode();
+				TexturePanelStripNode(
+					const TexturePanelStripNode&,
+					const osg::CopyOp& op =
+					osg::CopyOp::DEEP_COPY_ALL);
+				META_Node(osgGeo,TexturePanelStripNode);
+    
+    void			setTexture(osgGeo::LayeredTexture*);
+    osgGeo::LayeredTexture*	getTexture()		{ return _texture; }
+    
+    void			setTextureBrickSize(short sz,bool strict=false);
+				/*!<If not strict, the actual brick size is
+				    allowed to be chosen smaller to optimize
+				    performance. */
+
+    void			setPath(const osg::Vec2Array& coords);
+    const osg::Vec2Array&	getPath() const	{ return *_pathCoords; }
+
+    void			setPath2TextureMapping(
+					    const osg::FloatArray& offsets);
+				/*!<Monotonously non-decreasing list of column
+				    offsets into the texture. There should be
+				    one offset per path coordinate. */
+    const osg::FloatArray&	getPath2TextureMapping() const
+						{ return *_pathTexOffsets; }
+    
+    void			setZRange(float top,float bottom);
+    float			getBottom() const	{ return _bottom; }
+    float			getTop() const		{ return _top; }
+
+    void			setZRange2TextureMapping(bool yn,
+						    float topOffset=0.0f,
+						    float bottomOffset=1.0f);
+				//!<Mapped on full texture row range if not set.
+
+    float			getTopTextureMapping() const;
+    float			getBottomTextureMapping() const;
+    bool			isZRange2TextureMappingSet() const
+						{ return _validZRangeOffsets; }
+
+    void			swapTextureAxes(bool yn=true);
+    bool			areTextureAxesSwapped() const
+						{ return _swapTextureAxes; }
+
+    void			smoothNormals(bool yn=true);
+    bool			areNormalsSmoothed() const
+						{ return _smoothNormals; }
+    
+protected:
+    virtual			~TexturePanelStripNode();
+
+    void			cleanUp();
+    void			traverse(osg::NodeVisitor&);
+    bool			updateGeometry();
+    void			updateBoundingGeometry();
+
+    int				getValidNormalIdx(int panelIdx,
+						  bool forward) const;
+    osg::Vec3			getAverageNormal(int knotIdx) const;
+    void			computeNormals();
+
+    bool			getLocalGeomAtTexOffset(
+				    osg::Vec2& pathCoord,osg::Vec3& normal,
+				    float texOffset,int guessPanelIdx=-1) const;
+
+    void			getZTiling(const std::vector<float>& tOrigins,
+					   std::vector<float>& zCoords,
+					   std::vector<float>& zOffsets);
+    
+    osg::ref_ptr<osgGeo::LayeredTexture>	_texture;
+    short					_textureBrickSize;
+    bool					_isBrickSizeStrict;
+    osg::ref_ptr<osg::Vec2Array>		_pathCoords;
+    osg::ref_ptr<osg::FloatArray>		_pathTexOffsets;
+    float					_top;
+    float					_bottom;
+    bool					_validZRangeOffsets;
+    float					_topTexOffset;
+    float					_bottomTexOffset;
+    bool					_swapTextureAxes;
+    bool					_smoothNormals;
+    std::vector<osg::Geometry*>			_geometries;
+    std::vector<osg::StateSet*>			_statesets;
+    int						_updateCount;
+    int						_lastUpdatedCount;
+    osg::ref_ptr<osg::FloatArray>		_panelWidths;
+    osg::ref_ptr<osg::Vec3Array>		_panelNormals;
+    osg::ref_ptr<osg::Vec3Array>		_knotNormals;
+    osg::ref_ptr<osg::Geometry>			_boundingGeometry;
+
+public:
+			// Testing purposes only
+    int			_altTileMode;
+    void		toggleTilingMode()
+			{ _altTileMode=(_altTileMode+1)%3; _updateCount++; }
+};
+
+
+
+}
+#endif //OSGGEO_RANDOMLINE_H
+
