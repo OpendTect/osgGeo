@@ -1119,7 +1119,7 @@ osg::Vec2f LayeredTexture::textureEnvelopeSize() const
 osg::Vec2f LayeredTexture::envelopeCenter() const
 {
     updateTilingInfoIfNeeded();
-    return _tilingInfo->_envelopeOrigin + _tilingInfo->_envelopeSize*0.5;
+    return _tilingInfo->_envelopeOrigin + textureEnvelopeSize()*0.5;
 }
 
 
