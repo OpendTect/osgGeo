@@ -39,8 +39,8 @@ set ( LIB_PUBLIC_HEADERS
     PlaneWellLog
     PolyLine
     OneSideRender
-    RandomLine
     TexturePlane
+    TexturePanelStrip
     ThumbWheel
     TrackballManipulator
     Vec2i
@@ -63,8 +63,8 @@ add_library( ${LIB_NAME} SHARED
     MarkerSet.cpp
     PlaneWellLog.cpp
     OneSideRender.cpp
-    RandomLine.cpp
     TexturePlane.cpp
+    TexturePanelStrip.cpp
     ThumbWheel.cpp
     TrackballManipulator.cpp 
     WellLog.cpp )
