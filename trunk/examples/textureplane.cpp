@@ -258,8 +258,8 @@ int main( int argc, char** argv )
     osg::ApplicationUsage* usage = args.getApplicationUsage();
     usage->setCommandLineUsage( "textureplane [options]" );
     usage->setDescription( "3D view of tiled plane with layered set of textures or one default texture" );
-    usage->addCommandLineOption( "--bricksize <n>", "Brick size[1,->]" );
-    usage->addCommandLineOption( "--sizepolicy", "Texture size policy [0,4]" );
+    usage->addCommandLineOption( "--bricksize <n>", "Brick size [1,->]" );
+    usage->addCommandLineOption( "--sizepolicy <n>", "Texture size policy [0,2]" );
     usage->addCommandLineOption( "--dim <n>", "Thin dimension [0,2]" );
     usage->addCommandLineOption( "--help | --usage", "Command line info" );
     usage->addCommandLineOption( "--image <path> [origin-opt] [scale-opt] [opacity-opt] [colormap-opt] [rgbamap-opt] [udfimage-opt] [border-opt] [udfcolor-opt] [filter-opt]", "Add texture layer" );
@@ -349,7 +349,6 @@ int main( int argc, char** argv )
 	{
 	    args.reportError( "Composite filter number not in [0,1]" );
 	    compositeFilterNr = -1;
-	    continue;
 	}
 
 	const osgGeo::FilterType filter = (osgGeo::FilterType) compositeFilterNr;
