@@ -44,6 +44,12 @@ protected:
     {
 	return _polysel->handleEvent( ea );
     }
+
+    bool handle ( const osgGA::GUIEventAdapter &ea, osgGA::GUIActionAdapter& aa )
+    {
+	return osgGA::GUIEventHandler::handle( ea, aa );
+    }
+
     osg::ref_ptr<osgGeo::PolygonSelection>	    _polysel;
 };
 
