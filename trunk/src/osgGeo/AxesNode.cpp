@@ -15,7 +15,7 @@ GNU Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-$Id: AxesNode.cpp 169 2013-01-18 11:47:07Z ranojay.sen@dgbes.com $
+$Id$
 
 */
 
