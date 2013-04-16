@@ -38,7 +38,8 @@ macro(add_example NAME)
 endmacro()
 
 add_example(horizons horizons.cpp)
-add_example(thumbwheel thumbwheel.cpp)
+add_example( thumbwheel  thumbwheel.cpp)
 add_example(PolyLines PolyLines.cpp)
 add_example(textureplane textureplane.cpp)
-add_example(texturepanelstrip texturepanelstrip.cpp)
+add_example( PolygonSelection PolygonSel.cpp )
+
