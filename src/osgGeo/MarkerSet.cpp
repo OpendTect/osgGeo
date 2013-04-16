@@ -14,7 +14,7 @@ GNU Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-$Id: MarkerSet.cpp 108 2012-12-08 08:32:40Z kristofer.tingdahl@dgbes.com $
+$Id$
 
 */
 
