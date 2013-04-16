@@ -26,7 +26,7 @@ $Id$
 #include <osgGA/GUIEventHandler>
 
 namespace osg { class Geode; class NodeVisitor; class Geometry; class Material; }
-namespace osgGA{ class GUIEventHandler; osgGA::GUIEventAdapter; }
+namespace osgGA { class GUIEventHandler; class GUIEventAdapter; }
 namespace osgGeo
 {
 

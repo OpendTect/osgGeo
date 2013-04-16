@@ -37,7 +37,7 @@ public:
     { _polysel = ps; }
     
 protected:
-    bool PolygonSelectionEventHandler::handle ( const osgGA::GUIEventAdapter &ea,
+    bool handle ( const osgGA::GUIEventAdapter &ea,
 						osgGA::GUIActionAdapter&,
 						osg::Object*,
 						osg::NodeVisitor * )
