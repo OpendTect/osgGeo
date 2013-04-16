@@ -37,6 +37,7 @@ set ( LIB_PUBLIC_HEADERS
     Line3
     MarkerSet
     PlaneWellLog
+    PolygonSelection
     PolyLine
     OneSideRender
     TexturePlane
@@ -53,6 +54,7 @@ add_library( ${LIB_NAME} SHARED
     Palette.cpp
     PlaneWellLog
     ShaderUtility.cpp
+    PolygonSelection.cpp
     PolyLine.cpp
     Horizon3DBase.cpp
     Horizon3D.cpp
