@@ -21,7 +21,7 @@ $Id: PolygonSel.cpp 169 2013-01-18 11:47:07Z ranojay.sen@dgbes.com $
 #include <osg/Node> 
 #include <osgViewer/Viewer> 
 #include <osgGA/TrackballManipulator>
-#include <osg/shapeDrawable>
+#include <osg/ShapeDrawable>
 #include <osg/MatrixTransform>
 
 #include <osgGeo/PolygonSelection>
