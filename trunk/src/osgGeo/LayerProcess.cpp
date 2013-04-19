@@ -201,8 +201,8 @@ void LayerProcess::getHeaderCode( std::string& code, int& nrUdf, int id, int toI
     char from[5] = ""; 
     if ( toIdx>=0 )
     {
-	sprintf( to, "[%d]", toIdx );
-	sprintf( from, "[%d]", fromIdx );
+	snprintf( to, 5, "[%d]", toIdx );
+	snprintf( from, 5, "[%d]", fromIdx );
     }
 
     code += nrUdf ? "    if ( udf < 1.0 )\n"
@@ -216,10 +216,10 @@ void LayerProcess::getHeaderCode( std::string& code, int& nrUdf, int id, int toI
 	    code += "        oldudf = udf;\n";
 
 	const int udfUnit = _layTex.getDataLayerTextureUnit( udfId );
-	sprintf( line, "        texcrd = gl_TexCoord[%d].st;\n", udfUnit );
+	snprintf( line, 100, "        texcrd = gl_TexCoord[%d].st;\n", udfUnit );
 	code += line;
 	const int udfChannel = _layTex.getDataLayerUndefChannel(id);
-	sprintf( line, "        udf = texture2D( texture%d, texcrd )[%d];\n", udfUnit, udfChannel );
+	snprintf( line, 100, "        udf = texture2D( texture%d, texcrd )[%d];\n", udfUnit, udfChannel );
 	code += line;
 	if ( _layTex.areUndefLayersInverted() )
 	    code += "        udf = 1.0 - udf;\n";
@@ -230,10 +230,10 @@ void LayerProcess::getHeaderCode( std::string& code, int& nrUdf, int id, int toI
 
 	if ( udfId!=id )
 	{
-	    sprintf( line, "            texcrd = gl_TexCoord[%d].st;\n", unit );
+	    snprintf( line, 100, "            texcrd = gl_TexCoord[%d].st;\n", unit );
 	    code += line;
 	}
-	sprintf( line, "            col%s = texture2D( texture%d, texcrd )%s;\n", to, unit, from );
+	snprintf( line, 100, "            col%s = texture2D( texture%d, texcrd )%s;\n", to, unit, from );
 	code += line;
 
 	const osg::Vec4f& udfColor = _layTex.getDataLayerImageUndefColor(id);
@@ -251,17 +251,17 @@ void LayerProcess::getHeaderCode( std::string& code, int& nrUdf, int id, int toI
 		if ( ext.size()>4 )
 		    ext.clear();
 
-		sprintf( line, "            udfcol = vec4(%.6f,%.6f,%.6f,%.6f);\n", udfColor[0], udfColor[1], udfColor[2], udfColor[3] );
+		snprintf( line, 100, "            udfcol = vec4(%.6f,%.6f,%.6f,%.6f);\n", udfColor[0], udfColor[1], udfColor[2], udfColor[3] );
 		code += line;
 		code += "            if ( udf > 0.0 )\n";
-		sprintf( line, "                col%s = (col%s - udf*udfcol%s) / (1.0-udf);\n", ext.data(), ext.data(), ext.data() );
+		snprintf( line, 100, "                col%s = (col%s - udf*udfcol%s) / (1.0-udf);\n", ext.data(), ext.data(), ext.data() );
 		code += line;
 	    }
 	}
 	else if ( udfColor[fromIdx]>=0.0f )
 	{
 	    code += "            if ( udf > 0.0 )\n";
-	    sprintf( line, "                col%s = (col%s - %.6f*udf) / (1.0-udf);\n", to, to, udfColor[fromIdx] );
+	    snprintf( line, 100, "                col%s = (col%s - %.6f*udf) / (1.0-udf);\n", to, to, udfColor[fromIdx] );
 	    code += line;
 	}
 
@@ -289,11 +289,11 @@ void LayerProcess::getHeaderCode( std::string& code, int& nrUdf, int id, int toI
 		const bool resultIsOpaque = _newUndefColor[3]>=1.0f && getTransparencyType(true)==Opaque;
 		if ( toIdx==3 || resultIsOpaque )
 		{
-		    sprintf( line, "            col%s = mix( col%s, %.6f, udf );\n", to, to, _newUndefColor[toIdx] );
+		    snprintf( line, 100, "            col%s = mix( col%s, %.6f, udf );\n", to, to, _newUndefColor[toIdx] );
 		}
 		else
 		{
-		    sprintf( line, "            col%s = mix(orgcol3*col%s, %.6f, udf) / col[3];\n", to, to, _newUndefColor[3]*_newUndefColor[toIdx] );
+		    snprintf( line, 100, "            col%s = mix(orgcol3*col%s, %.6f, udf) / col[3];\n", to, to, _newUndefColor[3]*_newUndefColor[toIdx] );
 		}
 
 		code += line;
@@ -306,9 +306,9 @@ void LayerProcess::getHeaderCode( std::string& code, int& nrUdf, int id, int toI
     }
     else
     {
-	sprintf( line, "        texcrd = gl_TexCoord[%d].st;\n", unit );
+	snprintf( line, 100, "        texcrd = gl_TexCoord[%d].st;\n", unit );
 	code += line;
-	sprintf( line, "        col%s = texture2D( texture%d, texcrd )%s;\n", to, unit, from );
+	snprintf( line, 100, "        col%s = texture2D( texture%d, texcrd )%s;\n", to, unit, from );
 	code += line;
 	assignOrgCol3IfNeeded( code, toIdx );
     }
@@ -323,7 +323,7 @@ void LayerProcess::getFooterCode( std::string& code, int& nrUdf, int stage ) con
 
     if ( nrUdf )
     {
-	sprintf( line, "    udfcol = vec4(%.6f,%.6f,%.6f,%.6f);\n", _newUndefColor[0], _newUndefColor[1], _newUndefColor[2], _newUndefColor[3] );
+	snprintf( line, 100, "    udfcol = vec4(%.6f,%.6f,%.6f,%.6f);\n", _newUndefColor[0], _newUndefColor[1], _newUndefColor[2], _newUndefColor[3] );
 	code += line;
 
 	code += "\n"
@@ -355,7 +355,7 @@ void LayerProcess::getFooterCode( std::string& code, int& nrUdf, int stage ) con
 
     if ( _opacity<1.0 )
     {
-	sprintf( line, "    col.a *= %.6f;\n", _opacity );
+	snprintf( line, 100, "    col.a *= %.6f;\n", _opacity );
 	code += line;
     }
 
@@ -565,7 +565,7 @@ void ColTabLayerProcess::getShaderCode( std::string& code, int stage ) const
     getHeaderCode( code, nrUdf, _id, 0, _textureChannel );
     
     char line[100];
-    sprintf( line, "\n    texcrd = vec2( 0.996093*col[0]+0.001953, %.6f );\n", _colSeqTexCoord );
+    snprintf( line, 100, "\n    texcrd = vec2( 0.996093*col[0]+0.001953, %.6f );\n", _colSeqTexCoord );
     code += line;
     code += "    col = texture2D( texture0, texcrd );\n"
 	    "\n";
