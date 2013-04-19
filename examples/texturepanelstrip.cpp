@@ -45,7 +45,7 @@ void setGeometry( osgGeo::TexturePanelStripNode& node, int incr, int start=-1 )
 
     float s0 = 0.0f;
     float s1 = 1.0f;
-    if ( node.getTexture() )
+    if ( node.getTexture() && node.getTexture()->isEnvelopeDefined() )
     {
 	osg::Vec2f vec = node.getTexture()->envelopeCenter();
 	vec -= node.getTexture()->textureEnvelopeSize() * 0.5f;
