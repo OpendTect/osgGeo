@@ -1102,6 +1102,13 @@ bool LayeredTexture::needsRetiling() const
 }
 
 
+bool LayeredTexture::isEnvelopeDefined() const
+{
+    updateTilingInfoIfNeeded();
+    return _tilingInfo->_envelopeSize[0]>0.0f && _tilingInfo->_envelopeSize[1]>0.0f;
+}
+
+
 osg::Vec2f LayeredTexture::imageEnvelopeSize() const
 {
     updateTilingInfoIfNeeded();

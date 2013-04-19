@@ -67,6 +67,7 @@ public:
     int			getDataLayerIndex(int id) const;
     bool		isDataLayerOK(int id) const;
 
+    bool		isEnvelopeDefined() const;
     osg::Vec2f		envelopeCenter() const;
     osg::Vec2f		textureEnvelopeSize() const;
     osg::Vec2f		imageEnvelopeSize() const;

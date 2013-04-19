@@ -185,7 +185,7 @@ void TexturePanelStripNode::setZRange2TextureMapping( bool yn, float topOffset, 
 
 float TexturePanelStripNode::getTopTextureMapping() const
 {
-    if ( !_texture || _validZRangeOffsets )
+    if ( !_texture || !_texture->isEnvelopeDefined() || _validZRangeOffsets )
 	return _topTexOffset;
 
     osg::Vec2f start = _texture->envelopeCenter();
@@ -196,7 +196,7 @@ float TexturePanelStripNode::getTopTextureMapping() const
 
 float TexturePanelStripNode::getBottomTextureMapping() const
 {
-    if ( !_texture || _validZRangeOffsets )
+    if ( !_texture || !_texture->isEnvelopeDefined() || _validZRangeOffsets )
 	return _bottomTexOffset;
 
     osg::Vec2f stop = _texture->envelopeCenter();
@@ -505,6 +505,24 @@ bool TexturePanelStripNode::updateGeometry()
 
 	for ( int zIdx=1; zIdx<zCoords.size(); zIdx++ )
 	{
+	    osg::ref_ptr<osg::Vec3Array> coords = new osg::Vec3Array;
+	    osg::ref_ptr<osg::Vec3Array> normals = new osg::Vec3Array;
+	    osg::ref_ptr<osg::Geometry> geometry = new osg::Geometry;
+
+	    for ( int idx=0; idx<=last; idx++ )
+	    {
+		for ( int cnt = (_smoothNormals || idx ? 0 : 2);
+		      cnt < (_smoothNormals || idx==last ? 2 : 4);
+		      cnt++ )
+		{
+		    const float z = zCoords[cnt==1 || cnt==2 ? zIdx : zIdx-1];
+		    coords->push_back( osg::Vec3((*tilePath)[idx], z) );
+
+		    const osg::Vec3 normal = (*tileNormals)[_smoothNormals || cnt>1 ? idx : idx-1];
+		    normals->push_back( normal*sense );
+		}
+	    }
+
 	    std::vector<LayeredTexture::TextureCoordData> tcData;
 	    osg::Vec2f origin, opposite;
 	    if ( _swapTextureAxes )
@@ -519,10 +537,6 @@ bool TexturePanelStripNode::updateGeometry()
 	    }
 
 	    osg::ref_ptr<osg::StateSet> stateset = _texture->createCutoutStateSet( origin, opposite, tcData );
-
-	    osg::ref_ptr<osg::Vec3Array> coords = new osg::Vec3Array;
-	    osg::ref_ptr<osg::Vec3Array> normals = new osg::Vec3Array;
-	    osg::ref_ptr<osg::Geometry> geometry = new osg::Geometry;
 
 	    std::vector<LayeredTexture::TextureCoordData>::const_iterator it = tcData.begin();
 	    for ( ; it!=tcData.end(); it++ )
@@ -539,29 +553,12 @@ bool TexturePanelStripNode::updateGeometry()
 		    tc0 += (_swapTextureAxes ? it->_tc10 : it->_tc01) * frac;
 		    osg::Vec2 tc1 = it->_tc11 * frac;
 		    tc1 += (_swapTextureAxes ? it->_tc01 : it->_tc10) * (1.0f-frac);
-		    for ( int cnt=0; cnt<4; cnt++ )
+
+		    for ( int cnt = (_smoothNormals || idx ? 0 : 2);
+			  cnt < (_smoothNormals || idx==last ? 2 : 4);
+			  cnt++ )
 		    {
-			if ( cnt<2 && !_smoothNormals && idx==0 )
-			    continue;
-			if ( cnt>1 && (_smoothNormals || idx==last) )
-			    break;
-
 			texCoords->push_back( cnt==0 || cnt==3 ? tc0 : tc1 );
-
-			if ( it!=tcData.begin() )
-			    continue;
-
-			float z = zCoords[zIdx]; 
-			if ( cnt==0 || cnt==3 )
-			    z = zCoords[zIdx-1];
-
-			coords->push_back( osg::Vec3((*tilePath)[idx], z) );
-
-			osg::Vec3 normal = (*tileNormals)[idx];
-			if ( !_smoothNormals && cnt<2 )
-			    normal = (*tileNormals)[idx-1];
-
-			normals->push_back( normal*sense );
 		    }
 		}
 		geometry->setTexCoordArray( it->_textureUnit, texCoords.get() );
