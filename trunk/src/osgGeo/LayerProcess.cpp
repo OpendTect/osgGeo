@@ -23,6 +23,9 @@ $Id$
 #include <osg/Vec2f>
 #include <cstdio>
 
+#if defined _MSC_VER && __cplusplus < 201103L
+# define snprintf _snprintf
+#endif
 
 namespace osgGeo
 {
