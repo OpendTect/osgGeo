@@ -58,6 +58,10 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 	void			setColorArray(osg::Vec4Array*);
 	osg::Vec4Array*		getColorArray() const { return _colorArr; }
 
+	void			setSingleColor(osg::Vec4&);
+	osg::Vec4		getSingleColor() const { return _singleColor; }
+
+	void			useSingleColor(bool);
 	enum			MarkerType { None=-1,Box=0, Cone, Cylinder, 
 					     Sphere };
 
@@ -101,6 +105,7 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 	osg::ref_ptr<osg::Vec3Array>		_normalArr;
 	osg::ref_ptr<osg::Group>		_nonShadingGroup;
 	osgGeo::AutoTransform::AutoRotateMode	_rotateMode;
+	osg::Vec4f				_singleColor;
 
 	MarkerType				_shapeType;
 	float					_minScale;
@@ -110,6 +115,8 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 	bool					_needsUpdate;
 	int					_arrayModCount;
 	bool					_useScreenSize;
+	bool					_applySingleColor;
+
 };
 
 }

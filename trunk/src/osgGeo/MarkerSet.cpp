@@ -37,9 +37,11 @@ MarkerSet::MarkerSet()
     , _minScale(0.0f)
     , _maxScale(25.5f)
     , _normalArr(new osg::Vec3Array)
+    , _applySingleColor( false )
 {
     setNumChildrenRequiringUpdateTraversal(1);
     _hints->setDetailRatio(0.5f);
+    _singleColor = osg::Vec4(0.1f, 0.1f, 0.1f, 1.0f);
 }
 
 
@@ -75,12 +77,12 @@ bool MarkerSet::updateShapes()
 	switch (_shapeType)
 	{
 	case osgGeo::MarkerSet::Box:
-	    shapeDrwB = new osg::ShapeDrawable(new osg::Box(
-		 osg::Vec3f(0,0,0),_markerSize,_markerSize,_markerHeightRatio*_markerSize),_hints);
+	    shapeDrwB = new osg::ShapeDrawable(new osg::Box(osg::Vec3f(0,0,0),
+		_markerSize,_markerSize,_markerHeightRatio*_markerSize),_hints);
 	    break;
 	case osgGeo::MarkerSet::Cone:
-	    shapeDrwB = new osg::ShapeDrawable(new osg::Cone(
-		 osg::Vec3f(0,0,0),_markerSize,_markerHeightRatio*_markerSize),_hints);
+	    shapeDrwB = new osg::ShapeDrawable(new osg::Cone(osg::Vec3f(0,0,0),
+		_markerSize,_markerHeightRatio*_markerSize),_hints);
 	    break;
 	case osgGeo::MarkerSet::Sphere:
 	    shapeDrwB = new osg::ShapeDrawable(new osg::Sphere(
@@ -88,16 +90,22 @@ bool MarkerSet::updateShapes()
 	    break;
 	case osgGeo::MarkerSet::Cylinder:
 	    shapeDrwB = new osg::ShapeDrawable(new osg::Cylinder(
-		osg::Vec3f(0,0,0),_markerSize,_markerHeightRatio*_markerSize),_hints);
+		 osg::Vec3f(0,0,0),_markerSize,_markerHeightRatio*_markerSize),
+		_hints);
 	    break;
 	default:
 	    return false;
 	}
 
-	if (idx<_colorArr->size())
-	    shapeDrwB->setColor(_colorArr->at( idx ));
-	else
-	    shapeDrwB->setColor(*(_colorArr->end()-1));
+	if( !_applySingleColor && _colorArr )
+	{
+	    if (idx<_colorArr->size())
+		shapeDrwB->setColor(_colorArr->at( idx ));
+	    else if ( _colorArr->size() >0 )
+		shapeDrwB->setColor(*(_colorArr->end()-1));
+	}
+	else if ( _applySingleColor )
+	    shapeDrwB->setColor( _singleColor );
 
 	osg::ref_ptr<osg::Geode> geode = new osg::Geode;
 	geode->addDrawable(shapeDrwB);
@@ -225,4 +233,12 @@ void MarkerSet::setMarkerSize(float markerSize, bool useScreenSize)
 }
 
 
+void MarkerSet::setSingleColor(osg::Vec4& singleColor)
+{
+    _singleColor = singleColor;
+}
 
+void MarkerSet::useSingleColor(bool applySingleColor)
+{
+    _applySingleColor = applySingleColor;
+}
