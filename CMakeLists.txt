@@ -62,4 +62,4 @@ if( BUILD_EXAMPLES )
 endif( BUILD_EXAMPLES )
 
 #To avoid warnings in continious integration.
-set ( DUMMY ${COINDIR} ${CTEST_MODEL} ${OSGGEO_DIR} ${QTDIR} )
+set ( DUMMY ${COINDIR} ${CTEST_MODEL} ${OSGGEO_DIR} ${QTDIR} ${CMAKE_BUILD_TYPE} )
