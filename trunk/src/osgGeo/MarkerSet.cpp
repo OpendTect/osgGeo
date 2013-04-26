@@ -20,6 +20,7 @@ $Id$
 
 #include "osgGeo/MarkerSet"
 #include <osgGeo/AutoTransform>
+#include <osg/Switch>
 
 using namespace osgGeo;
 
@@ -30,7 +31,7 @@ MarkerSet::MarkerSet()
     , _shapeType(osgGeo::MarkerSet::Box)
     , _colorArr(new osg::Vec4Array)
     , _vertexArr(new osg::Vec3Array)
-    , _nonShadingGroup(new osg::Group)
+    , _nonShadingSwitch(new osg::Switch)
     , _needsUpdate(true)
     , _arrayModCount(-1)
     , _markerHeightRatio(1.0f)
@@ -58,8 +59,8 @@ void MarkerSet::traverse( osg::NodeVisitor& nv )
 	    updateShapes();
     }
     
-    if ( _nonShadingGroup ) 
-	_nonShadingGroup->accept( nv );
+    if ( _nonShadingSwitch ) 
+	_nonShadingSwitch->accept( nv );
 }
 
 
@@ -68,7 +69,8 @@ bool MarkerSet::updateShapes()
     if (!_vertexArr || !_needsUpdate)
 	return false;
 
-    _nonShadingGroup->removeChildren(0, _nonShadingGroup->getNumChildren());
+    osg::Switch::ValueList valuelist = _nonShadingSwitch->getValueList();
+    _nonShadingSwitch->removeChildren(0, _nonShadingSwitch->getNumChildren());
 
     for (unsigned int idx=0;idx<_vertexArr->size();idx++)
     {
@@ -130,17 +132,47 @@ bool MarkerSet::updateShapes()
 	}
 
 	autotrans->addChild(geode);
-	_nonShadingGroup->addChild(autotrans);
+	_nonShadingSwitch->addChild(autotrans);
+
+	if ( idx >= valuelist.size() )
+	    valuelist.push_back(true);
     }
+
+    if ( _vertexArr->size() < valuelist.size() )
+    {
+	int diff = valuelist.size() - _vertexArr->size();
+	for ( int i = 0; i < diff; i++ )
+	    valuelist.pop_back();
+    }
+    
+    _nonShadingSwitch->setValueList(valuelist);
     _needsUpdate = false;
     _arrayModCount = _vertexArr->getModifiedCount();
     return true;
 }
 
 
+void MarkerSet::turnMarkerOn(unsigned int idx,bool yn)
+{
+    if ( idx >= _nonShadingSwitch->getNumChildren() )
+	return;
+
+    _nonShadingSwitch->setChildValue(_nonShadingSwitch->getChild(idx), yn);
+    _needsUpdate = true;
+}
+
+
+void MarkerSet::turnAllMarkersOn(bool yn)
+{
+    yn = true ? _nonShadingSwitch->setAllChildrenOn() : 
+	       _nonShadingSwitch->setAllChildrenOff() ;
+    _needsUpdate = true;
+}
+
+
 osg::BoundingSphere MarkerSet::computeBound() const
 {
-   return _nonShadingGroup->getBound();
+   return _nonShadingSwitch->getBound();
 }
 
 

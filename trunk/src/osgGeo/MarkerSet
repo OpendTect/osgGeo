@@ -91,6 +91,9 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 	osg::AutoTransform::AutoRotateMode
 				getRotateMode() const { return _rotateMode; }
 
+	void			turnMarkerOn(unsigned int idx,bool);
+	void			turnAllMarkersOn(bool);
+
     protected:
 	osg::BoundingSphere			computeBound() const;
 	void					traverse(osg::NodeVisitor&);
@@ -103,7 +106,7 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 	osg::ref_ptr<osg::Vec3Array>		_vertexArr;
 	osg::ref_ptr<osg::Vec4Array>		_colorArr;
 	osg::ref_ptr<osg::Vec3Array>		_normalArr;
-	osg::ref_ptr<osg::Group>		_nonShadingGroup;
+	osg::ref_ptr<osg::Switch>		_nonShadingSwitch;
 	osgGeo::AutoTransform::AutoRotateMode	_rotateMode;
 	osg::Vec4f				_singleColor;
 
