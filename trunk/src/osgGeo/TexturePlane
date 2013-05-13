@@ -24,6 +24,7 @@ $Id$
 #include <osg/Node>
 #include <osg/Vec3>
 #include <osg/NodeVisitor>
+#include <osg/BoundingBox>
 #include <osgGeo/Common>
 
 
@@ -69,6 +70,8 @@ public:
 
     char			getThinDim() const;
 
+    osg::BoundingSphere		computeBound() const;
+
 protected:
     TexturePlaneNode&			operator=(const TexturePlaneNode&);
     virtual				~TexturePlaneNode();
@@ -92,6 +95,7 @@ protected:
 
     void				updateBoundingGeometry();
     osg::Geometry*			_boundingGeometry;
+    osg::BoundingBox			_boundingBox;
 
 public:
 			// Testing purposes only

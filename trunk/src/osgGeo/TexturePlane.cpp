@@ -132,9 +132,7 @@ void TexturePlaneNode::traverse( osg::NodeVisitor& nv )
 	if ( getStateSet() )
 	    cv->popStateSet();
 
-	const osg::Vec3f width( fabs(_width.x()), fabs(_width.y()), fabs(_width.z()) );
-	osg::BoundingBox bb( _center-width*0.5f, _center+width*0.5f );
-	cv->updateCalculatedNearFar(*cv->getModelViewMatrix(), bb );
+	cv->updateCalculatedNearFar(*cv->getModelViewMatrix(), _boundingBox );
     }
     else
     {
@@ -265,6 +263,9 @@ bool TexturePlaneNode::updateGeometry()
 
 void TexturePlaneNode::updateBoundingGeometry()
 {
+    _boundingBox.init();
+    dirtyBound();
+
     if ( !_boundingGeometry )
     {
 	_boundingGeometry = new osg::Geometry;
@@ -285,7 +286,14 @@ void TexturePlaneNode::updateBoundingGeometry()
     (*corners)[3] += (*corners)[0] - (*corners)[1];
 
     _boundingGeometry->setVertexArray( corners.get() );
+
+    for ( int idx=0; idx<4 ; idx++ )
+	_boundingBox.expandBy( (*corners)[idx] );
 }
+
+
+osg::BoundingSphere TexturePlaneNode::computeBound() const
+{ return _boundingBox; }
 
 
 void TexturePlaneNode::setCenter( const osg::Vec3& center )
