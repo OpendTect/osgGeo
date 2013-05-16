@@ -72,6 +72,8 @@ void TexturePlaneNode::BoundingGeometry::update()
     else
 	(*corners)[1].y() = (*corners)[2].y();
 
+    (*corners)[3] += (*corners)[0] - (*corners)[1];
+
     setVertexArray( corners.get() );
 
     const float eps = 1e-4 * _tpn.getWidth().length();
