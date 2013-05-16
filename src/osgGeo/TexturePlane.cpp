@@ -97,13 +97,13 @@ TexturePlaneNode::TexturePlaneNode()
     , _isBrickSizeStrict( false )
     , _needsUpdate( true )
     , _swapTextureAxes( false )
-    , _boundingGeometry( new BoundingGeometry(*this) )
     , _disperseFactor( 0 )
 {
     osg::ref_ptr<osg::LightModel> lightModel = new osg::LightModel;
     lightModel->setTwoSided( true );
     getOrCreateStateSet()->setAttributeAndModes( lightModel.get() );
 
+    _boundingGeometry = new BoundingGeometry( *this );
     _boundingGeometry->update();
 
     setNumChildrenRequiringUpdateTraversal( 1 );
@@ -118,7 +118,6 @@ TexturePlaneNode::TexturePlaneNode( const TexturePlaneNode& node, const osg::Cop
     , _isBrickSizeStrict( node._isBrickSizeStrict )
     , _needsUpdate( true )
     , _swapTextureAxes( node._swapTextureAxes )
-    , _boundingGeometry( new BoundingGeometry(*this) )
     , _disperseFactor( node._disperseFactor )
 {
     if ( node._texture )
@@ -129,6 +128,7 @@ TexturePlaneNode::TexturePlaneNode( const TexturePlaneNode& node, const osg::Cop
 	    _texture = node._texture;
     }
 
+    _boundingGeometry = new BoundingGeometry( *this );
     _boundingGeometry->update();
 
     setNumChildrenRequiringUpdateTraversal(getNumChildrenRequiringUpdateTraversal()+1);
