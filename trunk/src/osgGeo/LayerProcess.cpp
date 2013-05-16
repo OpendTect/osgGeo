@@ -24,8 +24,9 @@ $Id$
 #include <cstdio>
 
 #if defined _MSC_VER && __cplusplus < 201103L
-# define snprintf _snprintf
+# define snprintf( a, n, ... ) _snprintf_s( a, n, _TRUNCATE, __VA_ARGS__ )
 #endif
+
 
 namespace osgGeo
 {
