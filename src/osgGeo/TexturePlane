@@ -37,6 +37,8 @@ class LayeredTexture;
 
 class OSGGEO_EXPORT TexturePlaneNode : public osg::Node
 {
+    class BoundingGeometry;
+
 public:
 
 				TexturePlaneNode();
@@ -93,9 +95,7 @@ protected:
     std::vector<osg::Geometry*>		_geometries;
     std::vector<osg::StateSet*>		_statesets;
 
-    void				updateBoundingGeometry();
-    osg::Geometry*			_boundingGeometry;
-    osg::BoundingBox			_boundingBox;
+    osg::ref_ptr<BoundingGeometry>	_boundingGeometry;
 
 public:
 			// Testing purposes only

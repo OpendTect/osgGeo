@@ -33,6 +33,63 @@ $Id$
 namespace osgGeo
 {
 
+class TexturePlaneNode::BoundingGeometry : public osg::Geometry
+{
+/* BoundingGeometry is an auxiliary class tuning the intersection visitor
+   process in two ways: it saves the IntersectionVisitor from going along
+   all tiles, and it provides a slightly bigger bounding box to circumvent
+   unjustified clipping by osgUtil::LineSegmentIntersector which is caused
+   by numerical instability. See osg-forum branch: "LineSegmentIntersector
+   gives incorrect results (intersections missing)". */
+
+public:
+			BoundingGeometry(TexturePlaneNode& tpn)
+			    : _tpn( tpn )
+			{
+			    addPrimitiveSet(new osg::DrawArrays(GL_QUADS,0,4));
+			}
+
+    osg::BoundingBox	computeBound() const	{ return _boundingBox; }
+    void		update();
+
+protected:
+    TexturePlaneNode&	_tpn;
+    osg::BoundingBox	_boundingBox;
+};
+
+
+void TexturePlaneNode::BoundingGeometry::update()
+{
+    _boundingBox.init();
+
+    osg::ref_ptr<osg::Vec3Array> corners = new osg::Vec3Array( 4 );
+
+    (*corners)[0] = (*corners)[1] = _tpn.getCenter() - _tpn.getWidth()*0.5;
+    (*corners)[2] = (*corners)[3] = _tpn.getCenter() + _tpn.getWidth()*0.5;
+
+    if ( _tpn.getThinDim() )
+	(*corners)[1].x() = (*corners)[2].x();
+    else
+	(*corners)[1].y() = (*corners)[2].y();
+
+    setVertexArray( corners.get() );
+
+    const float eps = 1e-4 * _tpn.getWidth().length();
+    const osg::Vec3 margin( eps, eps, eps );
+
+    _boundingBox.expandBy( (*corners)[0] - margin );
+    _boundingBox.expandBy( (*corners)[0] + margin );
+    _boundingBox.expandBy( (*corners)[2] - margin );
+    _boundingBox.expandBy( (*corners)[2] + margin );
+
+    dirtyBound();
+    _tpn.dirtyBound();
+}
+
+
+//============================================================================
+
+
 TexturePlaneNode::TexturePlaneNode()
     : _center( 0, 0, 0 )
     , _width( 1, 1, 0 )
@@ -40,12 +97,14 @@ TexturePlaneNode::TexturePlaneNode()
     , _isBrickSizeStrict( false )
     , _needsUpdate( true )
     , _swapTextureAxes( false )
-    , _boundingGeometry( 0 )
+    , _boundingGeometry( new BoundingGeometry(*this) )
     , _disperseFactor( 0 )
 {
     osg::ref_ptr<osg::LightModel> lightModel = new osg::LightModel;
     lightModel->setTwoSided( true );
     getOrCreateStateSet()->setAttributeAndModes( lightModel.get() );
+
+    _boundingGeometry->update();
 
     setNumChildrenRequiringUpdateTraversal( 1 );
 }
@@ -59,7 +118,7 @@ TexturePlaneNode::TexturePlaneNode( const TexturePlaneNode& node, const osg::Cop
     , _isBrickSizeStrict( node._isBrickSizeStrict )
     , _needsUpdate( true )
     , _swapTextureAxes( node._swapTextureAxes )
-    , _boundingGeometry( 0 )
+    , _boundingGeometry( new BoundingGeometry(*this) )
     , _disperseFactor( node._disperseFactor )
 {
     if ( node._texture )
@@ -70,7 +129,7 @@ TexturePlaneNode::TexturePlaneNode( const TexturePlaneNode& node, const osg::Cop
 	    _texture = node._texture;
     }
 
-    updateBoundingGeometry();
+    _boundingGeometry->update();
 
     setNumChildrenRequiringUpdateTraversal(getNumChildrenRequiringUpdateTraversal()+1);
 }
@@ -79,9 +138,6 @@ TexturePlaneNode::TexturePlaneNode( const TexturePlaneNode& node, const osg::Cop
 TexturePlaneNode::~TexturePlaneNode()
 {
     cleanUp();
-
-    if ( _boundingGeometry )
-	_boundingGeometry->unref();
 }
 
 
@@ -132,7 +188,7 @@ void TexturePlaneNode::traverse( osg::NodeVisitor& nv )
 	if ( getStateSet() )
 	    cv->popStateSet();
 
-	cv->updateCalculatedNearFar(*cv->getModelViewMatrix(), _boundingBox );
+	cv->updateCalculatedNearFar( *cv->getModelViewMatrix(), _boundingGeometry->computeBound() );
     }
     else
     {
@@ -261,45 +317,14 @@ bool TexturePlaneNode::updateGeometry()
 }
 
 
-void TexturePlaneNode::updateBoundingGeometry()
-{
-    _boundingBox.init();
-    dirtyBound();
-
-    if ( !_boundingGeometry )
-    {
-	_boundingGeometry = new osg::Geometry;
-	_boundingGeometry->ref();
-	_boundingGeometry->addPrimitiveSet( new osg::DrawArrays(GL_QUADS,0,4) );
-    }
-
-    osg::ref_ptr<osg::Vec3Array> corners = new osg::Vec3Array( 4 );
-
-    (*corners)[0] = (*corners)[1] = _center - _width*0.5;
-    (*corners)[2] = (*corners)[3] = _center + _width*0.5;
-
-    if ( getThinDim() )
-	(*corners)[1].x() = (*corners)[2].x();
-    else
-	(*corners)[1].y() = (*corners)[2].y();
-
-    (*corners)[3] += (*corners)[0] - (*corners)[1];
-
-    _boundingGeometry->setVertexArray( corners.get() );
-
-    for ( int idx=0; idx<4 ; idx++ )
-	_boundingBox.expandBy( (*corners)[idx] );
-}
-
-
 osg::BoundingSphere TexturePlaneNode::computeBound() const
-{ return _boundingBox; }
+{ return _boundingGeometry->computeBound(); }
 
 
 void TexturePlaneNode::setCenter( const osg::Vec3& center )
 {
     _center = center;
-    updateBoundingGeometry();
+    _boundingGeometry->update();
     _needsUpdate = true;
 }
 
@@ -322,7 +347,7 @@ short TexturePlaneNode::getTextureBrickSize() const
 void TexturePlaneNode::setWidth( const osg::Vec3& width )
 {
     _width = width;
-    updateBoundingGeometry();
+    _boundingGeometry->update();
     _needsUpdate = true;
 }
 
