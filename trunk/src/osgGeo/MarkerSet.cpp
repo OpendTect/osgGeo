@@ -19,29 +19,24 @@ $Id$
 */
 
 #include "osgGeo/MarkerSet"
-#include <osgGeo/AutoTransform>
 #include <osg/Switch>
 
 using namespace osgGeo;
 
 
 MarkerSet::MarkerSet()
-    : _rotateMode(osgGeo::AutoTransform::ROTATE_TO_SCREEN)
-    , _hints(new osg::TessellationHints)
-    , _shapeType(osgGeo::MarkerSet::Box)
+    : _rotateMode(osg::AutoTransform::ROTATE_TO_SCREEN)
     , _colorArr(new osg::Vec4Array)
     , _vertexArr(new osg::Vec3Array)
     , _nonShadingSwitch(new osg::Switch)
     , _needsUpdate(true)
     , _arrayModCount(-1)
-    , _markerHeightRatio(1.0f)
     , _minScale(0.0f)
     , _maxScale(25.5f)
     , _normalArr(new osg::Vec3Array)
     , _applySingleColor( false )
 {
     setNumChildrenRequiringUpdateTraversal(1);
-    _hints->setDetailRatio(0.5f);
     _singleColor = osg::Vec4(0.1f, 0.1f, 0.1f, 1.0f);
 }
 
@@ -74,43 +69,20 @@ bool MarkerSet::updateShapes()
 
     for (unsigned int idx=0;idx<_vertexArr->size();idx++)
     {
-	osg::ref_ptr<osg::ShapeDrawable> shapeDrwB;
-
-	switch (_shapeType)
-	{
-	case osgGeo::MarkerSet::Box:
-	    shapeDrwB = new osg::ShapeDrawable(new osg::Box(osg::Vec3f(0,0,0),
-		_markerSize,_markerSize,_markerHeightRatio*_markerSize),_hints);
-	    break;
-	case osgGeo::MarkerSet::Cone:
-	    shapeDrwB = new osg::ShapeDrawable(new osg::Cone(osg::Vec3f(0,0,0),
-		_markerSize,_markerHeightRatio*_markerSize),_hints);
-	    break;
-	case osgGeo::MarkerSet::Sphere:
-	    shapeDrwB = new osg::ShapeDrawable(new osg::Sphere(
-		 osg::Vec3f(0,0,0),_markerSize),_hints);
-	    break;
-	case osgGeo::MarkerSet::Cylinder:
-	    shapeDrwB = new osg::ShapeDrawable(new osg::Cylinder(
-		 osg::Vec3f(0,0,0),_markerSize,_markerHeightRatio*_markerSize),
-		_hints);
-	    break;
-	default:
-	    return false;
-	}
-
 	if( !_applySingleColor && _colorArr )
 	{
 	    if (idx<_colorArr->size())
-		shapeDrwB->setColor(_colorArr->at( idx ));
+		_markerShape.setColor(_colorArr->at( idx ));
 	    else if ( _colorArr->size() >0 )
-		shapeDrwB->setColor(*(_colorArr->end()-1));
+		_markerShape.setColor(*(_colorArr->end()-1));
 	}
 	else if ( _applySingleColor )
-	    shapeDrwB->setColor( _singleColor );
+	    _markerShape.setColor( _singleColor );
+
+	osg::ref_ptr<osg::Drawable> drwB = _markerShape.createShape();
 
 	osg::ref_ptr<osg::Geode> geode = new osg::Geode;
-	geode->addDrawable(shapeDrwB);
+	geode->addDrawable(drwB);
 	geode->getOrCreateStateSet()->setMode(GL_LIGHTING,
 	    osg::StateAttribute::OFF);
 
@@ -119,7 +91,6 @@ bool MarkerSet::updateShapes()
 	autotrans->setPosition(_vertexArr->at(idx));
 	autotrans->setAutoRotateMode(_rotateMode);
 	autotrans->setAutoScaleToScreen(true);
-
 	autotrans->setMinimumScale(0.0f);
 	autotrans->setMaximumScale(DBL_MAX);
 
@@ -202,31 +173,49 @@ void MarkerSet::setNormalArray(osg::Vec3Array* arr)
 }
 
 
-void MarkerSet::setShape(osgGeo::MarkerSet::MarkerType shape)
+void MarkerSet::setShape(osgGeo::MarkerShape::ShapeType shape)
 {
-    _shapeType = shape;
+    _markerShape.setType(shape);
     _needsUpdate = true;
 }
 
 
-float MarkerSet::getMarkerSize() const
+osgGeo::MarkerShape::ShapeType MarkerSet::getShape()
 {
-    return _useScreenSize ? _markerSize : -1;
+    return _markerShape.getType();
+}
+
+
+const float MarkerSet::getMarkerSize()
+{
+    return _useScreenSize ? _markerShape.getSize() : -1;
 }
 
 
 void MarkerSet::setMarkerHeightRatio(float markerHeightRatio)
 {
-    _markerHeightRatio = markerHeightRatio;
+    _markerShape.setHeightRatio(markerHeightRatio);
     _needsUpdate = true;
+}
+
+
+const float MarkerSet::getMarkerHeightRatio()
+{
+    return _markerShape.getHeightRatio();
 }
 
 
 void MarkerSet::setDetail(float ratio)
 {
-    _hints->setDetailRatio(ratio);
+    _markerShape.setDetail(ratio);
     _needsUpdate = true;
 }
+
+const float MarkerSet::getDetail()
+{
+    return _markerShape.getDetail();
+}
+
 
 
 void MarkerSet::setMinScale(float minScale)
@@ -259,7 +248,7 @@ void MarkerSet::setColorArray(osg::Vec4Array* colorArr)
 
 void MarkerSet::setMarkerSize(float markerSize, bool useScreenSize)
 {
-    _markerSize = markerSize;
+    _markerShape.setSize(markerSize);
     _useScreenSize = useScreenSize;
     _needsUpdate = true;
 }
