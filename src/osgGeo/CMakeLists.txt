@@ -36,6 +36,7 @@ set ( LIB_PUBLIC_HEADERS
     LayerProcess
     Line3
     MarkerSet
+    MarkerShape
     PlaneWellLog
     PolygonSelection
     PolyLine
@@ -63,6 +64,7 @@ add_library( ${LIB_NAME} SHARED
     LayerProcess.cpp
     Line3.cpp
     MarkerSet.cpp
+    MarkerShape.cpp
     PlaneWellLog.cpp
     OneSideRender.cpp
     TexturePlane.cpp

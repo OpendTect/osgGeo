@@ -23,12 +23,11 @@ $Id$
 
 #include <osg/Node>
 #include <osgGeo/Common>
+#include <osgGeo/MarkerShape>
 
 #include <osg/Array>
 #include <osg/Geode>
-#include <osg/ShapeDrawable>
-#include <osg/Shape>
-#include <osgGeo/AutoTransform>
+#include <osg/AutoTransform>
 
 namespace osg 
 { 
@@ -36,7 +35,6 @@ namespace osg
   class Geode; 
   class Shape;
   class Array;
-  class TessellationHints;
 }
 
 namespace osgGeo
@@ -62,24 +60,20 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 	osg::Vec4		getSingleColor() const { return _singleColor; }
 
 	void			useSingleColor(bool);
-	enum			MarkerType { None=-1,Box=0, Cone, Cylinder, 
-					     Sphere };
 
-	void			setShape(MarkerType);
-	MarkerType		getShape() { return _shapeType; }
+	void			setShape(osgGeo::MarkerShape::ShapeType);
+	osgGeo::MarkerShape::ShapeType	getShape();
 
 	void			setDetail(float ratio);
 				//!<Between 0 and 1.
-	float			getDetail() const 
-				{ return _hints->getDetailRatio(); }
+	const float		getDetail();
 
 	void			setMarkerSize(float, bool useScreensize = true);
-	float			getMarkerSize() const;
+	const float		getMarkerSize();
 	bool			isScreenSize() const { return _useScreenSize; }
 
 	void			setMarkerHeightRatio(float);
-	float			getMarkerHeightRatio() const 
-				{ return _markerHeightRatio; }	
+	const float		getMarkerHeightRatio(); 
 
 	void			setMinScale(float minscale);
 	float			getMinScale() const {return _minScale;}
@@ -101,24 +95,20 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 
     private:
 	bool					needsUpdate();
-	osg::ref_ptr<osg::Shape>		_shape;
-	osg::ref_ptr<osg::TessellationHints>	_hints;
 	osg::ref_ptr<osg::Vec3Array>		_vertexArr;
 	osg::ref_ptr<osg::Vec4Array>		_colorArr;
 	osg::ref_ptr<osg::Vec3Array>		_normalArr;
 	osg::ref_ptr<osg::Switch>		_nonShadingSwitch;
-	osgGeo::AutoTransform::AutoRotateMode	_rotateMode;
+	osg::AutoTransform::AutoRotateMode	_rotateMode;
 	osg::Vec4f				_singleColor;
 
-	MarkerType				_shapeType;
 	float					_minScale;
 	float					_maxScale;
-	float					_markerSize;
-	float					_markerHeightRatio;
 	bool					_needsUpdate;
 	int					_arrayModCount;
 	bool					_useScreenSize;
 	bool					_applySingleColor;
+	osgGeo::MarkerShape			_markerShape;
 
 };
 
