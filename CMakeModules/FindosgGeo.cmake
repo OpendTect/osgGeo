@@ -104,7 +104,7 @@ macro(FIND_OSGGEO_LIBRARY MYLIBRARY MYLIBRARYNAME)
     if( NOT ${MYLIBRARY}_DEBUG )
         if( ${MYLIBRARY} )
             set(${MYLIBRARY}_DEBUG ${MYLIBRARY})
-        endif( ${MYLIBRARY)
+        endif( ${MYLIBRARY} )
     endif( NOT ${MYLIBRARY}_DEBUG)
 
     if( NOT ${MYLIBRARY} )
