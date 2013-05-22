@@ -101,6 +101,10 @@ macro(FIND_OSGGEO_LIBRARY MYLIBRARY MYLIBRARYNAME)
 	unset( ${MYLIBRARY} )
     endif()
 
+    if ( ${MYLIBRARY}_DEBUG STREQUAL "${MYLIBRARY}_DEBUG-NOTFOUND" )
+	unset( ${MYLIBRARY}_DEBUG )
+    endif()
+
     if( NOT ${MYLIBRARY}_DEBUG )
         if( ${MYLIBRARY} )
             set(${MYLIBRARY}_DEBUG ${MYLIBRARY})
