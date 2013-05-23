@@ -24,13 +24,19 @@ $Id: PolyLines.cpp 108 2012-10-08 08:32:40Z kristofer.tingdahl@dgbes.com $
 
 */
 
+#include <osgGeo/Common>
+
 #ifdef USEQT
 # include <QtGui/QApplication>
 # include <osgQt/GraphicsWindowQt>
 #endif
 
 #include <osgViewer/CompositeViewer>
+
+DISABLE_WARNINGS;
 #include <osgViewer/ViewerEventHandlers>
+ENABLE_WARNINGS;
+
 #include <osgGA/TrackballManipulator>
 
 namespace osgGeo
@@ -48,7 +54,10 @@ public:
     int			height() const { return view_->getCamera()->getViewport()->height(); }
     
     void		addView(osgViewer::View* v) { compositeviewer_->addView(v); }
+    osgViewer::View*	getView() const { return view_; }
     osg::Camera*	getCamera() { return view_->getCamera(); }
+    void		setThreadingModel(osgViewer::ViewerBase::ThreadingModel);
+    void		setupWindow(float x,float y, float w, float h);
 
 protected:
 #ifdef USEQT
@@ -61,13 +70,14 @@ protected:
 
 
 inline
-Viewer::Viewer( int argc, char** argv )
 #ifdef USEQT
+Viewer::Viewer( int argc, char** argv )
     : app_( argc, argv )
     , widget_( 0 )
     , compositeviewer_( 0 )
     , view_( 0 )
 #else
+Viewer::Viewer( int, char** )
     : compositeviewer_( 0 )
     , view_( 0 )
 #endif
@@ -77,7 +87,7 @@ Viewer::Viewer( int argc, char** argv )
     view_->setCameraManipulator( new osgGA::TrackballManipulator );
     view_->addEventHandler( new osgViewer::StatsHandler );
     compositeviewer_->addView( view_ );
-
+    
 #ifdef USEQT
     osgQt::initQtWindowingSystem();
     osgQt::setViewer( compositeviewer_.get() );
@@ -112,6 +122,18 @@ inline
 void Viewer::setSceneData( osg::Node* n )
 {
     view_->setSceneData( n );
+}
+
+
+void Viewer::setThreadingModel( osgViewer::ViewerBase::ThreadingModel tm )
+{
+    compositeviewer_->setThreadingModel( tm );
+}
+
+
+void Viewer::setupWindow( float x, float y, float w, float h )
+{
+    view_->setUpViewInWindow( x, y, w, h );
 }
 
 
