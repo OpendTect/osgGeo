@@ -43,4 +43,5 @@ add_example( PolyLines PolyLines.cpp )
 add_example( textureplane textureplane.cpp )
 add_example( texturepanelstrip texturepanelstrip.cpp )
 add_example( PolygonSelection PolygonSel.cpp )
+add_example( AxesNode axesnode.cpp )
 

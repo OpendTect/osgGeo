@@ -22,12 +22,12 @@ $Id$
 */
 
 #include <osg/Node>
-#include <osg/Vec3>
+#include <osg/Vec2>
 #include <osg/NodeVisitor>
 #include <osgGeo/Common>
 
 
-namespace osg { class Geometry; class CullStack; class Camera; }
+namespace osg { class Camera; class MatrixTransform;  }
 
 namespace osgGeo
 {
@@ -37,29 +37,34 @@ class OSGGEO_EXPORT AxesNode : public osg::Node
 public:
 
 			AxesNode();
-			AxesNode(const AxesNode&,
-				const osg::CopyOp& op =
+			AxesNode(const AxesNode&, const osg::CopyOp& op =
 				    osg::CopyOp::DEEP_COPY_ALL);
 			META_Node(osgGeo,AxesNode);
 
     void		traverse(osg::NodeVisitor&);
+    void		setSize(osg::Vec2 size);
+    void		setPosition(osg::Vec2 pos);
     void		setRadius(const float&);
     float		getRadius() const { return _radius; }
     float		getLength() const { return _length; }
     void		setLength(const float&);
+    void		setMasterCamera(osg::Camera*);
 
 protected:
+
     virtual		~AxesNode();
     bool		updateGeometry();
     bool		needsUpdate() const;
-    void		getOrthoVecs(const osg::Vec3&,osg::Vec3&,
-				     osg::Vec3&) const;
     osg::BoundingSphere	computeBound() const;  
        
     float			_radius;
     float			_length;
-    osg::ref_ptr<osg::Group>	_root;
+    osg::Vec2			_pos;
+    osg::Vec2			_size;
     bool			_needsUpdate;
+    osg::Group*			_root;
+    osg::ref_ptr<osg::Camera>		_mastercamera;
+    osg::ref_ptr<osg::MatrixTransform>	_transform;
 };
 
 

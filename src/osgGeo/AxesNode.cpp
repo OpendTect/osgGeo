@@ -25,6 +25,8 @@ $Id$
 #include <osg/Geometry>
 #include <osgUtil/CullVisitor>
 #include <osg/Material>
+#include <osg/Matrix>
+#include <osg/MatrixTransform>
 #include <osg/ShapeDrawable>
 
 DISABLE_WARNINGS;
@@ -41,6 +43,8 @@ AxesNode::AxesNode()
     , _radius(1)
     , _length(10)
     , _root(new osg::Group)
+    , _transform(new osg::MatrixTransform)
+    , _mastercamera(0)
 {
     setNumChildrenRequiringUpdateTraversal( 1 );
 }
@@ -49,28 +53,39 @@ AxesNode::AxesNode()
 AxesNode::AxesNode( const AxesNode& node, const osg::CopyOp& co )
     : osg::Node(node,co)
     , _needsUpdate(true)
-    , _radius(1)
-    , _length(10)
-    , _root(new osg::Group)
+    , _radius(node._radius)
+    , _length(node._length)
+    , _root(node._root)
+    , _transform(node._transform)
+    , _mastercamera(node._mastercamera)
 {
     setNumChildrenRequiringUpdateTraversal( 1 );
 }
 
 
 AxesNode::~AxesNode()
-{
-}
+{}
 
 
 void AxesNode::traverse( osg::NodeVisitor& nv )
 {
-    if ( nv.getVisitorType() == osg::NodeVisitor::UPDATE_VISITOR )
+    if ( nv.getVisitorType() == osg::NodeVisitor::CULL_VISITOR )
     {
-	if ( needsUpdate() )
-	    updateGeometry();
+       if ( needsUpdate() )
+	   updateGeometry();
+    
+       if ( _mastercamera )
+       {
+	    osg::Vec3 eye, center, up; 
+	    _mastercamera->getViewMatrixAsLookAt( eye, center, up, 45 ); 
+	    osg::Matrixd matrix = _transform->getMatrix();
+	    matrix.makeLookAt( eye-center, osg::Vec3(0,0,0), up ); 
+	    matrix *= osg::Matrix::translate( _pos.x(), _pos.y(), 0 );
+	    _transform->setMatrix( matrix );
+	}
     }
 
-    _root->accept( nv );
+    _transform->accept( nv );
 }
 
 
@@ -152,20 +167,17 @@ osg::ref_ptr<osg::Node> arrowNode( const float rad, const float len,
     osg::ref_ptr<osg::Material> mat = new osg::Material;
     const float fac = 0.3f;
     osg::Vec4 ambcolor( color.r()*fac, color.g()*fac, color.b()*fac, 1.0f );
-    mat->setDiffuse( osg::Material::FRONT_AND_BACK, color );
-    mat->setAmbient( osg::Material::FRONT_AND_BACK, ambcolor );
+    mat->setDiffuse( osg::Material::FRONT, color );
+    mat->setAmbient( osg::Material::FRONT, ambcolor );
     arrowgeode->getOrCreateStateSet()->setAttribute( mat );
     arrowgeode->addDrawable( arrowgeometry );
    
     osg::ref_ptr<osg::Geode> textgeode = new osg::Geode();
     osg::ref_ptr<osgText::Text> annot = new  osgText::Text;
-    std::string font("fonts/arial.ttf");
-    annot->setFont( font );
     annot->setPosition( p1 );
-    annot->setFontResolution( 100, 100 );
-    annot->setCharacterSize( 20 );
+    annot->setCharacterSize( 18 );
     annot->setAxisAlignment( osgText::TextBase::SCREEN );
-    annot->setCharacterSizeMode(osgText::TextBase::SCREEN_COORDS );
+    annot->setCharacterSizeMode( osgText::TextBase::SCREEN_COORDS );
     annot->setAutoRotateToScreen( true );
     annot->setText( text );
     textgeode->addDrawable( annot );
@@ -182,17 +194,20 @@ bool AxesNode::updateGeometry()
 	return false;
 
     osg::Vec4 red(1,0,0,0), green(0,1,0,0), blue(0,0.55,1,0), yellow(1,1,0,1);
-     osg::ref_ptr<osg::Material> mat = new osg::Material;
+    
+    osg::ref_ptr<osg::Material> mat = new osg::Material;
     mat->setDiffuse( osg::Material::FRONT, yellow );
     osg::ref_ptr<osg::ShapeDrawable> sphere = 
 	new osg::ShapeDrawable(new osg::Sphere( osg::Vec3f(0,0,0),_radius*0.75f) );
     osg::ref_ptr<osg::Geode> spheregeode = new osg::Geode();
     spheregeode->getOrCreateStateSet()->setAttribute( mat );
     spheregeode->addDrawable( sphere );
+
     _root->addChild( spheregeode );
     _root->addChild( arrowNode(_radius,_length,red,osg::Vec3(0,1,0),  "N") );
     _root->addChild( arrowNode(_radius,_length,green,osg::Vec3(1,0,0),"E") );
     _root->addChild( arrowNode(_radius,_length,blue,osg::Vec3(0,0,-1),"Z") );
+    _transform->addChild( _root );
     _needsUpdate = false;
     return true;
 }
@@ -211,11 +226,16 @@ bool AxesNode::needsUpdate() const
 }
 
 
+void AxesNode::setMasterCamera( osg::Camera* camera )
+{
+    _mastercamera = camera;
+}
+
+
 void AxesNode::setRadius( const float& radius )
 {
     _radius = radius;
     _needsUpdate = true;
-
 }
 
 
@@ -226,5 +246,19 @@ void AxesNode::setLength( const float& len )
 }
 
 
+void AxesNode::setPosition( osg::Vec2 pos )
+{
+    _pos = pos;
+    _transform->setMatrix( osg::Matrix::translate(_pos.x(),_pos.y(),0.0f) );
+}
+
+
+void AxesNode::setSize( osg::Vec2 size )
+{
+    _radius = size.x();
+    _length = size.y();
+    _size = size;
+    _needsUpdate = true;
+}
 
 } //namespace osgGeo
