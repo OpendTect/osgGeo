@@ -53,6 +53,9 @@ public:
 
 			META_Object( osgGeo, LayeredTexture );
 
+    void		turnOn(bool yn=true);
+    bool		isOn() const			{ return _isOn; };
+   
     int			addDataLayer(); //returns an id
 			//Does its own locking
     void		removeDataLayer(int id);
@@ -159,6 +162,8 @@ public:
 			/*!If not strict, the brick size of the returned tiling
 			   might be chosen smaller for performance reasons. */
 
+    osg::Vec2f		tilingPlanResolution() const;
+
     osg::StateSet*	createCutoutStateSet(const osg::Vec2f& origin,
 			    const osg::Vec2f& opposite,
 			    std::vector<TextureCoordData>&) const;
@@ -233,6 +238,7 @@ protected:
     void		createCompositeTexture(bool dummyTexture=false);
     void		setRenderingHint(bool stackIsOpaque);
 
+    bool				_isOn;
     OpenThreads::ReadWriteMutex		_lock;
     std::vector<LayeredTextureData*>	_dataLayers;
     std::vector<LayerProcess*>		_processes;
