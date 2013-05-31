@@ -214,6 +214,7 @@ struct LayeredTextureData : public osg::Referenced
 			    , _undefChannel( 0 )
 			    , _undefColor( -1.0f, -1.0f, -1.0f, -1.0f )
 			    , _undefColorSource( -1.0f, -1.0f, -1.0f, -1.0f )
+			    , _dirtyTileImages( false )
 			{
 			    for ( int idx=0; idx<4; idx++ )
 				_undefChannelRefCount[idx] = 0;
@@ -227,6 +228,7 @@ struct LayeredTextureData : public osg::Referenced
     void		clearTransparencyType();
     void		adaptColors();
     void		cleanUp();
+    void		updateTileImagesIfNeeded() const;
 
     const int					_id;
     osg::Vec2f					_origin;
@@ -248,7 +250,9 @@ struct LayeredTextureData : public osg::Referenced
     osg::Vec4f					_undefColorSource;
     int						_undefChannelRefCount[4];
     TransparencyType				_transparency[4];
-    std::vector<osg::Image*>			_tileImages;
+
+    mutable std::vector<osg::Image*>		_tileImages;
+    mutable bool				_dirtyTileImages;
 };
 
 
@@ -280,6 +284,7 @@ LayeredTextureData* LayeredTextureData::clone() const
     res->_undefChannel = _undefChannel;
     res->_undefColorSource = _undefColorSource;
     res->_undefColor = _undefColor;
+    res->_dirtyTileImages = _dirtyTileImages;
 
     for ( int idx=0; idx<4; idx++ )
     {
@@ -413,6 +418,19 @@ void LayeredTextureData::cleanUp()
 }
 
 
+void LayeredTextureData::updateTileImagesIfNeeded() const
+{
+    if ( _dirtyTileImages )
+    {
+	std::vector<osg::Image*>::iterator it = _tileImages.begin();
+	for ( ; it!=_tileImages.end(); it++ )
+	    (*it)->dirty();
+
+	_dirtyTileImages = false;
+    }
+}
+
+
 //============================================================================
 
 
@@ -478,11 +496,11 @@ LayeredTexture::LayeredTexture()
     , _useShaders( false )
     , _compositeLayerUpdate( true )
     , _retileCompositeLayer( false )
+    , _isOn( true )
 {
     _id2idxTable.push_back( -1 );	// ID=0 used to represent ColSeqTexture
 
     _compositeLayerId = addDataLayer();
-    setDataLayerBorderColor( _compositeLayerId, osg::Vec4(-1.0f,-1.0f,-1.0f,-1.0f) );
 }
 
 
@@ -503,6 +521,7 @@ LayeredTexture::LayeredTexture( const LayeredTexture& lt,
     , _compositeLayerId( lt._compositeLayerId )
     , _compositeLayerUpdate( lt._compositeLayerUpdate )
     , _retileCompositeLayer( false )
+    , _isOn( lt._isOn )
 {
     for ( unsigned int idx=0; idx<lt._dataLayers.size(); idx++ )
     {
@@ -532,6 +551,16 @@ LayeredTexture::~LayeredTexture()
 
     delete _tilingInfo;
     delete _texInfo;
+}
+
+
+void LayeredTexture::turnOn( bool yn )
+{
+    if ( _isOn!=yn )
+    {
+	_updateSetupStateSet = true;
+	_isOn = yn;
+    }
 }
 
 
@@ -685,6 +714,8 @@ void LayeredTexture::setDataLayerImage( int id, const osg::Image* image )
 
 #ifdef USE_IMAGE_STRIDE
 	const bool retile = layer._imageSource.get()!=image || layer._imageSourceSize!=newImageSize || !layer._tileImages.size();
+#else
+	const bool retile = true;
 #endif
 
 	const int s = powerOf2Ceil( image->s() );
@@ -697,11 +728,10 @@ void LayeredTexture::setDataLayerImage( int id, const osg::Image* image )
 	{
 	    osg::Image* imageCopy = new osg::Image( *image );
 	    imageCopy->scaleImage( s, t, image->r() );
-#ifdef USE_IMAGE_STRIDE
+
 	    if ( !retile )
 		const_cast<osg::Image*>(layer._image.get())->copySubImage( 0, 0, 0, imageCopy ); 
 	    else
-#endif
 		layer._image = imageCopy;
 
 	    layer._imageScale.x() = float(image->s()) / float(s);
@@ -718,19 +748,13 @@ void LayeredTexture::setDataLayerImage( int id, const osg::Image* image )
 	layer._imageModifiedCount = image->getModifiedCount();
 	layer.clearTransparencyType();
 
-#ifdef USE_IMAGE_STRIDE
-	if ( !retile )
-	{
-	    std::vector<osg::Image*>::iterator it = layer._tileImages.begin();
-	    for ( ; it!=layer._tileImages.end(); it++ )
-		(*it)->dirty();
-	}
-	else
-#endif
+	if ( retile )
 	{
 	    layer.adaptColors();
 	    _tilingInfo->_needsUpdate = true;
 	}
+	else
+	    layer._dirtyTileImages = true;
     }
     else if ( layer._image )
     {
@@ -1095,6 +1119,10 @@ void LayeredTexture::updateTilingInfoIfNeeded() const
 
 bool LayeredTexture::needsRetiling() const
 {
+    std::vector<LayeredTextureData*>::const_iterator lit = _dataLayers.begin();
+    for ( ; lit!=_dataLayers.end(); lit++ )
+	(*lit)->updateTileImagesIfNeeded();
+
     updateTilingInfoIfNeeded();
     updateTextureInfoIfNeeded();
 
@@ -1216,6 +1244,13 @@ bool LayeredTexture::divideAxis( float totalSize, int brickSize,
 }
 
 
+osg::Vec2 LayeredTexture::tilingPlanResolution() const
+{
+    return osg::Vec2( 1.0f / _tilingInfo->_smallestScale[0],
+		      1.0f / _tilingInfo->_smallestScale[1] );
+}
+
+
 static void boundedCopy( unsigned char* dest, const unsigned char* src, int len, const unsigned char* lowPtr, const unsigned char* highPtr )
 {
     if ( src>=highPtr || src+len<=lowPtr )
@@ -1288,7 +1323,7 @@ osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, co
     for ( int idx=nrDataLayers()-1; idx>=0; idx-- )
     {
 	LayeredTextureData* layer = _dataLayers[idx];
-	if ( layer->_textureUnit < 0 )
+	if ( layer->_textureUnit<0 )
 	    continue;
 
 	const osg::Vec2f localOrigin = layer->getLayerCoord( globalOrigin );
@@ -1442,12 +1477,13 @@ void LayeredTexture::updateSetupStateSetIfNeeded()
     {
 	_setupStateSet = new osg::StateSet;
 	_updateSetupStateSet = true;
+	setRenderingHint( false );
     }
 
     checkForModifiedImages();
 
     std::vector<LayerProcess*>::iterator it = _processes.begin();
-    for ( ; it!=_processes.end(); it++ )
+    for ( ; _isOn && it!=_processes.end(); it++ )
 	(*it)->checkForModifiedColorSequence();
 
     if ( _updateSetupStateSet )
@@ -1609,7 +1645,7 @@ int LayeredTexture::getProcessInfo( std::vector<int>& layerIDs, int& nrUsedLayer
 	skippedIDs.push_back( _stackUndefLayerId );
 
     std::vector<LayerProcess*>::const_reverse_iterator it = _processes.rbegin();
-    for ( ; it!=_processes.rend(); it++ )
+    for ( ; _isOn && it!=_processes.rend(); it++ )
     {
 	const TransparencyType transparency = (*it)->getTransparencyType();
 	int nrPushed = 0;
@@ -1709,7 +1745,7 @@ void LayeredTexture::createColSeqTexture()
 
     const int rowSize = colSeqImage->getRowSizeInBytes();
     std::vector<LayerProcess*>::const_iterator it = _processes.begin();
-    for ( int idx=0; idx<nrProc; idx++, it++ )
+    for ( int idx=0; _isOn && idx<nrProc; idx++, it++ )
     {
 	const unsigned char* ptr = (*it)->getColorSequencePtr();
 	if ( ptr )
@@ -1842,12 +1878,12 @@ void LayeredTexture::getFragmentShaderCode( std::string& code, const std::vector
     float minOpacity = 1.0f;
 
     std::vector<LayerProcess*>::const_reverse_iterator it = _processes.rbegin();
-    for ( ; it!=_processes.rend() && nrProc--; it++ )
+    for ( ; _isOn && it!=_processes.rend() && nrProc--; it++ )
     {
 	if ( (*it)->getOpacity() < minOpacity )
 	    minOpacity = (*it)->getOpacity();
 
-	if ( (*it)->getTransparencyType() == FullyTransparent )
+	if ( (*it)->getTransparencyType()==FullyTransparent )
 	    continue;
 
 	if ( stage )
@@ -1976,20 +2012,21 @@ class CompositeTextureTask : public osg::Referenced, public OpenThreads::Thread
 {
 public:
 			CompositeTextureTask(const LayeredTexture& lt,
-				    bool dummyTexture,osg::Image& image,
+				    osg::Image& image,osg::Vec4f& borderCol,
 				    const std::vector<LayerProcess*>& procs,
-				    float minOpacity,int startNr,int stopNr,
+				    float minOpacity,bool dummyTexture,
+				    int startNr,int stopNr,
 				    OpenThreads::BlockCount& ready)
 			    : _lt( lt )
-			    , _dummyTexture( dummyTexture )
 			    , _image( image )
+			    , _borderColor( borderCol )
 			    , _processList( procs )
 			    , _minOpacity( minOpacity )
+			    , _dummyTexture( dummyTexture )
 			    , _start( startNr>=0 ? startNr : 0 )
-			    , _stop( stopNr<image.s()*image.t() ? stopNr : image.s()*image.t()-1 )
+			    , _stop( stopNr<=image.s()*image.t() ? stopNr : image.s()*image.t() )
 			    , _readyCount( ready )
 			{}
-
 
 			~CompositeTextureTask()
 			{
@@ -2004,6 +2041,7 @@ protected:
     const LayeredTexture&		_lt;
     bool				_dummyTexture;
     osg::Image&				_image;
+    osg::Vec4f&				_borderColor;
     const std::vector<LayerProcess*>&	_processList;
     float				_minOpacity;
     int					_start;
@@ -2030,6 +2068,7 @@ void CompositeTextureTask::run()
     std::vector<LayerProcess*>::const_reverse_iterator it;
     unsigned char* imagePtr = _image.data() + _start*4;
     const int width = _image.s();
+    const int nrImagePixels = width * _image.t();
 
     for ( int pixelNr=_start; pixelNr<=_stop; pixelNr++ ) 
     {
@@ -2038,7 +2077,7 @@ void CompositeTextureTask::run()
 
 	osg::Vec4f fragColor( -1.0f, -1.0f, -1.0f, -1.0f );
 
-	if ( udfLayer )
+	if ( udfLayer && !_dummyTexture )
 	    udf = udfLayer->getTextureVec(globalCoord)[udfChannel];
 
 	if ( udf<1.0 )
@@ -2052,7 +2091,7 @@ void CompositeTextureTask::run()
 	    }
 
 	    if ( _dummyTexture )
-		fragColor = osg::Vec4f( 0.0f, 0.0f, 0.0f, 0.0 );
+		fragColor = osg::Vec4f( 0.0f, 0.0f, 0.0f, 0.0f );
 	    else if ( fragColor[0]==-1.0f )
 		fragColor = osg::Vec4f( 1.0f, 1.0f, 1.0f, _minOpacity );
 	}
@@ -2079,18 +2118,23 @@ void CompositeTextureTask::run()
 	    }
 	}
 
-	fragColor *= 255.0f;
-	if ( fragColor[3]<0.5f )
+	if ( fragColor[3]<0.5f/255.0f )
 	    fragColor = osg::Vec4f( 0.0f, 0.0f, 0.0f, 0.0f );
 
-	for ( int tc=0; tc<4; tc++ )
+	if ( pixelNr<nrImagePixels )
 	{
-	    int val = (int) floor( fragColor[tc]+0.5 );
-	    val = val<=0 ? 0 : (val>=255 ? 255 : val);
+	    fragColor *= 255.0f;
+	    for ( int tc=0; tc<4; tc++ )
+	    {
+		int val = (int) floor( fragColor[tc]+0.5 );
+		val = val<=0 ? 0 : (val>=255 ? 255 : val);
 
-	    *imagePtr = (unsigned char) val;
-	    imagePtr++;
+		*imagePtr = (unsigned char) val;
+		imagePtr++;
+	    }
 	}
+	else
+	    _borderColor = fragColor;
     }
 
     _readyCount.completed();
@@ -2132,16 +2176,21 @@ void LayeredTexture::createCompositeTexture( bool dummyTexture )
     float minOpacity = 1.0f;
 
     std::vector<LayerProcess*>::const_iterator it = _processes.begin();
-    for ( ; it!=_processes.end(); it++ )
+    for ( ; _isOn && it!=_processes.end(); it++ )
     {
-	if ( (*it)->getTransparencyType() != FullyTransparent )
+	if ( (*it)->getTransparencyType()!=FullyTransparent )
 	    processList.push_back( *it );
 
 	if ( (*it)->getOpacity() < minOpacity )
 	    minOpacity = (*it)->getOpacity();
     }
 
-    const int nrPixels = height*width; 
+    int nrPixels = height*width;
+
+    // Will not cover mixed use of uniform and extended-edge-pixel borders
+    osg::Vec4f borderColor = getDataLayerBorderColor( _compositeLayerId );
+    if ( borderColor[0]>=0.0f )	
+	nrPixels++;	// One extra pixel to compute composite borderColor		
     int nrTasks = OpenThreads::GetNumberOfProcessors();
 
     if ( nrTasks<1 )
@@ -2164,7 +2213,7 @@ void LayeredTexture::createCompositeTexture( bool dummyTexture )
 	else
 	    stop--;
 
-	osg::ref_ptr<CompositeTextureTask> task = new CompositeTextureTask( *this, dummyTexture, *image, processList, minOpacity, start, stop, readyCount );
+	osg::ref_ptr<CompositeTextureTask> task = new CompositeTextureTask( *this, *image, borderColor, processList, minOpacity, dummyTexture, start, stop, readyCount );
 
 	tasks.push_back( task.get() );
 	task->start();
@@ -2175,6 +2224,7 @@ void LayeredTexture::createCompositeTexture( bool dummyTexture )
     readyCount.block();
 
     setDataLayerImage( _compositeLayerId, image );
+    setDataLayerBorderColor( _compositeLayerId, borderColor );
 
     _retileCompositeLayer = _tilingInfo->_needsUpdate ||
 			    getDataLayerTextureUnit(_compositeLayerId)!=0;
