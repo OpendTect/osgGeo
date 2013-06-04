@@ -99,11 +99,15 @@ TexturePlaneNode::TexturePlaneNode()
     , _isBrickSizeStrict( false )
     , _needsUpdate( true )
     , _swapTextureAxes( false )
+    , _textureShift( 0.0f, 0.0f )
+    , _textureGrowth( 0.0f, 0.0f )
+    , _frozen( false )
     , _disperseFactor( 0 )
 {
     osg::ref_ptr<osg::LightModel> lightModel = new osg::LightModel;
     lightModel->setTwoSided( true );
     getOrCreateStateSet()->setAttributeAndModes( lightModel.get() );
+    setDataVariance( DYNAMIC );
 
     _boundingGeometry = new BoundingGeometry( *this );
     _boundingGeometry->update();
@@ -120,6 +124,9 @@ TexturePlaneNode::TexturePlaneNode( const TexturePlaneNode& node, const osg::Cop
     , _isBrickSizeStrict( node._isBrickSizeStrict )
     , _needsUpdate( true )
     , _swapTextureAxes( node._swapTextureAxes )
+    , _textureShift( node._textureShift )
+    , _textureGrowth( node._textureGrowth )
+    , _frozen( node._frozen )
     , _disperseFactor( node._disperseFactor )
 {
     if ( node._texture )
@@ -164,7 +171,7 @@ void TexturePlaneNode::traverse( osg::NodeVisitor& nv )
 {
     if ( nv.getVisitorType()==osg::NodeVisitor::UPDATE_VISITOR )
     {
-	if ( needsUpdate() )
+	if ( !_frozen && needsUpdate() )
 	    updateGeometry();
     }
     else if ( nv.getVisitorType()==osg::NodeVisitor::CULL_VISITOR )
@@ -190,7 +197,7 @@ void TexturePlaneNode::traverse( osg::NodeVisitor& nv )
 	if ( getStateSet() )
 	    cv->popStateSet();
 
-	cv->updateCalculatedNearFar( *cv->getModelViewMatrix(), _boundingGeometry->computeBound() );
+	cv->updateCalculatedNearFar(*cv->getModelViewMatrix(), _boundingGeometry->getBound() );
     }
     else
     {
@@ -205,10 +212,34 @@ void TexturePlaneNode::traverse( osg::NodeVisitor& nv )
 #endif
 	{
 	    osgUtil::Intersector* intersec = iv->getIntersector()->clone( *iv );
-
 	    if ( intersec && _boundingGeometry )
 		intersec->intersect( *iv, _boundingGeometry );
 	}
+    }
+}
+
+
+void TexturePlaneNode::finalizeTiling( std::vector<float>& origins, int dim ) const
+{
+    if ( origins.size()<2 || dim<0 || dim>1 || !_texture )
+	return;
+
+    const osg::Vec2 resolution = _texture->tilingPlanResolution();
+    const float shift  = _textureShift[dim] * resolution[dim];
+    const float growth = _textureGrowth[dim] * resolution[dim];
+
+    if ( !shift && !growth )
+	return;
+
+    if ( origins.back()-origins.front()+growth <= 0.0f )
+	return;
+
+    origins.front() -= shift + 0.5*growth;
+    origins.back()  -= shift - 0.5*growth;
+    for ( int idx=origins.size()-2; idx>0; idx-- )
+    {
+	if ( origins.front()>=origins[idx] || origins.back()<=origins[idx] )
+	    origins.erase( origins.begin()+idx );
     }
 }
 
@@ -224,6 +255,10 @@ bool TexturePlaneNode::updateGeometry()
 
     std::vector<float> sOrigins, tOrigins;
     _texture->planTiling( _textureBrickSize, sOrigins, tOrigins, _isBrickSizeStrict );
+
+    finalizeTiling( sOrigins, 0 );
+    finalizeTiling( tOrigins, 1 );
+
     const int nrs = sOrigins.size()-1;
     const int nrt = tOrigins.size()-1;
 
@@ -261,8 +296,10 @@ bool TexturePlaneNode::updateGeometry()
 
 	    for ( int idx=0; idx<4; idx++ )
 	    {
-		(*coords)[idx].x() /= sOrigins[nrs];
-		(*coords)[idx].y() /= tOrigins[nrt];
+		(*coords)[idx].x() -= sOrigins[0];
+		(*coords)[idx].y() -= tOrigins[0];
+		(*coords)[idx].x() /= sOrigins[nrs] - sOrigins[0];
+		(*coords)[idx].y() /= tOrigins[nrt] - tOrigins[0];
 		(*coords)[idx] -= osg::Vec3( 0.5f, 0.5f, 0.0f );
 
 		if ( _swapTextureAxes )
@@ -320,7 +357,7 @@ bool TexturePlaneNode::updateGeometry()
 
 
 osg::BoundingSphere TexturePlaneNode::computeBound() const
-{ return _boundingGeometry->computeBound(); }
+{ return _boundingGeometry->getBound(); }
 
 
 void TexturePlaneNode::setCenter( const osg::Vec3& center )
@@ -377,8 +414,8 @@ bool TexturePlaneNode::needsUpdate() const
 {
     if ( _needsUpdate )
 	return true;
-    
-    return !_texture || _texture->needsRetiling();
+
+    return _texture && _texture->needsRetiling();
 }
 
 
@@ -408,6 +445,44 @@ void TexturePlaneNode::swapTextureAxes( bool yn )
 
 bool TexturePlaneNode::areTextureAxesSwapped() const
 { return _swapTextureAxes; }
+
+
+void TexturePlaneNode::freezeDisplay( bool yn )
+{
+    if ( !_frozen && yn )
+    {
+	osg::NodeVisitor nv( osg::NodeVisitor::UPDATE_VISITOR );
+	traverse( nv );
+    }
+
+    _frozen = yn;
+}
+
+
+bool TexturePlaneNode::isDisplayFrozen() const
+{ return _frozen; }
+
+
+void TexturePlaneNode::setTextureShift( const osg::Vec2& shift )
+{
+    _textureShift = shift;
+    _needsUpdate = true;
+}
+
+
+const osg::Vec2& TexturePlaneNode::getTextureShift() const
+{ return _textureShift; }
+
+
+void TexturePlaneNode::setTextureGrowth( const osg::Vec2& growth )
+{
+    _textureGrowth = growth;
+    _needsUpdate = true;
+}
+
+
+const osg::Vec2& TexturePlaneNode::getTextureGrowth() const
+{ return _textureGrowth; }
 
 
 void TexturePlaneNode::toggleShaders()

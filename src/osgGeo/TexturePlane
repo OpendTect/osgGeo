@@ -21,10 +21,10 @@ $Id$
 
 */
 
+
 #include <osg/Node>
 #include <osg/Vec3>
 #include <osg/NodeVisitor>
-#include <osg/BoundingBox>
 #include <osgGeo/Common>
 
 
@@ -51,14 +51,14 @@ public:
     const osg::Vec3&		getCenter() const;
 
     void			setTextureBrickSize(short sz,bool strict=false);
-				/* If not strict, the actual brick size might
+				/*!<If not strict, the actual brick size might
 				   be chosen smaller for performance reasons. */
 
     short			getTextureBrickSize() const;
 
     void			setWidth(const osg::Vec3&);
-				//!One dim must be zero
-				//!Negative width yields mirrored dim
+				/*!<One dim must be zero.
+				    Negative width yields mirrored dim. */
     const osg::Vec3&		getWidth() const;
 
     void			swapTextureAxes(bool yn=true);
@@ -70,17 +70,39 @@ public:
     LayeredTexture*		getLayeredTexture();
     const LayeredTexture*	getLayeredTexture() const;
 
+    void			freezeDisplay(bool yn=true);
+				/*!<As long as texture plane is frozen, the
+				    update traversal is ignored, which avoids
+				    showing half-finished updates of lengthy
+				    geometry and/or texture changes. */
+    bool			isDisplayFrozen() const;
+
+    void			setTextureShift(const osg::Vec2&);
+				/*!<Shift of the texture envelope center
+				    (in pixel units) with regard to the
+				    center of the plane geometry. */
+    const osg::Vec2&		getTextureShift() const;
+
+    void			setTextureGrowth(const osg::Vec2&);
+				/*!<Size increase/decrease of the texture
+				    envelope (in pixel units). Its default
+				    size is one pixel shorter than the image
+				    envelope (half-a-pixel at every border). */
+    const osg::Vec2&		getTextureGrowth() const;
+				
     char			getThinDim() const;
 
     osg::BoundingSphere		computeBound() const;
 
 protected:
-    TexturePlaneNode&			operator=(const TexturePlaneNode&);
-    virtual				~TexturePlaneNode();
-    bool				updateGeometry();
-    float				getSense() const;
-    bool				needsUpdate() const;
-    void				cleanUp();
+    virtual			~TexturePlaneNode();
+
+    void			cleanUp();
+    void			finalizeTiling(std::vector<float>& origins,
+					       int dim) const;
+    bool			needsUpdate() const;
+    bool			updateGeometry();
+    float			getSense() const;
 
     osg::Vec3				_center;
     osg::Vec3				_width;
@@ -91,6 +113,9 @@ protected:
     bool				_swapTextureAxes;
 
     osg::ref_ptr<LayeredTexture>	_texture;
+    bool				_frozen;
+    osg::Vec2				_textureShift;
+    osg::Vec2				_textureGrowth;
 
     std::vector<osg::Geometry*>		_geometries;
     std::vector<osg::StateSet*>		_statesets;

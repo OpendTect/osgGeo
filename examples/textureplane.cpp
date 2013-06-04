@@ -109,6 +109,15 @@ class TexEventHandler : public osgGA::GUIEventHandler
 	    return true;
 	}
 
+	if ( ea.getKey()==osgGA::GUIEventAdapter::KEY_Tab )
+	{
+	    osgGeo::LayeredTexture* tex = root->getLayeredTexture();
+	    if ( tex )
+		tex->turnOn( !tex->isOn() );
+
+	    return true;
+	}
+
 	return false;
     }
 };
@@ -274,12 +283,15 @@ int main( int argc, char** argv )
     usage->addCommandLineOption( "--udfcolor <R> <B> <G> <A>", "New RGBA undef color [0,255]" );
     usage->addCommandLineOption( "--udfstack <R> <B> <G> <A>", "Stack RGBA undef area [0,255]" );
     usage->addCommandLineOption( "--border <R> <B> <G> <A>", "Image RGBA border color [-1=edge,255]" );
+    usage->addCommandLineOption( "--shift <x> <y>", "Texture shift" );
+    usage->addCommandLineOption( "--growth <x> <y>", "Texture growth" );
     usage->addCommandLineOption( "--scene", "Add scene elements" );
     usage->addCommandLineOption( "--dump <path>", "Texture dump path (.rgba)" );
     usage->addKeyboardMouseBinding( "Left/Right arrow", "Disperse tiles" );
     usage->addKeyboardMouseBinding( "Up/Down arrow", "Rotate layers" );
     usage->addKeyboardMouseBinding( "BackSpace key", "Toggle shaders" );
     usage->addKeyboardMouseBinding( "Return key", "Dump to specified file" );
+    usage->addKeyboardMouseBinding( "Tab key", "Turn texture on/off" );
 
     if ( args.read("--help") || args.read("--usage") )
     {
@@ -354,6 +366,12 @@ int main( int argc, char** argv )
 	const osgGeo::FilterType filter = (osgGeo::FilterType) compositeFilterNr;
 	laytex->setDataLayerFilterType( laytex->compositeLayerId(), filter );
     }
+
+    osg::Vec2f shift( 0.0f, 0.0f );
+    while ( args.read("--shift", shift.x(), shift.y()) );
+
+    osg::Vec2f growth( 0.0f, 0.0f );
+    while ( args.read("--growth", growth.x(), growth.y()) );
 
     const int firstId = laytex->addDataLayer();
     int lastId = firstId;
@@ -570,6 +588,9 @@ int main( int argc, char** argv )
 
     if ( compositeFilterNr >= 0 )
 	root->toggleShaders();
+
+    root->setTextureShift( shift );
+    root->setTextureGrowth( growth );
 
     // Fit to screen
     const osg::Vec2f envelopeSize = laytex->textureEnvelopeSize();
