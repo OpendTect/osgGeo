@@ -30,7 +30,68 @@ $Id$
 #include <osgUtil/IntersectionVisitor>
 #include <iostream>
 
-using namespace osgGeo;
+namespace osgGeo
+{
+
+class TexturePanelStripNode::BoundingGeometry : public osg::Geometry
+{
+/* BoundingGeometry is an auxiliary class tuning the intersection visitor
+   process in two ways: it saves the IntersectionVisitor from going along
+   all tiles, and it provides a slightly bigger bounding box to circumvent
+   unjustified clipping by osgUtil::LineSegmentIntersector which is caused
+   by numerical instability. See osg-forum branch: "LineSegmentIntersector
+   gives incorrect results (intersections missing)". */
+
+public:
+    			BoundingGeometry(TexturePanelStripNode& tpsn)
+			    : _tpsn( tpsn )
+			{}
+
+    osg::BoundingBox	computeBound() const    { return _boundingBox; }
+    void		update();
+
+protected:
+    TexturePanelStripNode&	_tpsn;
+    osg::BoundingBox		_boundingBox;
+};
+
+
+void TexturePanelStripNode::BoundingGeometry::update()
+{
+    _boundingBox.init();
+
+    while ( getNumPrimitiveSets() )
+	removePrimitiveSet( 0 );
+
+    const osg::Vec2Array& pathCoords = _tpsn.getPath();
+
+    if ( pathCoords.size()<2 )
+	return; 
+
+    osg::ref_ptr<osg::Vec3Array> coords = new osg::Vec3Array( 2*pathCoords.size() );
+
+    for ( int idx=0; idx<pathCoords.size()*2; idx++ )
+    {
+	(*coords)[idx] = osg::Vec3( pathCoords[idx/2][0], pathCoords[idx/2][1], (idx%2 ? _tpsn.getBottom() : _tpsn.getTop()) );
+
+	_boundingBox.expandBy( (*coords)[idx] );
+    }
+
+    setVertexArray( coords.get() );
+    addPrimitiveSet( new osg::DrawArrays(GL_TRIANGLE_STRIP,0,coords->size()) );
+
+    const float eps = 1e-4 * _boundingBox.radius();
+    const osg::Vec3 margin( eps, eps, eps );
+
+    _boundingBox.expandBy( _boundingBox.corner(0) - margin );
+    _boundingBox.expandBy( _boundingBox.corner(7) + margin );
+
+    dirtyBound();
+    _tpsn.dirtyBound();
+}
+
+
+//============================================================================
 
 
 TexturePanelStripNode::TexturePanelStripNode()
@@ -39,11 +100,14 @@ TexturePanelStripNode::TexturePanelStripNode()
     , _isBrickSizeStrict( false )
     , _pathCoords( new osg::Vec2Array )
     , _pathTexOffsets( new osg::FloatArray )
+    , _pathTextureShift( 0.0f )
+    , _pathTexShiftStartIdx( 0 )
     , _top( 0.0f )
     , _bottom( 1.0f )
     , _validZRangeOffsets( false )
     , _topTexOffset( 0.0f )
     , _bottomTexOffset( 0.0f )
+    , _zTextureShift( 0.0f )
     , _swapTextureAxes( false )
     , _smoothNormals( false )
     , _panelWidths( new osg::FloatArray )
@@ -51,12 +115,16 @@ TexturePanelStripNode::TexturePanelStripNode()
     , _knotNormals( new osg::Vec3Array )
     , _updateCount( 0 )
     , _lastUpdatedCount( -1 )
-    , _boundingGeometry( 0 )
+    , _frozen( false )
     , _altTileMode( 0 )
 {
     osg::ref_ptr<osg::LightModel> lightModel = new osg::LightModel;
     lightModel->setTwoSided( true );	// Needed in non-shader case.
     getOrCreateStateSet()->setAttributeAndModes( lightModel.get() );
+    setDataVariance( DYNAMIC );
+
+    _boundingGeometry = new BoundingGeometry( *this );
+    _boundingGeometry->update();
 
     setNumChildrenRequiringUpdateTraversal( 1 );
 }
@@ -69,11 +137,14 @@ TexturePanelStripNode::TexturePanelStripNode( const TexturePanelStripNode& node,
     , _isBrickSizeStrict( node._isBrickSizeStrict )
     , _pathCoords( new osg::Vec2Array )
     , _pathTexOffsets( new osg::FloatArray )
+    , _pathTextureShift( node._pathTextureShift )
+    , _pathTexShiftStartIdx( node._pathTexShiftStartIdx )
     , _top( node._top )
     , _bottom( node._bottom )
     , _validZRangeOffsets( node._validZRangeOffsets )
     , _topTexOffset( node._topTexOffset )
     , _bottomTexOffset( node._bottomTexOffset )
+    , _zTextureShift( node._zTextureShift )
     , _smoothNormals( node._smoothNormals )
     , _swapTextureAxes( node._swapTextureAxes )
     , _panelWidths( new osg::FloatArray )
@@ -81,7 +152,7 @@ TexturePanelStripNode::TexturePanelStripNode( const TexturePanelStripNode& node,
     , _knotNormals( new osg::Vec3Array )
     , _updateCount( 0 )
     , _lastUpdatedCount( -1 )
-    , _boundingGeometry( 0 )
+    , _frozen( node._frozen )
     , _altTileMode( 0 )
 {
     if ( node._texture )
@@ -94,7 +165,9 @@ TexturePanelStripNode::TexturePanelStripNode( const TexturePanelStripNode& node,
     
     setPath( *node._pathCoords );
     setPath2TextureMapping( *node._pathTexOffsets );
-    updateBoundingGeometry();
+
+    _boundingGeometry = new BoundingGeometry( *this );
+    _boundingGeometry->update();
 
     setNumChildrenRequiringUpdateTraversal(getNumChildrenRequiringUpdateTraversal()+1);
 }
@@ -143,7 +216,7 @@ void TexturePanelStripNode::setTextureBrickSize( short sz, bool strict )
 void TexturePanelStripNode::setPath( const osg::Vec2Array& coords )
 {
     *_pathCoords = coords;
-    updateBoundingGeometry();
+    _boundingGeometry->update();
     computeNormals();
     _updateCount++;
 }
@@ -165,11 +238,22 @@ void TexturePanelStripNode::setPath2TextureMapping( const osg::FloatArray& offse
 }
 
 
+void TexturePanelStripNode::setPathTextureShift( float shift, int startIdx )
+{
+    if ( shift!=_pathTextureShift || startIdx!=_pathTexShiftStartIdx )
+    {
+	_pathTextureShift = shift;
+	_pathTexShiftStartIdx = startIdx;
+	_updateCount++;
+    }
+}
+
+
 void TexturePanelStripNode::setZRange( float top, float bottom )
 {
     _top = top;
     _bottom = bottom;
-    updateBoundingGeometry();
+    _boundingGeometry->update();
     _updateCount++;
 }
 
@@ -202,6 +286,16 @@ float TexturePanelStripNode::getBottomTextureMapping() const
     osg::Vec2f stop = _texture->envelopeCenter();
     stop += _texture->textureEnvelopeSize() * 0.5f;
     return stop[_swapTextureAxes ? 0 : 1];
+}
+
+
+void TexturePanelStripNode::setZTextureShift( float shift )
+{
+    if ( shift!=_zTextureShift )
+    {
+	_zTextureShift = shift;
+	_updateCount++;
+    }
 }
 
 
@@ -299,7 +393,7 @@ void TexturePanelStripNode::traverse( osg::NodeVisitor& nv )
 	if ( _texture && _texture->needsRetiling() )
 	    _updateCount++;
 
-	if ( _lastUpdatedCount<_updateCount && updateGeometry() )
+	if ( !_frozen && _lastUpdatedCount<_updateCount && updateGeometry() )
 	    _lastUpdatedCount = _updateCount;
     }
     else if ( nv.getVisitorType()==osg::NodeVisitor::CULL_VISITOR )
@@ -325,8 +419,7 @@ void TexturePanelStripNode::traverse( osg::NodeVisitor& nv )
 	if ( getStateSet() )
 	    cv->popStateSet();
 
-	if ( _boundingGeometry )
-	    cv->updateCalculatedNearFar(*cv->getModelViewMatrix(), *_boundingGeometry );
+	cv->updateCalculatedNearFar(*cv->getModelViewMatrix(), _boundingGeometry->getBound() );
     }
     else
     {
@@ -349,6 +442,28 @@ void TexturePanelStripNode::traverse( osg::NodeVisitor& nv )
 }
 
 
+float TexturePanelStripNode::calcPathTexOffset( int idx ) const
+{
+    if ( idx<0 || idx>=_pathTexOffsets->size() )
+    {
+	std::cerr << "_pathTexOffsets index out of bound" << std::endl;
+	return -1.0f;
+    }
+
+    float offset = (*_pathTexOffsets)[idx];
+    if ( idx>=_pathTexShiftStartIdx )
+	offset -= _pathTextureShift;
+
+    if ( _texture )
+    {
+	const osg::Vec2 resolution = _texture->tilingPlanResolution();
+	offset *= resolution[_swapTextureAxes ? 1 : 0];
+    }
+
+    return offset;
+}
+
+
 bool TexturePanelStripNode::getLocalGeomAtTexOffset( osg::Vec2& pathCoord, osg::Vec3& normal, float texOffset, int guessPanelIdx ) const
 {
     int nrKnots = _pathTexOffsets->size();
@@ -362,13 +477,13 @@ bool TexturePanelStripNode::getLocalGeomAtTexOffset( osg::Vec2& pathCoord, osg::
     if ( guessPanelIdx>=0 && guessPanelIdx<nrKnots-1 )
 	knot = guessPanelIdx;
 
-    while ( knot>0 && texOffset<(*_pathTexOffsets)[knot] )
+    while ( knot>0 && texOffset<calcPathTexOffset(knot) )
 	knot--;
-    while ( knot<nrKnots-2 && texOffset>=(*_pathTexOffsets)[knot+1] )
+    while ( knot<nrKnots-2 && texOffset>=calcPathTexOffset(knot+1) )
 	knot++;
 
-    const float num = texOffset - (*_pathTexOffsets)[knot];
-    const float denom = (*_pathTexOffsets)[knot+1] - (*_pathTexOffsets)[knot];
+    const float num = texOffset - calcPathTexOffset(knot);
+    const float denom = calcPathTexOffset(knot+1) - calcPathTexOffset(knot);
     const float frac = denom==0.0f ? 0.0f : num/denom;
 
     pathCoord = (*_pathCoords)[knot]*(1.0f-frac) + (*_pathCoords)[knot+1]*frac;
@@ -384,15 +499,23 @@ bool TexturePanelStripNode::getLocalGeomAtTexOffset( osg::Vec2& pathCoord, osg::
 #define EPS	1e-5
 
 
-void TexturePanelStripNode::getZTiling( const std::vector<float>& tOrigins, std::vector<float>& zCoords, std::vector<float>& zOffsets )
+void TexturePanelStripNode::finalizeZTiling( const std::vector<float>& tOrigins, std::vector<float>& zCoords, std::vector<float>& zOffsets )
 {
     zCoords.clear();
     zOffsets.clear();
 
     const int tLast = tOrigins.size()-1;
 
-    const float start = getTopTextureMapping();
-    const float stop = getBottomTextureMapping();
+    float start = getTopTextureMapping() - _zTextureShift;
+    float stop = getBottomTextureMapping() - _zTextureShift;
+
+    if ( _texture )
+    {
+	const osg::Vec2 resolution = _texture->tilingPlanResolution();
+	const float resval = resolution[_swapTextureAxes ? 0 : 1];
+	start *= resval; stop *= resval;
+    }
+
     const float offset0 = start<=stop ? start : stop;
     const float offset1 = start<=stop ? stop : start;
     const float z0 = start<=stop ? _top : _bottom;
@@ -433,7 +556,7 @@ bool TexturePanelStripNode::updateGeometry()
 
     std::vector<float> xTicks, yTicks, zCoords, zOffsets;
     _texture->planTiling(_textureBrickSize, xTicks, yTicks, _isBrickSizeStrict);
-    getZTiling( (_swapTextureAxes ? xTicks : yTicks), zCoords, zOffsets );
+    finalizeZTiling( (_swapTextureAxes ? xTicks : yTicks), zCoords, zOffsets );
 
     float sense = _smoothNormals ? -1.0f : 1.0f;
     if ( zCoords[zCoords.size()-1]-zCoords[0] > 0.0f )
@@ -454,7 +577,7 @@ bool TexturePanelStripNode::updateGeometry()
 
     for ( int sIdx=1; sIdx<=sLast; sIdx++ )
     {
-	if ( sIdx!=sLast && _pathTexOffsets->front()>sOrigins[sIdx]-EPS )
+	if ( sIdx!=sLast && calcPathTexOffset(0)>sOrigins[sIdx]-EPS )
 	    continue;
 
 	while ( tileOffsets->size()>1 )
@@ -466,9 +589,9 @@ bool TexturePanelStripNode::updateGeometry()
 
 	while ( knot<nrKnots )
 	{
-	    if ( sIdx==sLast || (*_pathTexOffsets)[knot]<sOrigins[sIdx]+EPS )
+	    if ( sIdx==sLast || calcPathTexOffset(knot)<sOrigins[sIdx]+EPS )
 	    {
-		tileOffsets->push_back( (*_pathTexOffsets)[knot] );
+		tileOffsets->push_back( calcPathTexOffset(knot) );
 		tilePath->push_back( (*_pathCoords)[knot] );
 		if ( _smoothNormals )
 		    tileNormals->push_back( (*_knotNormals)[knot] );
@@ -587,19 +710,20 @@ bool TexturePanelStripNode::updateGeometry()
 }
 
 
-void TexturePanelStripNode::updateBoundingGeometry()
+osg::BoundingSphere TexturePanelStripNode::computeBound() const
+{ return _boundingGeometry->getBound(); }
+
+
+void TexturePanelStripNode::freezeDisplay( bool yn )
 {
-    _boundingGeometry = _pathCoords->size()>1 ? new osg::Geometry : 0;
-    if ( !_boundingGeometry )
-	return; 
-
-    osg::ref_ptr<osg::Vec3Array> coords = new osg::Vec3Array( 2*_pathCoords->size() );
-
-    for ( int idx=0; idx<_pathCoords->size()*2; idx++ )
+    if ( !_frozen && yn )
     {
-	(*coords)[idx] = osg::Vec3( (*_pathCoords)[idx/2][0], (*_pathCoords)[idx/2][1], (idx%2 ? _bottom : _top) );
+	osg::NodeVisitor nv( osg::NodeVisitor::UPDATE_VISITOR );
+	traverse( nv );
     }
 
-    _boundingGeometry->setVertexArray( coords.get() );
-    _boundingGeometry->addPrimitiveSet( new osg::DrawArrays(GL_TRIANGLE_STRIP,0,coords->size()) );
+    _frozen = yn;
 }
+
+
+} //namespace osgGeo

@@ -21,6 +21,7 @@ $Id$
 
 */
 
+
 #include <osg/Node>
 #include <osg/Array>
 #include <osg/NodeVisitor>
@@ -32,6 +33,7 @@ namespace osg { class Geometry; }
 
 namespace osgGeo
 {
+
 class LayeredTexture;
 
 /*!Class to display an arbitrary section through a 3D volume with a layered
@@ -41,6 +43,8 @@ class LayeredTexture;
 
 class OSGGEO_EXPORT TexturePanelStripNode : public osg::Node
 {
+    class BoundingGeometry;
+
 public:
 				TexturePanelStripNode();
 				TexturePanelStripNode(
@@ -51,7 +55,14 @@ public:
     
     void			setTexture(osgGeo::LayeredTexture*);
     osgGeo::LayeredTexture*	getTexture()		{ return _texture; }
-    
+
+    void			freezeDisplay(bool yn=true);
+				/*!<As long as TexturePanelStrip is frozen, 
+				    the update traversal is ignored, which
+				    avoids showing half-finished updates of
+				    lengthy geometry and/or texture changes. */
+    bool			isDisplayFrozen() const	{ return _frozen; }
+
     void			setTextureBrickSize(short sz,bool strict=false);
 				/*!<If not strict, the actual brick size is
 				    allowed to be chosen smaller to optimize
@@ -67,6 +78,15 @@ public:
 				    one offset per path coordinate. */
     const osg::FloatArray&	getPath2TextureMapping() const
 						{ return *_pathTexOffsets; }
+
+    void			setPathTextureShift(float shift,int startidx=0);
+				/*!<Extra horizontal shift of (part of) the
+				    specified texture mapping (in pixel units).
+				    Shifting starts at path coord "startidx" */
+    float			getPathTextureShift() const
+						{ return _pathTextureShift; }
+    int				getPathTextureShiftStartIdx() const
+						{ return _pathTexShiftStartIdx;}
     
     void			setZRange(float top,float bottom);
     float			getBottom() const	{ return _bottom; }
@@ -82,6 +102,12 @@ public:
     bool			isZRange2TextureMappingSet() const
 						{ return _validZRangeOffsets; }
 
+    void			setZTextureShift(float);
+				/*!<Extra vertical shift of the specified
+				    texture mapping (in pixel units). */
+    float			getZTextureShift() const
+						{ return _zTextureShift; }
+
     void			swapTextureAxes(bool yn=true);
     bool			areTextureAxesSwapped() const
 						{ return _swapTextureAxes; }
@@ -89,38 +115,44 @@ public:
     void			smoothNormals(bool yn=true);
     bool			areNormalsSmoothed() const
 						{ return _smoothNormals; }
-    
+
+    osg::BoundingSphere		computeBound() const;
+
 protected:
     virtual			~TexturePanelStripNode();
 
     void			cleanUp();
     void			traverse(osg::NodeVisitor&);
     bool			updateGeometry();
-    void			updateBoundingGeometry();
 
     int				getValidNormalIdx(int panelIdx,
 						  bool forward) const;
     osg::Vec3			getAverageNormal(int knotIdx) const;
     void			computeNormals();
 
+    float			calcPathTexOffset(int idx) const;
     bool			getLocalGeomAtTexOffset(
 				    osg::Vec2& pathCoord,osg::Vec3& normal,
 				    float texOffset,int guessPanelIdx=-1) const;
 
-    void			getZTiling(const std::vector<float>& tOrigins,
-					   std::vector<float>& zCoords,
-					   std::vector<float>& zOffsets);
+    void			finalizeZTiling(
+				    const std::vector<float>& tOrigins,
+				    std::vector<float>& zCoords,
+				    std::vector<float>& zOffsets);
     
     osg::ref_ptr<osgGeo::LayeredTexture>	_texture;
     short					_textureBrickSize;
     bool					_isBrickSizeStrict;
     osg::ref_ptr<osg::Vec2Array>		_pathCoords;
     osg::ref_ptr<osg::FloatArray>		_pathTexOffsets;
+    float					_pathTextureShift;
+    int						_pathTexShiftStartIdx;
     float					_top;
     float					_bottom;
     bool					_validZRangeOffsets;
     float					_topTexOffset;
     float					_bottomTexOffset;
+    float					_zTextureShift;
     bool					_swapTextureAxes;
     bool					_smoothNormals;
     std::vector<osg::Geometry*>			_geometries;
@@ -130,7 +162,8 @@ protected:
     osg::ref_ptr<osg::FloatArray>		_panelWidths;
     osg::ref_ptr<osg::Vec3Array>		_panelNormals;
     osg::ref_ptr<osg::Vec3Array>		_knotNormals;
-    osg::ref_ptr<osg::Geometry>			_boundingGeometry;
+    osg::ref_ptr<BoundingGeometry>		_boundingGeometry;
+    bool					_frozen;
 
 public:
 			// Testing purposes only
