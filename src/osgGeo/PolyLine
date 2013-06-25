@@ -27,7 +27,8 @@ $Id$
 #include <osgGeo/Common>
 
 
-namespace osg { class Geometry; class CullStack; }
+namespace osg { class Geometry; }
+namespace osgUtil { class CullVisitor; }
 
 namespace osgGeo
 {
@@ -35,7 +36,6 @@ namespace osgGeo
 class OSGGEO_EXPORT	PolyLineNode : public osg::Node
 {
 public:
-
 			PolyLineNode();
 			PolyLineNode(const PolyLineNode&,
 				const osg::CopyOp& op =
@@ -44,43 +44,48 @@ public:
 
     void		traverse(osg::NodeVisitor&);
     void		setVertexArray(osg::Array*);
-    void		setRadius(const float&);
+    void		setRadius(float);
     float		getRadius() const { return _radius; }
     void		setResolution(int);
     int			getResolution() const { return _resolution; }
+    void		useAutoScreenScaling(bool);
     void		addPrimitiveSet(osg::PrimitiveSet*);
     void		removePrimitiveSet(int);
     int			getPrimitiveSetIndex(const osg::PrimitiveSet*) const;
     void		touchPrimitiveSet(int)			{}
+    void		clearAll();
 
 protected:
     virtual		~PolyLineNode();
-    bool		updateGeometry(const osg::CullStack*);
-    bool		needsUpdate(const osg::CullStack*) const;
+    bool		updateGeometry();
+    void		reScaleCoordinates(const osgUtil::CullVisitor*);
+    bool		isCameraChanged(const osgUtil::CullVisitor*);
+    bool		needsUpdate() const;
     void		getOrthoVecs(const osg::Vec3&,osg::Vec3&,
 				     osg::Vec3&) const;
-
     osg::BoundingSphere	computeBound() const;  
 
-    osg::Vec3			_center;
-    osg::Vec3			_width;
-    bool			_needsUpdate;
-    osg::ref_ptr<osg::Array>	_array;
     float			_radius;
-    float			_maxRadius;
-    bool			_screenSizeScaling;
-    osg::ref_ptr<osg::Geometry>	_geometry;
-    unsigned int		_arrayModifiedCount;
     int				_resolution;
-    unsigned int		_arraymodcount;
     osg::BoundingSphere		_bs;
-    std::vector<unsigned int>	_primitivesetmodcount;
+
+    osg::Matrix			_viewMatrix;
+    bool			_needsUpdate;
+    bool			_isGeometryChanged;
+    bool			_screenSizeScaling;
     
-    std::vector<osg::ref_ptr<osg::PrimitiveSet> >	_primitivesets;
+    unsigned int		_arrayModifiedCount;
+    std::vector<unsigned int>	_primitivesetModCount;
+
+    osg::Vec3Array*		 _geom3DCoords;
+    osg::Vec3Array*		 _geom3DNormals;			    	
+    osg::ref_ptr<osg::Vec3Array> _polyLineCoords;
+    osg::ref_ptr<osg::Vec3Array> _unScaledGeomCoords;
+    osg::ref_ptr<osg::Geometry>	 _geometry;
+
+    std::vector<osg::ref_ptr<osg::PrimitiveSet>>    _primitiveSets;
 };
 
-
-
 }
-#endif //OSGGEO_TEXTUREPLANE_H
+#endif //OSGGEO_POLYLONENODE_H
 

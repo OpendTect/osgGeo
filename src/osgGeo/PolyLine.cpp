@@ -31,30 +31,37 @@ namespace osgGeo
 PolyLineNode::PolyLineNode()
     : _needsUpdate(true)
     , _radius(5)
-    , _maxRadius(-1)
-    , _screenSizeScaling(false)
+    , _screenSizeScaling(true)
+    , _geom3DCoords(new osg::Vec3Array)
+    , _geom3DNormals(new osg::Vec3Array)
     , _geometry(new osg::Geometry)
     , _arrayModifiedCount(0)
     , _resolution(4)
-    , _arraymodcount(0)
+    , _polyLineCoords(0)
 {
-    setNumChildrenRequiringUpdateTraversal( 1 );
+    setNumChildrenRequiringUpdateTraversal(1);
+    _geometry->setVertexArray(_geom3DCoords);
+    _geometry->setNormalArray(_geom3DNormals);
+    _geometry->setNormalBinding(osg::Geometry::BIND_PER_VERTEX);
 }
 
 
-PolyLineNode::PolyLineNode( const PolyLineNode& node, const osg::CopyOp& co )
+PolyLineNode::PolyLineNode(const PolyLineNode& node, const osg::CopyOp& co)
     : osg::Node(node,co)
-    , _array(node._array)
+    , _polyLineCoords(node._polyLineCoords)
     , _radius(node._radius)
-    , _maxRadius(node._maxRadius)
     , _screenSizeScaling(node._screenSizeScaling)
+    , _geom3DCoords(node._geom3DCoords)
+    , _geom3DNormals(node._geom3DNormals)
     , _geometry((osg::Geometry*)node._geometry->clone(co))
     , _arrayModifiedCount(0)
     , _resolution(4)
-    , _arraymodcount(0)
     , _needsUpdate(true)
 {
-    setNumChildrenRequiringUpdateTraversal( 1 );
+   setNumChildrenRequiringUpdateTraversal(1);
+   _geometry->setVertexArray(_geom3DCoords);
+   _geometry->setNormalArray(_geom3DNormals);
+   _geometry->setNormalBinding(osg::Geometry::BIND_PER_VERTEX);
 }
 
 
@@ -65,16 +72,24 @@ PolyLineNode::~PolyLineNode()
 
 void PolyLineNode::traverse( osg::NodeVisitor& nv )
 {
-    if ( nv.getVisitorType()==osg::NodeVisitor::CULL_VISITOR )
+    if (nv.getVisitorType() == osg::NodeVisitor::UPDATE_VISITOR)
     {
-	osgUtil::CullVisitor* cv = dynamic_cast<osgUtil::CullVisitor*>(&nv);
-	if ( needsUpdate(cv) )
-	    updateGeometry( cv );
-
+	if ( needsUpdate() )
+	    updateGeometry();
+    }
+    else if (nv.getVisitorType() == osg::NodeVisitor::CULL_VISITOR)
+    {
+	osgUtil::CullVisitor* cv = static_cast<osgUtil::CullVisitor*>(&nv);
+	if (_screenSizeScaling && (_isGeometryChanged || isCameraChanged(cv)))
+	{
+	    reScaleCoordinates(cv);
+	    _isGeometryChanged = false;
+	}
+		
 	if ( getStateSet() )
-	    cv->pushStateSet( getStateSet() );
+	    cv->pushStateSet(getStateSet());
 
-	cv->addDrawable( _geometry, cv->getModelViewMatrix() );
+	cv->addDrawable(_geometry, cv->getModelViewMatrix());
 
 	if ( getStateSet() )
 	    cv->popStateSet();
@@ -82,37 +97,104 @@ void PolyLineNode::traverse( osg::NodeVisitor& nv )
 }
 
 
-osg::BoundingSphere PolyLineNode::computeBound() const
+bool PolyLineNode::isCameraChanged(const osgUtil::CullVisitor* cv)
 {
-   return _bs;
+    if( !cv )
+	return false;
+  
+    const osg::Camera* camera =
+	const_cast<osgUtil::CullVisitor*>(cv)->getCurrentCamera();
+    osg::Matrix curviewmatrix = camera->getViewMatrix();
+    bool ischanged = false;
+    if (_viewMatrix != curviewmatrix)
+    {
+	ischanged = true;
+	_viewMatrix = curviewmatrix;
+    }
+   
+    return ischanged;
 }
 
 
-void PolyLineNode::setVertexArray( osg::Array* arr )
+void PolyLineNode::reScaleCoordinates(const osgUtil::CullVisitor* cv)
 {
-    _array = arr;
+    if ( !cv )
+	return;
+
+#define mScaleCoord \
+    const osg::Vec3& coord = _unScaledGeomCoords->at( idx ); \
+    const float factor = cv->pixelSize( coord, 1.0f ); \
+    (*_geom3DCoords)[idx] = coord + _geom3DNormals->at( idx ) * _radius / factor; \
+
+    for(unsigned int idx=0;idx<_geom3DCoords->size();idx++)
+    {
+	const int res = _resolution*2;
+	bool iscap = true;
+	if ( idx < _geom3DCoords->size()-res )
+	{
+	    for ( int i=0; i<res; i++ )
+	    {
+		if ( _geom3DNormals->at(idx+i) !=  _geom3DNormals->at(idx+i+1) )
+		{
+		    iscap = false;
+		    break;
+		}
+	    }
+	 
+	    if ( iscap ) //Do not recompute, fill up from surrounding coordinates
+	    {
+		for (int idy=0;idy<=res;idy+=2)
+		    (*_geom3DCoords)[idx+idy] = (*_geom3DCoords)[idx+res+idy+1];
+		idx += res;
+	    }
+	    else
+	    { mScaleCoord }
+	}
+	else
+	{ mScaleCoord }
+    }
+
+    _geometry->dirtyDisplayList();
+ }
+
+
+osg::BoundingSphere PolyLineNode::computeBound() const
+{
+    return _bs;
+}
+
+
+void PolyLineNode::setVertexArray(osg::Array* arr)
+{
+    _polyLineCoords = (osg::Vec3Array*) arr;
     _needsUpdate = true;
 }
 
 
-void PolyLineNode::setRadius( const float& rad )
+void PolyLineNode::setRadius(float rad)
 {
     _radius = rad;
     _needsUpdate = true;
 }
 
 
-void PolyLineNode::setResolution( int res )
+void PolyLineNode::setResolution(int res)
 {
     _resolution = res;
     _needsUpdate = true;
 }
 
 
-void PolyLineNode::getOrthoVecs( const osg::Vec3& w, osg::Vec3& u, osg::Vec3& v ) const
+void PolyLineNode::useAutoScreenScaling(bool yn)
+{
+    _screenSizeScaling = yn;
+}
+
+
+void PolyLineNode::getOrthoVecs(const osg::Vec3& w,osg::Vec3& u,osg::Vec3& v) const
 {
     float factor = 0;
-    if ( w.x() > w.y() )
+    if (w.x() > w.y())
     {
 	factor = 1/sqrt( w.x()*w.x() + w.y()*w.y() );
 	float u0 = -w.z() * factor ;
@@ -135,12 +217,20 @@ void PolyLineNode::getOrthoVecs( const osg::Vec3& w, osg::Vec3& u, osg::Vec3& v 
 }
 
 
-int getMaxIndex( const osg::PrimitiveSet* ps )
+void PolyLineNode::clearAll()
+{
+    _geometry->getPrimitiveSetList().clear();
+    _geom3DCoords ->clear();
+    _geom3DNormals->clear();
+}
+
+
+static int getMaxIndex(const osg::PrimitiveSet* ps)
 {
     int max = 0;
-    for ( unsigned int idx=0; idx<ps->getNumIndices(); idx++ )
+    for (unsigned int idx=0;idx<ps->getNumIndices();idx++)
     {
-	const int val = (int)ps->index( idx );
+	const int val = (int)ps->index(idx);
     	max = max > val ? max : val;
     }
     
@@ -149,129 +239,125 @@ int getMaxIndex( const osg::PrimitiveSet* ps )
 
 
 #define mAddVertex(vec,pos)\
-    coords->push_back( vec ); \
+    _geom3DCoords ->push_back(vec); \
     norm = vec - pos; \
     norm.normalize();\
-    normals->push_back( norm ); \
-    triindices->push_back( ci++ );
+    _geom3DNormals->push_back(norm); \
+    triindices->push_back(ci++); \
+    bbox.expandBy(pos); \
 
-#define mAddCap( croner, p ) \
-	   	coords->push_back( croner[idx] ); \
-		triindices->push_back( ci++ ); \
-		normals->push_back( norm ); \
-		coords->push_back( p ); triindices->push_back( ci++ ); \
-		normals->push_back( norm ); \
 
-bool PolyLineNode::updateGeometry( const osg::CullStack* )
+#define mAddCap(croner,p) \
+	   	_geom3DCoords ->push_back((*croner)[idx]); \
+		triindices->push_back(ci++); \
+		_geom3DNormals->push_back(norm); \
+		_geom3DCoords ->push_back(p); \
+		triindices->push_back(ci++); \
+		_geom3DNormals->push_back(norm); \
+		bbox.expandBy(p); \
+
+bool PolyLineNode::updateGeometry()
 {
-    osg::Vec3Array* arr = dynamic_cast<osg::Vec3Array*>(_array.get());
-    if ( !arr )
-	 return false;
-    _geometry->getPrimitiveSetList().clear();
+    if (!_polyLineCoords)
+	return false;
+    
+    clearAll();
     osg::BoundingBox bbox;
     int ci = 0;
-    osg::ref_ptr<osg::Vec3Array> coords = new osg::Vec3Array;
-    osg::ref_ptr<osg::Vec3Array> normals = new osg::Vec3Array;
-    const unsigned int primsz = _primitivesets.size();
-    for ( unsigned int primidx=0; primidx<primsz; primidx++ )
+    osg::ref_ptr<osg::Vec3Array> corners1 = new osg::Vec3Array(_resolution);
+    osg::ref_ptr<osg::Vec3Array> corners2 = new osg::Vec3Array(_resolution);
+    const unsigned int primsz = _primitiveSets.size();
+    for (unsigned int primidx=0;primidx<primsz;primidx++)
     {
-	osg::Vec3* corners1 = new osg::Vec3[_resolution];
-	osg::Vec3* corners2 = new osg::Vec3[_resolution];
-	const osg::PrimitiveSet* ps = _primitivesets.at( primidx );
-	const int maxprimsz = getMaxIndex( ps );
+	const osg::PrimitiveSet* ps = _primitiveSets.at(primidx);
+	const int maxprimsz = getMaxIndex(ps);
 	bool doonce = true;
 	osg::DrawElementsUInt* triindices =
-		new osg::DrawElementsUInt(osg::PrimitiveSet::TRIANGLE_STRIP, 0);
-	for ( unsigned int cidx=0; cidx<ps->getNumIndices(); cidx++ )
+		new osg::DrawElementsUInt(osg::PrimitiveSet::TRIANGLE_STRIP);
+	for (unsigned int cidx=0;cidx<ps->getNumIndices();cidx++)
 	{
-	    const int pidx = (int) ps->index( cidx );
-	    const osg::Vec3  p0 = arr->at( pidx );
-	    const osg::Vec3  p1 = arr->at( pidx <= maxprimsz-1 ? pidx+1 : pidx );
-	    const osg::Vec3  p2 = arr->at( pidx <= maxprimsz-2 ? pidx+2 : pidx );
+	    const int pidx = (int) ps->index(cidx);
+	    const osg::Vec3  p0 = _polyLineCoords->at(pidx);
+	    const osg::Vec3  p1 = _polyLineCoords->at(pidx <= maxprimsz-1 ? pidx+1 : pidx);
+	    const osg::Vec3  p2 = _polyLineCoords->at(pidx <= maxprimsz-2 ? pidx+2 : pidx);
 	    osg::Vec3 vec01 = p1 - p0; vec01.normalize();
 	    osg::Vec3 vec12 = p2 - p1; vec12.normalize();
+	  
 	    const bool doreverse = vec01 * vec12 < -0.5f;
 	    const osg::Vec3 planenormal = 
 			doreverse ? vec12 - vec01 : vec01 + vec12;
 	    osg::Vec3 norm = -planenormal;
 	    norm.normalize();
-	    if ( doonce )
+	    if (doonce)
 	    {
-		osg::Vec3 curu,curv;
-		getOrthoVecs( vec01, curu, curv );
-		for ( int idx=0; idx<_resolution; idx++ )
+		osg::Vec3 curu, curv;
+		getOrthoVecs(vec01,curu,curv);
+		for (int idx=0;idx<_resolution;idx++)
 		{
 		    float angl = idx * 2 * M_PI / _resolution;
 		    const osg::Vec3 vec1 = curu*cos(angl) + curv*sin(angl);
-		    corners1[idx] = vec1*_radius + p0;
-		    mAddCap( corners1, p0 );
+		    (*corners1)[idx] = vec1*_radius + p0;
+		    mAddCap(corners1, p0);
 		}
 
-		coords->push_back( corners1[0] );
-		triindices->push_back( ci++ );
-		normals->push_back( norm );
+		_geom3DCoords ->push_back((*corners1)[0]);
+		triindices->push_back(ci++);
+		_geom3DNormals->push_back(norm);
 		doonce = false;
 	    }
 
-	    const osg::Plane plane( planenormal, p1 );
-	    for ( int idx=0; idx<_resolution; idx++ )
+	    const osg::Plane plane(planenormal,p1);
+	    for (int idx=0;idx<_resolution;idx++)
 	    {
-		const osgGeo::Line3 lineproj( corners1[idx], vec01 );
-		corners2[idx] = lineproj.getInterSectionPoint( plane );
-		mAddVertex( corners1[idx], p0 )
-		mAddVertex( corners2[idx], p1 )
+		const osgGeo::Line3 lineproj((*corners1)[idx],vec01);
+		(*corners2)[idx] = lineproj.getInterSectionPoint(plane);
+		mAddVertex((*corners1)[idx],p0)
+		mAddVertex((*corners2)[idx],p1)
 	    }
 
-	    mAddVertex( corners1[0], p0 )
-	    mAddVertex( corners2[0], p1 )
+	    mAddVertex((*corners1)[0],p0)
+	    mAddVertex((*corners2)[0],p1)
 
 	    if ( doreverse )
 	    {
 		norm = -planenormal;
 		norm.normalize();
-		for ( int idx=0; idx<_resolution; idx++ )
+		for (int idx=0;idx<_resolution;idx++)
 		{
-		    mAddCap( corners2, p1 );
+		    mAddCap(corners2,p1);
 		}
 	    
-		coords->push_back( corners2[0] );
-	        triindices->push_back( ci++ );
-		normals->push_back( norm );
+		_geom3DCoords ->push_back((*corners2)[0]);
+	        triindices->push_back(ci++);
+		_geom3DNormals->push_back(norm);
 	    }
 	
-	    for ( int idx=0; idx<_resolution; idx++ )
-		corners1[idx] = corners2[idx];
+	    for (int idx=0;idx<_resolution;idx++)
+		(*corners1)[idx] = (*corners2)[idx];
 	}
 
-	delete[] corners1;
-	delete[] corners2;
-   
-	_geometry->addPrimitiveSet( triindices );
+	_geometry->addPrimitiveSet(triindices);
     }
-   
-    _geometry->setVertexArray( coords.get() );
-    _geometry->setNormalArray( normals.get() );
-    _geometry->setNormalBinding( osg::Geometry::BIND_PER_VERTEX );
-    _geometry->setColorBinding(osg::Geometry::BIND_OVERALL); 
-    _needsUpdate = false;
-    _arraymodcount = _array->getModifiedCount();
-    
-    _bs = bbox;
 
+    _unScaledGeomCoords = (osg::Vec3Array*) _geom3DCoords ->clone(osg::CopyOp::SHALLOW_COPY);
+    _arrayModifiedCount = _polyLineCoords->getModifiedCount();
+    _bs = bbox;
     dirtyBound();
+    _needsUpdate = false;
+    _isGeometryChanged = true;
     return true;
 }
 
 
-bool PolyLineNode::needsUpdate( const osg::CullStack* ) const
+bool PolyLineNode::needsUpdate() const
 {
-    if ( _needsUpdate || _arraymodcount!=_array->getModifiedCount() )
+    if (_needsUpdate || _arrayModifiedCount!=_polyLineCoords->getModifiedCount())
 	return true;
 
-    for ( int idx=_primitivesets.size()-1; idx>=0; idx-- )
+    for (int idx=_primitiveSets.size()-1;idx>=0;idx--)
     {
-	if ( _primitivesets[idx]->getModifiedCount()!=
-	     _primitivesetmodcount[idx] )
+	if (_primitiveSets[idx]->getModifiedCount()!=
+	     _primitivesetModCount[idx])
 	{
 	    return true;
 	}
@@ -283,28 +369,28 @@ bool PolyLineNode::needsUpdate( const osg::CullStack* ) const
 
 void PolyLineNode::addPrimitiveSet( osg::PrimitiveSet* ps )
 {
-    _primitivesetmodcount.push_back( ps->getModifiedCount() );
-    _primitivesets.push_back( ps );
+    _primitivesetModCount.push_back( ps->getModifiedCount() );
+    _primitiveSets.push_back( ps );
     _needsUpdate = true;
 }
 
 
-int PolyLineNode::getPrimitiveSetIndex( const osg::PrimitiveSet* ps ) const
+int PolyLineNode::getPrimitiveSetIndex(const osg::PrimitiveSet* ps) const
 {
     std::vector<osg::ref_ptr<osg::PrimitiveSet> >::const_iterator it =
-	std::find( _primitivesets.begin(), _primitivesets.end(), ps );
+	std::find( _primitiveSets.begin(), _primitiveSets.end(), ps );
 
-    if ( it==_primitivesets.end() )
+    if (it==_primitiveSets.end())
 	return -1;
 
-    return it-_primitivesets.begin();
+    return it-_primitiveSets.begin();
 }
 
 
 void PolyLineNode::removePrimitiveSet( int idx )
 {
-    _primitivesetmodcount.erase( _primitivesetmodcount.begin()+idx );
-    _primitivesets.erase( _primitivesets.begin()+idx );
+    _primitivesetModCount.erase(_primitivesetModCount.begin()+idx);
+    _primitiveSets.erase(_primitiveSets.begin()+idx);
     _needsUpdate = true;
 }
 
