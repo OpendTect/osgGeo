@@ -83,7 +83,7 @@ protected:
     osg::ref_ptr<osg::Vec3Array> _unScaledGeomCoords;
     osg::ref_ptr<osg::Geometry>	 _geometry;
 
-    std::vector<osg::ref_ptr<osg::PrimitiveSet>>    _primitiveSets;
+    std::vector< osg::ref_ptr<osg::PrimitiveSet> >    _primitiveSets;
 };
 
 }
