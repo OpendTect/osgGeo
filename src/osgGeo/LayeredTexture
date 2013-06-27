@@ -22,6 +22,7 @@ $Id$
 */
 
 #include <osgGeo/LayerProcess>
+#include <osgGeo/Vec2i>
 #include <osgGeo/Common>
 #include <osg/Object>
 #include <osg/Vec2f>
@@ -86,6 +87,10 @@ public:
     const osg::Vec2f&	getDataLayerOrigin(int id) const;
 
     void		setDataLayerScale(int id,const osg::Vec2f&);
+			/*!Beware that non-proportional scaling may result
+			   in blurry textures when these are being mipmapped,
+			   because OpenGL works with a maximum scale factor
+			   over all dimensions instead of one for each. */
     const osg::Vec2f&	getDataLayerScale(int id) const;
 
     void		setDataLayerFilterType(int id,FilterType);
@@ -153,31 +158,44 @@ public:
     };
 
     bool		needsRetiling() const;
-    void		reInitTiling();
+    void		reInitTiling(float externalTexelSizeRatio=1.0f);
+			/*!Ratio dx/dy denotes external texel distortion.
+			   Used by seam management to minimize tile artifacts
+			   caused by mipmapping with non-square texels. */
 
     bool /* as_asked */	planTiling(unsigned short brickSize,
 				   std::vector<float>& xTickMarks,
 				   std::vector<float>& yTickMarks,
 				   bool strict=true) const;
 			/*!If not strict, the brick size of the returned tiling
-			   might be chosen smaller for performance reasons. */
+			   might be chosen different to optimize performance. */
 
     osg::Vec2f		tilingPlanResolution() const;
+			//!Reciprocal of the scale of highest-resolution layer
 
     osg::StateSet*	createCutoutStateSet(const osg::Vec2f& origin,
 			    const osg::Vec2f& opposite,
 			    std::vector<TextureCoordData>&) const;
-			/*!If needsRetiling() is true, call reInitTiling()
+			/*!If needsRetiling() is true, call reInitTiling(.)
 			   first, followed by the optional planTiling(.),
 			   and next (re)create your CutoutStateSets. */
 
     osg::StateSet*	getSetupStateSet();
     void		updateSetupStateSet()	{ _updateSetupStateSet=true; }
 
+    void		setSeamPower(int power,int dim=-1);
+			/*!Default power 0 adds a one-texel seam to both tile
+			   side. Each extra power step doubles its width. At
+			   the cost of speed and memory usage, a larger seam
+			   minimizes tile artifacts that may occur when zooming
+			   out, e.g. at near-parallel viewing angles. Both
+			   the two dimensions will be set if none specified. */
+    int			getSeamPower(int dim=0) const;
+
     void		allowShaders(bool yn=true,bool maySkipEarlyProcs=false);
-			/*! Fallback to fixed function pipeline if not enough
-			    texture units available, unless option is set to 
-			    just skip the earliest processes. */
+			/*!Fallback to fixed function pipeline if not enough
+			   texture units available, unless option is set to 
+			   just skip the earliest processes. */
 
     bool		areShadersAllowed() const   { return _allowShaders; }
     bool		areShadersUsedNow() const   { return _useShaders; }
@@ -217,6 +235,8 @@ protected:
     void		updateSetupStateSetIfNeeded();
     void		updateTextureInfoIfNeeded() const;
     void		updateTilingInfoIfNeeded() const;
+    int			getSeamWidth(int layerIdx,int dim) const;
+    int			getTileOverlapUpperBound(int dim) const;
     TextureSizePolicy	usedTextureSizePolicy() const;
 
     int /* nrProc */	getProcessInfo(std::vector<int>& orderedLayerIDs,
@@ -251,6 +271,8 @@ protected:
 
     TextureSizePolicy			_textureSizePolicy;
     unsigned int			_maxTextureCopySize;
+    Vec2i				_seamPower;
+    float				_externalTexelSizeRatio;
 
     mutable TilingInfo*			_tilingInfo;
     mutable TextureInfo*		_texInfo;
@@ -268,6 +290,7 @@ protected:
     int					_compositeLayerId;
     bool				_compositeLayerUpdate;
     bool				_retileCompositeLayer;
+    bool				_reInitTiling;
 };
 
 

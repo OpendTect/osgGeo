@@ -541,6 +541,28 @@ void TexturePanelStripNode::finalizeZTiling( const std::vector<float>& tOrigins,
 }    
 
 
+float TexturePanelStripNode::getTexelSizeRatio() const
+{
+    const float zTextureSize = getBottomTextureMapping() - getTopTextureMapping();
+    const float zLength = getBottom() - getTop();
+
+    const float pathTextureSize = _pathTexOffsets->back() - _pathTexOffsets->front();
+
+    if ( zTextureSize==0.0f || zLength==0.0f || pathTextureSize==0.0f )
+	return 0.0f;
+
+    float pathLength = 0.0f;
+    for ( int idx=1; idx<_pathCoords->size(); idx++ )
+	pathLength += ((*_pathCoords)[idx]-(*_pathCoords)[idx-1]).length();
+
+    if ( pathLength==0.0 )
+	return 0.0f;
+
+    const float ratio = zTextureSize*pathLength / (pathTextureSize*zLength);
+    return _swapTextureAxes ? 1.0f/ratio : ratio;
+}
+
+
 bool TexturePanelStripNode::updateGeometry()
 {
     cleanUp();
@@ -552,7 +574,7 @@ bool TexturePanelStripNode::updateGeometry()
     if ( !_texture || nrKnots<2 )
 	return false;
 
-    _texture->reInitTiling();
+    _texture->reInitTiling( getTexelSizeRatio() );
 
     std::vector<float> xTicks, yTicks, zCoords, zOffsets;
     _texture->planTiling(_textureBrickSize, xTicks, yTicks, _isBrickSizeStrict);
