@@ -4,14 +4,14 @@
 # OSGGEO_FOUND, if false, do not try to link to gdal 
 # OSGGEO_INCLUDE_DIR, where to find the headers
 #
-# $OSGGEO_DIR is an environment variable that would
-# correspond to the ./configure --prefix=$OSGGEO_DIR
+# $osgGeo_DIR is an environment variable that would
+# correspond to the ./configure --prefix=$osgGeo_DIR
 #
 # Created by Robert Osfield. 
 
 find_path(OSGGEO_INCLUDE_DIR osgGeo/Horizon3D
-    ${OSGGEO_DIR}/include
-    $ENV{OSGGEO_DIR}/include
+    ${osgGeo_DIR}/include
+    $ENV{osgGeo_DIR}/include
     NO_DEFAULT_PATH
 )
 
@@ -22,15 +22,15 @@ macro(FIND_OSGGEO_LIBRARY MYLIBRARY MYLIBRARYNAME)
     find_library("${MYLIBRARY}_DEBUG"
         NAMES "${MYLIBRARYNAME}${CMAKE_DEBUG_POSTFIX}"
         PATHS
-        ${OSGGEO_DIR}/lib/Debug
-        ${OSGGEO_DIR}/lib64/Debug
-        ${OSGGEO_DIR}/lib
-        ${OSGGEO_DIR}/lib64
-        $ENV{OSGGEO_DIR}/lib/debug
-        $ENV{OSGGEO_DIR}/lib64/debug
-        $ENV{OSGGEO_DIR}/lib
-        $ENV{OSGGEO_DIR}/lib64
-        $ENV{OSGGEO_DIR}
+        ${osgGeo_DIR}/lib/Debug
+        ${osgGeo_DIR}/lib64/Debug
+        ${osgGeo_DIR}/lib
+        ${osgGeo_DIR}/lib64
+        $ENV{osgGeo_DIR}/lib/debug
+        $ENV{osgGeo_DIR}/lib64/debug
+        $ENV{osgGeo_DIR}/lib
+        $ENV{osgGeo_DIR}/lib64
+        $ENV{osgGeo_DIR}
         $ENV{OSGGEODIR}/lib
         $ENV{OSGGEODIR}/lib64
         $ENV{OSGGEODIR}
@@ -63,15 +63,15 @@ macro(FIND_OSGGEO_LIBRARY MYLIBRARY MYLIBRARYNAME)
     find_library(${MYLIBRARY}
         NAMES "${MYLIBRARYNAME}${CMAKE_RELEASE_POSTFIX}"
         PATHS
-        ${OSGGEO_DIR}/lib/Release
-        ${OSGGEO_DIR}/lib64/Release
-        ${OSGGEO_DIR}/lib
-        ${OSGGEO_DIR}/lib64
-        $ENV{OSGGEO_DIR}/lib/Release
-        $ENV{OSGGEO_DIR}/lib64/Release
-        $ENV{OSGGEO_DIR}/lib
-        $ENV{OSGGEO_DIR}/lib64
-        $ENV{OSGGEO_DIR}
+        ${osgGeo_DIR}/lib/Release
+        ${osgGeo_DIR}/lib64/Release
+        ${osgGeo_DIR}/lib
+        ${osgGeo_DIR}/lib64
+        $ENV{osgGeo_DIR}/lib/Release
+        $ENV{osgGeo_DIR}/lib64/Release
+        $ENV{osgGeo_DIR}/lib
+        $ENV{osgGeo_DIR}/lib64
+        $ENV{osgGeo_DIR}
         $ENV{OSGGEODIR}/lib
         $ENV{OSGGEODIR}/lib64
         $ENV{OSGGEODIR}
