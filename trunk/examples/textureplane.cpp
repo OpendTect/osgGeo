@@ -283,6 +283,7 @@ int main( int argc, char** argv )
     usage->addCommandLineOption( "--udfcolor <R> <B> <G> <A>", "New RGBA undef color [0,255]" );
     usage->addCommandLineOption( "--udfstack <R> <B> <G> <A>", "Stack RGBA undef area [0,255]" );
     usage->addCommandLineOption( "--border <R> <B> <G> <A>", "Image RGBA border color [-1=edge,255]" );
+    usage->addCommandLineOption( "--seampower <x> <y>", "Seam power [0,->]" );
     usage->addCommandLineOption( "--shift <x> <y>", "Texture shift" );
     usage->addCommandLineOption( "--growth <x> <y>", "Texture growth" );
     usage->addCommandLineOption( "--scene", "Add scene elements" );
@@ -372,6 +373,17 @@ int main( int argc, char** argv )
 
     osg::Vec2f growth( 0.0f, 0.0f );
     while ( args.read("--growth", growth.x(), growth.y()) );
+
+    int seamPower0 = 0;
+    int seamPower1 = 0;
+    while ( args.read("--seampower", seamPower0, seamPower1) ) 
+    {
+	if ( seamPower0<0 || seamPower1<0 )
+	    args.reportError( "Negative seam power has no effect" );
+    }
+
+    laytex->setSeamPower( seamPower0, 0 );
+    laytex->setSeamPower( seamPower1, 1 );
 
     const int firstId = laytex->addDataLayer();
     int lastId = firstId;

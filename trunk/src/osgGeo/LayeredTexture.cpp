@@ -235,7 +235,7 @@ struct LayeredTextureData : public osg::Referenced
     osg::Vec2f					_scale;
     osg::ref_ptr<const osg::Image>		_image;
     osg::ref_ptr<const osg::Image>		_imageSource;
-    osgGeo::Vec2i				_imageSourceSize;
+    Vec2i					_imageSourceSize;
     osg::Vec2f					_imageScale;
     int						_imageModifiedCount;
     bool					_imageModifiedFlag;
@@ -485,6 +485,9 @@ struct TextureInfo
 LayeredTexture::LayeredTexture()
     : _updateSetupStateSet( false )
     , _maxTextureCopySize( 32*32 )
+    , _textureSizePolicy( PowerOf2 )
+    , _seamPower( 0, 0 )
+    , _externalTexelSizeRatio( 1.0 )
     , _tilingInfo( new TilingInfo )
     , _texInfo( new TextureInfo )
     , _stackUndefLayerId( -1 )
@@ -496,6 +499,7 @@ LayeredTexture::LayeredTexture()
     , _useShaders( false )
     , _compositeLayerUpdate( true )
     , _retileCompositeLayer( false )
+    , _reInitTiling( false )
     , _isOn( true )
 {
     _id2idxTable.push_back( -1 );	// ID=0 used to represent ColSeqTexture
@@ -510,6 +514,9 @@ LayeredTexture::LayeredTexture( const LayeredTexture& lt,
     , _updateSetupStateSet( false )
     , _setupStateSet( 0 )
     , _maxTextureCopySize( lt._maxTextureCopySize )
+    , _textureSizePolicy( lt._textureSizePolicy )
+    , _seamPower( lt._seamPower )
+    , _externalTexelSizeRatio( lt._externalTexelSizeRatio )
     , _tilingInfo( new TilingInfo(*lt._tilingInfo) )
     , _texInfo( new TextureInfo(*lt._texInfo) )
     , _stackUndefLayerId( lt._stackUndefLayerId )
@@ -521,6 +528,7 @@ LayeredTexture::LayeredTexture( const LayeredTexture& lt,
     , _compositeLayerId( lt._compositeLayerId )
     , _compositeLayerUpdate( lt._compositeLayerUpdate )
     , _retileCompositeLayer( false )
+    , _reInitTiling( false )
     , _isOn( lt._isOn )
 {
     for ( unsigned int idx=0; idx<lt._dataLayers.size(); idx++ )
@@ -710,7 +718,7 @@ void LayeredTexture::setDataLayerImage( int id, const osg::Image* image )
 	    return;
 	}
 
-	osgGeo::Vec2i newImageSize( image->s(), image->t() );
+	Vec2i newImageSize( image->s(), image->t() );
 
 #ifdef USE_IMAGE_STRIDE
 	const bool retile = layer._imageSource.get()!=image || layer._imageSourceSize!=newImageSize || !layer._tileImages.size();
@@ -722,7 +730,8 @@ void LayeredTexture::setDataLayerImage( int id, const osg::Image* image )
 	const int t = powerOf2Ceil( image->t() );
 
 	bool scaleImage = s>image->s() || t>image->t();
-	scaleImage = scaleImage && s*t<=(int) _maxTextureCopySize;
+	if ( image->s()>=8 && image->t()>=8 && s*t>int(_maxTextureCopySize) )
+	    scaleImage = false;
 
 	if ( scaleImage && id!=_compositeLayerId )
 	{
@@ -1112,8 +1121,13 @@ void LayeredTexture::updateTilingInfoIfNeeded() const
     _tilingInfo->_envelopeSize = maxBound - minBound;
     _tilingInfo->_envelopeOrigin = minBound;
     _tilingInfo->_smallestScale = minScale;
-    _tilingInfo->_maxTileSize = osg::Vec2f( minNoPow2Size.x() / minScale.x(),
-					    minNoPow2Size.y() / minScale.y() );
+
+    for ( int dim=0; dim<=1; dim++ )
+    {
+	_tilingInfo->_maxTileSize[dim] = ceil( _tilingInfo->_envelopeSize[dim]/ minScale[dim] );
+	if ( minNoPow2Size[dim]>0.0f )
+	    _tilingInfo->_maxTileSize[dim] = minNoPow2Size[dim] / minScale[dim];
+    }
 }
 
 
@@ -1172,8 +1186,9 @@ int LayeredTexture::nrTextureUnits() const
 }
 
 
-void LayeredTexture::reInitTiling()
+void LayeredTexture::reInitTiling( float texelSizeRatio )
 {
+    _reInitTiling = true;
     updateTilingInfoIfNeeded();
     updateTextureInfoIfNeeded();
     assignTextureUnits();
@@ -1182,31 +1197,122 @@ void LayeredTexture::reInitTiling()
     for ( ; lit!=_dataLayers.end(); lit++ )
 	(*lit)->cleanUp();
 
-    _tilingInfo->_retilingNeeded = !_texInfo->_isValid;
+    _tilingInfo->_retilingNeeded = false;
+    _externalTexelSizeRatio = texelSizeRatio; 
+    _reInitTiling = false;
+}
+
+
+void LayeredTexture::setSeamPower( int power, int dim )
+{
+    if ( dim!=1 )
+	_seamPower.x() = power;
+    if ( dim!=0 )
+	_seamPower.y() = power;
+
+     _tilingInfo->_retilingNeeded = true;
+}
+
+
+int LayeredTexture::getSeamPower( int dim ) const
+{ return dim>0 ? _seamPower.y() : _seamPower.x(); }
+
+
+int LayeredTexture::getSeamWidth( int layerIdx, int dim ) const
+{
+    if ( layerIdx<0 || layerIdx>=nrDataLayers() || dim<0 || dim>1 )
+	return 1;
+
+    float ratio = 1.0f;
+    if ( _externalTexelSizeRatio )
+	ratio = fabs( _externalTexelSizeRatio );
+    if ( dim==1 )
+	ratio = 1.0f / ratio;
+
+    LayeredTextureData* layer = _dataLayers[layerIdx];
+    ratio *= _tilingInfo->_smallestScale[dim] / layer->_scale[1-dim];
+
+    int seamWidth = (int) floor( ratio+0.5 );
+
+    if ( seamWidth>_texInfo->_maxSize/4 )
+	seamWidth = _texInfo->_maxSize/4;
+    if ( seamWidth<1 )
+	seamWidth = 1;
+
+    seamWidth = powerOf2Ceil( seamWidth );
+
+    int seamPower = getSeamPower( dim );
+    while ( (--seamPower)>=0 && seamWidth<_texInfo->_maxSize/4 )
+	seamWidth *= 2;
+
+    return seamWidth;
+}
+
+
+int LayeredTexture::getTileOverlapUpperBound( int dim ) const
+{
+     if ( dim<0 || dim>1 )
+	 return 0;
+
+    float maxScaledWidth = 1.0f;
+
+    for ( int idx=0; idx<nrDataLayers(); idx++ )
+    {
+	LayeredTextureData* layer = _dataLayers[idx];
+	if ( !layer->_image.get() || layer->_id==_compositeLayerId )
+	    continue;
+
+	const float scaledWidth = layer->_scale[dim] * getSeamWidth(idx,dim);
+	if ( scaledWidth > maxScaledWidth )
+	    maxScaledWidth = scaledWidth;
+    }
+
+    // Include one extra seam width in upper bound to cover seam alignment
+    return 3 * (int) ceil(maxScaledWidth/_tilingInfo->_smallestScale[dim]);
 }
 
 
 bool LayeredTexture::planTiling( unsigned short brickSize, std::vector<float>& xTickMarks, std::vector<float>& yTickMarks, bool strict ) const
 {
-    const osgGeo::Vec2i requestedSize( brickSize, brickSize );
-    osgGeo::Vec2i actualSize = requestedSize;
+    const Vec2i requestedSize( brickSize, brickSize );
+    Vec2i actualSize = requestedSize;
 
     if ( !strict && _textureSizePolicy!=AnySize )
     {
-	const int overlap = 2;	/* One to avoid seam (lower LOD needs more),
-				   one because layers may mutually disalign. */
-
-	const int powerOf2Size = powerOf2Ceil( brickSize+overlap+1 ) / 2;
-	actualSize = osgGeo::Vec2i( powerOf2Size, powerOf2Size );
-
 	const osg::Vec2f& maxTileSize = _tilingInfo->_maxTileSize;
-	while ( actualSize.x()>maxTileSize.x() && maxTileSize.x()>0.0f )
-	    actualSize.x() /= 2;
 
-	while ( actualSize.y()>maxTileSize.y() && maxTileSize.y()>0.0f )
-	    actualSize.y() /= 2;
+	for ( int dim=0; dim<=1; dim++ )
+	{
+	    const int overlap = getTileOverlapUpperBound( dim ); 
+	    actualSize[dim] = powerOf2Ceil( brickSize+overlap );
 
-	actualSize -= osgGeo::Vec2i( overlap, overlap );
+	    // To minimize absolute difference with requested brick size
+	    if ( brickSize<0.75*actualSize[dim]-overlap )
+	    {
+		// But let's stay above half the requested brick size
+		if ( brickSize<actualSize[dim]-2*overlap )
+		    actualSize[dim] /= 2;
+	    }
+
+	    bool hadToReduceTileSize = false;
+	    while ( actualSize[dim]>maxTileSize[dim] && maxTileSize[dim]>0.0f )
+	    {
+		hadToReduceTileSize = true;
+		actualSize[dim] /= 2;
+	    }
+
+	    if ( hadToReduceTileSize && overlap>0.75*actualSize[dim] )
+	    {
+		// Cut down seam if it (almost) overgrows the tile
+		actualSize[dim] /= 4;
+		if ( actualSize[dim]>brickSize )
+		    actualSize[dim] = brickSize;
+	    }
+	    else 
+		actualSize[dim] -= overlap;
+
+	    // std::cerr << "Tile size: " << actualSize[dim] << ", overlap: " << overlap << std::endl;
+	}
     }
 
     const osg::Vec2f& size = _tilingInfo->_envelopeSize;
@@ -1292,7 +1398,7 @@ static void copyImageWithStride( const unsigned char* srcImage, unsigned char* t
 }
 
 
-static void copyImageTile( const osg::Image& srcImage, osg::Image& tileImage, const osgGeo::Vec2i& tileOrigin, const osgGeo::Vec2i& tileSize )
+static void copyImageTile( const osg::Image& srcImage, osg::Image& tileImage, const Vec2i& tileOrigin, const Vec2i& tileSize )
 {
     tileImage.allocateImage( tileSize.x(), tileSize.y(), srcImage.r(), srcImage.getPixelFormat(), srcImage.getDataType(), srcImage.getPacking() );
 
@@ -1333,80 +1439,98 @@ osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, co
 	if ( !srcImage || !srcImage->s() || !srcImage->t() )
 	    continue;
 
-	bool xBorderCrossing = localOrigin.x()<-EPS || localOpposite.x()>srcImage->s()+EPS;
-	bool yBorderCrossing = localOrigin.y()<-EPS || localOpposite.y()>srcImage->t()+EPS;
+	const Vec2i imageSize( srcImage->s(), srcImage->t() );
+	Vec2i hasBorderArea, tileOrigin, tileSize;
 
-	osgGeo::Vec2i size( (int) ceil(localOpposite.x()+0.5),
-			    (int) ceil(localOpposite.y()+0.5) );
-
-	osgGeo::Vec2i overshoot( size.x()-srcImage->s(),
-				 size.y()-srcImage->t() );
-	if ( overshoot.x() > 0 )
-	{
-	    size.x() -= overshoot.x();
-	    overshoot.x() = 0;
-	}
-	if ( overshoot.y() > 0 )
-	{
-	    size.y() -= overshoot.y();
-	    overshoot.y() = 0;
-	}
-
-	osgGeo::Vec2i tileOrigin( (int) floor(localOrigin.x()-0.5),
-				  (int) floor(localOrigin.y()-0.5) );
-	if ( tileOrigin.x() < 0 )
-	    tileOrigin.x() = 0;
-	else
-	    size.x() -= tileOrigin.x();
-
-	if ( tileOrigin.y() < 0 )
-	    tileOrigin.y() = 0;
-	else
-	    size.y() -= tileOrigin.y();
-
-	if ( size.x()<1 || size.y()<1 )
-	{
-	    size = osgGeo::Vec2i( 1, 1 );
-	    tileOrigin = osgGeo::Vec2i( 0, 0 );
-	}
-
-	if ( size.x()>_texInfo->_maxSize || size.y()>_texInfo->_maxSize )
-	{
-	    std::cerr << "Cut-out exceeds maximum texture size of " << _texInfo->_maxSize << std::endl;
-	    if ( size.x() > _texInfo->_maxSize )
-	    {
-		size.x() = _texInfo->_maxSize;
-		xBorderCrossing = true;
-	    }
-	    if ( size.y() > _texInfo->_maxSize )
-	    {
-		size.y() = _texInfo->_maxSize;
-		yBorderCrossing = true;
-	    }
-	}
-
-	osgGeo::Vec2i tileSize = size;
-	if ( usedTextureSizePolicy() != AnySize )
-	{
-	    tileSize = osgGeo::Vec2i( powerOf2Ceil(size.x()),
-				      powerOf2Ceil(size.y()) );
-	}
-
-	overshoot += tileSize - size;
-
+	bool overflowErrorMsg = false;
 	bool resizeHint = false;
-	if ( tileOrigin.x()<overshoot.x() || tileOrigin.y()<overshoot.y() )
-	{
-	    std::cerr << "Can't avoid texture resampling for this cut-out: increase MaxTextureCopySize" << std::endl ;
-	    overshoot = osgGeo::Vec2i( 0, 0 );
-	    tileSize = size;
-	    resizeHint = true;
-	}
 
-	if ( overshoot.x() > 0 )
-	    tileOrigin.x() -= overshoot.x();
-	if ( overshoot.y() > 0 )
-	    tileOrigin.y() -= overshoot.y();
+	for ( int dim=0; dim<=1; dim++ )
+	{
+	    hasBorderArea[dim] = localOrigin[dim]<-EPS || localOpposite[dim]>imageSize[dim]+EPS;
+
+	    if ( localOpposite[dim]<EPS || localOrigin[dim]>imageSize[dim]-EPS )
+	    {
+		tileOrigin[dim] = localOpposite[dim]<EPS ? 0 : imageSize[dim]-1;
+		tileSize[dim] = 1;  // More needed only if mipmapping-induced
+		continue;	    // artifacts in extended-edge-pixel borders
+	    }			    // become an issue. 
+
+	    const int orgSeamWidth = getSeamWidth( idx, dim );
+	    for ( int width=orgSeamWidth; ; width/=2 )
+	    {
+		tileOrigin[dim] = (int) floor( localOrigin[dim]-0.5 );
+		int tileOpposite = (int) ceil( localOpposite[dim]+0.5 );
+
+		/* width==0 represents going back to original seam width
+		   after anything smaller does not solve the puzzle either. */ 
+		const int seamWidth = width ? width : orgSeamWidth;
+
+		tileOrigin[dim] -= seamWidth/2;
+		if ( tileOrigin[dim]<=0 )
+		    tileOrigin[dim] = 0;
+		else 
+		    // Align seams of subsequent tiles to minimize artifacts
+		    tileOrigin[dim] -= tileOrigin[dim]%seamWidth; 
+
+		tileOpposite += ((3*seamWidth)/2) - 1;
+		tileOpposite -= tileOpposite%seamWidth;
+
+		if ( tileOpposite>imageSize[dim] )  // Cannot guarantee seam
+		    tileOpposite = imageSize[dim];  // alignment at last tile
+
+		tileSize[dim] = tileOpposite - tileOrigin[dim];
+		if ( tileSize[dim]>_texInfo->_maxSize )
+		{
+		    if ( seamWidth>1 )
+			continue;
+
+		    if ( !overflowErrorMsg )
+		    {
+			overflowErrorMsg = true;
+			std::cerr << "Cut-out exceeds maximum texture size: " << _texInfo->_maxSize << std::endl;
+		    }
+
+		    tileSize[dim] = _texInfo->_maxSize;
+		    hasBorderArea[dim] = true;
+		    break;
+		}
+
+		if ( seamWidth==orgSeamWidth && usedTextureSizePolicy()==AnySize )
+		    /* Note that seam alignment will be broken if OpenGL
+		       implementation of AnySize is going to resample. */
+		    break;
+
+		const int powerOf2Size = powerOf2Ceil( tileSize[dim] );
+
+		if ( powerOf2Size>imageSize[dim] )
+		{
+		    if ( orgSeamWidth>1 && width>0 )
+			continue;
+
+		    if ( !resizeHint ) 
+		    {
+			resizeHint = true;
+			std::cerr << "Can't avoid texture resampling for this cut-out: increase MaxTextureCopySize" << std::endl ;
+		    }
+		    break;
+		}
+
+		const int extraSeam = (powerOf2Size-tileSize[dim]) / 2;
+		// Be careful not to break the current seam alignments
+		tileOrigin[dim] -= seamWidth * (extraSeam/seamWidth);
+
+		tileSize[dim] = powerOf2Size;
+
+		if ( tileOrigin[dim]<0 )
+		    tileOrigin[dim] = 0;
+
+		if ( tileOrigin[dim]+tileSize[dim] > imageSize[dim] )
+		    tileOrigin[dim] = imageSize[dim] - tileSize[dim];
+
+		break;
+	    }
+	}
 
 	osg::ref_ptr<osg::Image> tileImage = new osg::Image;
 
@@ -1425,11 +1549,11 @@ osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, co
 	    copyImageTile( *srcImage, *tileImage, tileOrigin, tileSize );
 
 	osg::Texture::WrapMode xWrapMode = osg::Texture::CLAMP_TO_EDGE;
-	if ( layer->_borderColor[0]>=0.0f && xBorderCrossing )
+	if ( layer->_borderColor[0]>=0.0f && hasBorderArea.x() )
 	    xWrapMode = osg::Texture::CLAMP_TO_BORDER;
 
 	osg::Texture::WrapMode yWrapMode = osg::Texture::CLAMP_TO_EDGE;
-	if ( layer->_borderColor[0]>=0.0f && yBorderCrossing )
+	if ( layer->_borderColor[0]>=0.0f && hasBorderArea.y() )
 	    yWrapMode = osg::Texture::CLAMP_TO_BORDER;
 
 	osg::Vec2f tc00, tc01, tc10, tc11;
@@ -1547,7 +1671,7 @@ void LayeredTexture::buildShaders()
 	if ( create )
 	    createCompositeTexture( !_texInfo->_isValid );
 
-	if ( !create || !_retileCompositeLayer )
+	if ( !_retileCompositeLayer )
 	{
 	    _setupStateSet->clear();
 	    setRenderingHint( getDataLayerTransparencyType(_compositeLayerId)==Opaque );
@@ -2187,10 +2311,12 @@ void LayeredTexture::createCompositeTexture( bool dummyTexture )
 
     int nrPixels = height*width;
 
-    // Will not cover mixed use of uniform and extended-edge-pixel borders
+    /* Cannot cover mixed use of uniform and extended-edge-pixel borders
+       without shaders (trick with extra one-pixel wide border is screwed
+       by mipmapping) */
     osg::Vec4f borderColor = getDataLayerBorderColor( _compositeLayerId );
     if ( borderColor[0]>=0.0f )	
-	nrPixels++;	// One extra pixel to compute composite borderColor		
+	nrPixels++; // One extra pixel to compute uniform composite borderColor		
     int nrTasks = OpenThreads::GetNumberOfProcessors();
 
     if ( nrTasks<1 )
@@ -2223,15 +2349,21 @@ void LayeredTexture::createCompositeTexture( bool dummyTexture )
 
     readyCount.block();
 
+    const bool retilingNeededAlready = _tilingInfo->_retilingNeeded;
+
     setDataLayerImage( _compositeLayerId, image );
-    setDataLayerBorderColor( _compositeLayerId, borderColor );
 
     _retileCompositeLayer = _tilingInfo->_needsUpdate ||
-			    getDataLayerTextureUnit(_compositeLayerId)!=0;
-    if ( _useShaders )
+		    getDataLayerTextureUnit(_compositeLayerId)!=0 ||
+		    borderColor!=getDataLayerBorderColor(_compositeLayerId);
+
+    if ( _reInitTiling || _useShaders )
 	_retileCompositeLayer = false;
 
+    setDataLayerBorderColor( _compositeLayerId, borderColor );
+
     _tilingInfo->_needsUpdate = false;
+    _tilingInfo->_retilingNeeded = retilingNeededAlready;
 }
 
 

@@ -98,6 +98,7 @@ protected:
     virtual			~TexturePlaneNode();
 
     void			cleanUp();
+    float			getTexelSizeRatio() const;
     void			finalizeTiling(std::vector<float>& origins,
 					       int dim) const;
     bool			needsUpdate() const;

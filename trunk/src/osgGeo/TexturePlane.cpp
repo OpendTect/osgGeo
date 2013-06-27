@@ -244,14 +244,38 @@ void TexturePlaneNode::finalizeTiling( std::vector<float>& origins, int dim ) co
 }
 
 
+float TexturePlaneNode::getTexelSizeRatio() const
+{
+    if ( !_texture )
+	return 0.0f;
+
+    osg::Vec2 textureSize = _texture->textureEnvelopeSize() + _textureGrowth;
+    if ( textureSize.x()<=0.0f || textureSize.y()<=0.0f )
+	return 0.0f;
+
+    osg::Vec2 planeWidth( _width.x(), _width.y() );
+    if ( getThinDim()==0 )
+	planeWidth = osg::Vec2( _width.y(), _width.z() );
+    if ( getThinDim()==1 )
+	planeWidth = osg::Vec2( _width.x(), _width.z() );
+
+    if ( planeWidth.x()==0.0f || planeWidth.y()==0.0f )
+	return 0.0f;
+
+    if ( _swapTextureAxes )
+	planeWidth = osg::Vec2( planeWidth.y(), planeWidth.x() );
+
+    return textureSize.y()*planeWidth.x() / (textureSize.x()*planeWidth.y());
+}
+
+
 bool TexturePlaneNode::updateGeometry()
 {
     if ( !_texture ) 
 	return false;
 
     cleanUp();
-
-    _texture->reInitTiling();
+    _texture->reInitTiling( getTexelSizeRatio() );
 
     std::vector<float> sOrigins, tOrigins;
     _texture->planTiling( _textureBrickSize, sOrigins, tOrigins, _isBrickSizeStrict );

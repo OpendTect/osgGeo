@@ -122,6 +122,7 @@ protected:
     virtual			~TexturePanelStripNode();
 
     void			cleanUp();
+    float			getTexelSizeRatio() const;
     void			traverse(osg::NodeVisitor&);
     bool			updateGeometry();
 
