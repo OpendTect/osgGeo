@@ -45,8 +45,6 @@ if( BUILD_EXAMPLES )
     endif()
 endif( BUILD_EXAMPLES )
 
-set ( CMAKE_INCLUDE_SYSTEM_FLAG_CXX "-isystem ")
-set ( CMAKE_INCLUDE_SYSTEM_FLAG_C "-isystem ")
 include_directories( ${osgGeo_SOURCE_DIR}/src )
 include_directories( SYSTEM ${OSG_INCLUDE_DIR} ${QT_HEADERS_DIR} )
 
