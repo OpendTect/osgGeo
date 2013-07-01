@@ -25,9 +25,10 @@ if ( UNIX )
     set ( CMAKE_CXX_FLAGS "-Wformat ${CMAKE_CXX_FLAGS}" )
     set ( CMAKE_CXX_FLAGS "-Wreturn-type -Winit-self -Wno-char-subscripts ${CMAKE_CXX_FLAGS}" )
 
-
-    set ( CMAKE_INCLUDE_SYSTEM_FLAG_CXX "-isystem ")
-    set ( CMAKE_INCLUDE_SYSTEM_FLAG_C "-isystem ")
+    if ( CMAKE_COMPILER_IS_GNUCC )
+	set ( CMAKE_INCLUDE_SYSTEM_FLAG_CXX "-isystem ")
+	set ( CMAKE_INCLUDE_SYSTEM_FLAG_C "-isystem ")
+    endif()
     
 endif()
 
