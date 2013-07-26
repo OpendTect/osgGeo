@@ -225,19 +225,6 @@ void PolyLineNode::clearAll()
 }
 
 
-static int getMaxIndex(const osg::PrimitiveSet* ps)
-{
-    int max = 0;
-    for (unsigned int idx=0;idx<ps->getNumIndices();idx++)
-    {
-	const int val = (int)ps->index(idx);
-    	max = max > val ? max : val;
-    }
-    
-    return max;
-}
-
-
 #define mAddVertex(vec,pos)\
     _geom3DCoords ->push_back(vec); \
     norm = vec - pos; \
@@ -270,16 +257,18 @@ bool PolyLineNode::updateGeometry()
     for (unsigned int primidx=0;primidx<primsz;primidx++)
     {
 	const osg::PrimitiveSet* ps = _primitiveSets.at(primidx);
-	const int maxprimsz = getMaxIndex(ps);
 	bool doonce = true;
 	osg::DrawElementsUInt* triindices =
 		new osg::DrawElementsUInt(osg::PrimitiveSet::TRIANGLE_STRIP);
-	for (unsigned int cidx=0;cidx<ps->getNumIndices();cidx++)
+	const unsigned int pssz = ps->getNumIndices();
+	for (unsigned int cidx=0;cidx<pssz;cidx++)
 	{
-	    const int pidx = (int) ps->index(cidx);
-	    const osg::Vec3  p0 = _polyLineCoords->at(pidx);
-	    const osg::Vec3  p1 = _polyLineCoords->at(pidx <= maxprimsz-1 ? pidx+1 : pidx);
-	    const osg::Vec3  p2 = _polyLineCoords->at(pidx <= maxprimsz-2 ? pidx+2 : pidx);
+	    const unsigned int pidx0 = ps->index(cidx);
+	    const int unsigned pidx1 = ps->index(cidx<pssz-1 ? cidx+1 : cidx);
+	    const int unsigned pidx2 = ps->index(cidx<pssz-2 ? cidx+2 : cidx);
+	    const osg::Vec3  p0 = _polyLineCoords->at(pidx0);
+	    const osg::Vec3  p1 = _polyLineCoords->at(pidx1);
+	    const osg::Vec3  p2 = _polyLineCoords->at(pidx2);
 	    osg::Vec3 vec01 = p1 - p0; vec01.normalize();
 	    osg::Vec3 vec12 = p2 - p1; vec12.normalize();
 	  
