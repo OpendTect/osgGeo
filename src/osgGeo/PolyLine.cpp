@@ -264,8 +264,8 @@ bool PolyLineNode::updateGeometry()
 	for (unsigned int cidx=0;cidx<pssz;cidx++)
 	{
 	    const unsigned int pidx0 = ps->index(cidx);
-	    const int unsigned pidx1 = ps->index(cidx<pssz-1 ? cidx+1 : cidx);
-	    const int unsigned pidx2 = ps->index(cidx<pssz-2 ? cidx+2 : cidx);
+	    const unsigned int pidx1 = ps->index(cidx<pssz-1 ? cidx+1 : cidx);
+	    const unsigned int pidx2 = ps->index(cidx<pssz-2 ? cidx+2 : cidx);
 	    const osg::Vec3  p0 = _polyLineCoords->at(pidx0);
 	    const osg::Vec3  p1 = _polyLineCoords->at(pidx1);
 	    const osg::Vec3  p2 = _polyLineCoords->at(pidx2);
