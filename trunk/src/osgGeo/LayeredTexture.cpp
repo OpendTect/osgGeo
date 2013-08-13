@@ -1542,7 +1542,9 @@ osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, co
 	    tileImage->setImage( tileSize.x(), tileSize.y(), si->r(), si->getInternalTextureFormat(), si->getPixelFormat(), si->getDataType(), si->data(tileOrigin.x(),tileOrigin.y()), osg::Image::NO_DELETE, si->getPacking(), si->s() ); 
 
 	    tileImage->ref();
+	    const_cast<LayeredTexture*>(this)->_lock.writeLock();
 	    layer->_tileImages.push_back( tileImage );
+	    const_cast<LayeredTexture*>(this)->_lock.writeUnlock();
 	}
 	else
 #endif
