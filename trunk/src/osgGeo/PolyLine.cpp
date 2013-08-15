@@ -261,6 +261,7 @@ bool PolyLineNode::updateGeometry()
 	return false;
     
     clearAll();
+    osg::BoundingBox bbox;
     int ci = 0;
     osg::ref_ptr<osg::Vec3Array> corners1 = new osg::Vec3Array(_resolution);
     osg::ref_ptr<osg::Vec3Array> corners2 = new osg::Vec3Array(_resolution);
@@ -341,9 +342,7 @@ bool PolyLineNode::updateGeometry()
 
     _unScaledGeomCoords = (osg::Vec3Array*) _geom3DCoords ->clone(osg::CopyOp::SHALLOW_COPY);
     _arrayModifiedCount = _polyLineCoords->getModifiedCount();
-    _bs.init();
-    for ( int idx=0; idx<coords->getNumElements(); idx++ )
-	_bs.expandBy( (*coords)[idx] );
+    _bs = bbox;
     dirtyBound();
     _needsUpdate = false;
     _isGeometryChanged = true;
