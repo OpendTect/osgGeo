@@ -23,6 +23,7 @@ $Id$
 #include <osgGeo/Line3>
 #include <osg/Geometry>
 #include <osgUtil/CullVisitor>
+#include <osgUtil/IntersectionVisitor>
 
 
 namespace osgGeo
@@ -93,6 +94,17 @@ void PolyLineNode::traverse( osg::NodeVisitor& nv )
 
 	if ( getStateSet() )
 	    cv->popStateSet();
+    }
+    else
+    {
+	osgUtil::IntersectionVisitor* iv =
+	    		dynamic_cast<osgUtil::IntersectionVisitor*>( &nv );
+	if ( iv )
+	{
+	    osgUtil::Intersector* intersec = iv->getIntersector()->clone( *iv );
+	    if ( intersec )
+		intersec->intersect( *iv, _geometry );
+	}
     }
 }
 
@@ -249,7 +261,6 @@ bool PolyLineNode::updateGeometry()
 	return false;
     
     clearAll();
-    osg::BoundingBox bbox;
     int ci = 0;
     osg::ref_ptr<osg::Vec3Array> corners1 = new osg::Vec3Array(_resolution);
     osg::ref_ptr<osg::Vec3Array> corners2 = new osg::Vec3Array(_resolution);
@@ -330,7 +341,9 @@ bool PolyLineNode::updateGeometry()
 
     _unScaledGeomCoords = (osg::Vec3Array*) _geom3DCoords ->clone(osg::CopyOp::SHALLOW_COPY);
     _arrayModifiedCount = _polyLineCoords->getModifiedCount();
-    _bs = bbox;
+    _bs.init();
+    for ( int idx=0; idx<coords->getNumElements(); idx++ )
+	_bs.expandBy( (*coords)[idx] );
     dirtyBound();
     _needsUpdate = false;
     _isGeometryChanged = true;
