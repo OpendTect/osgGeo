@@ -45,6 +45,7 @@ PlaneWellLog::PlaneWellLog()
 ,_isFilled( false )
 ,_triGeometryWidth( .0 )
 ,_isFullFilled( false )
+,_worldWidth( FLT_MAX )
 
 {
     buildLineGeometry();
@@ -83,15 +84,32 @@ void PlaneWellLog::setDisplaySide( PlaneWellLog::DisplaySide side )
 
 void PlaneWellLog::setRepeatNumber( unsigned int repeatnumber )
 {
-    _repeatNumber = repeatnumber;
+    if ( _repeatNumber != repeatnumber )
+    {
+	_repeatNumber = repeatnumber;
+	dirtyBound();
+    }
 }
 
 
 void PlaneWellLog::setRepeatGap ( float repeatgap )
 {
-    if( _triGeometryWidth != 0 )
-	_repeatGap = repeatgap*_triGeometryWidth/100; 
+    if ( _repeatGap != repeatgap )
+    {
+	_repeatGap = repeatgap;
+	if ( getRepeatNumber() > 1 )
+	    dirtyBound();
+    }
+}
 
+
+float PlaneWellLog::getRepeatStep() const
+{
+    float repeatStep = _repeatGap;
+    if ( _triGeometryWidth != 0  )
+	repeatStep *= _triGeometryWidth / 100.0f;
+
+    return _dispSide==Right ? repeatStep : -repeatStep;
 }
 
 
@@ -218,16 +236,23 @@ void PlaneWellLog::traverse( osg::NodeVisitor& nv )
 	if ( _colorTableChanged )
 	    updateFilledLogColor();
     }
-    
-    if ( nv.getVisitorType() == osg::NodeVisitor::CULL_VISITOR )
+    else if ( nv.getVisitorType() == osg::NodeVisitor::CULL_VISITOR )
     {
 	osgUtil::CullVisitor* cv = dynamic_cast<osgUtil::CullVisitor*>(&nv);
 	const osg::Vec3 projdir = getPrjDirection( cv );
+	const osg::Vec3 normal = calcNormal( projdir );
+	const float newWorldWidth = calcWorldWidth(cv);
 	
-	if ( _forceCoordReCalculation || eyeChanged( projdir ) )
+	if ( _forceCoordReCalculation || eyeChanged(projdir) || newWorldWidth!=_worldWidth )
 	{
-	    calcCoordinates( updateNormal( projdir ), calcWorldWidth( cv ) ); 
+	    calcCoordinates( normal, newWorldWidth ); 
 	    _preProjDir = projdir;
+	}
+
+	if ( newWorldWidth != _worldWidth )
+	{
+	    _worldWidth = newWorldWidth;
+	    dirtyBound();
 	}
 
 	osg::ref_ptr<osg::MatrixTransform> tr = new osg::MatrixTransform;
@@ -237,15 +262,11 @@ void PlaneWellLog::traverse( osg::NodeVisitor& nv )
 	if ( getStateSet() ) cv->pushStateSet( getStateSet() );
 
 	osg::Matrix repeatTransform;
-	for ( int i = 0; i < (int)_repeatNumber; i++)
+	for ( int idx=0; idx<(int)_repeatNumber; idx++ )
 	{
-	    if( _dispSide == Right )
-		repeatTransform.setTrans( osg::Vec3(_repeatGap*i,0,0) );
-	    else
-		repeatTransform.setTrans( osg::Vec3(_repeatGap*(-i),0,0) );
-
-	    osg::Matrix MVR = (*modelViewMatrix)*repeatTransform;
-	    osg::ref_ptr<osg::RefMatrix> rfMx = new osg::RefMatrix( MVR );
+	    repeatTransform.setTrans( normal*idx*getRepeatStep() );
+	    osg::Matrix RMV = repeatTransform * (*modelViewMatrix);
+	    osg::ref_ptr<osg::RefMatrix> rfMx = new osg::RefMatrix( RMV );
 
 	    cv->addDrawable( _lineGeometry, rfMx );
 	    cv->addDrawable( _triangleGeometry, rfMx );
@@ -253,12 +274,36 @@ void PlaneWellLog::traverse( osg::NodeVisitor& nv )
 
 	if ( getStateSet() ) cv->popStateSet();
     }
-}
+    else
+    {
+	osgUtil::IntersectionVisitor* iv =
+			dynamic_cast<osgUtil::IntersectionVisitor*>( &nv );
 
+	if ( iv && iv->getModelMatrix() )
+	{
+	    const osg::Vec3 normal = calcNormal( _preProjDir );
 
-osg::Vec3 PlaneWellLog::updateNormal( const osg::Vec3 projDir) 
-{
-    return calcNormal(projDir);
+	    osg::Matrix repeatTransform;
+	    for ( int idx=0; idx<(int)_repeatNumber; idx++ )
+	    {
+		repeatTransform.setTrans( normal*idx*getRepeatStep() );
+
+		osg::Matrix mat = repeatTransform * (*iv->getModelMatrix());
+		osg::ref_ptr<osg::RefMatrix> rfMx = new osg::RefMatrix( mat );
+
+		iv->pushModelMatrix( rfMx );
+
+		osg::ref_ptr<osgUtil::Intersector> intersec = iv->getIntersector()->clone( *iv );
+		if ( intersec.valid() )
+		{
+		    intersec->intersect( *iv, _lineGeometry );
+		    intersec->intersect( *iv, _triangleGeometry );
+		}
+
+		iv->popModelMatrix();
+	    }
+	}
+    }
 }
 
 
@@ -281,7 +326,23 @@ void PlaneWellLog::setLogFill( bool isFill )
 
 osg::BoundingSphere PlaneWellLog::computeBound() const
 {
-    return _boundingSphere;
+    osg::BoundingSphere logSphere;
+
+    for( int idx=0; idx<_logPath->size(); idx++ )
+    {
+	double rad = 0.0f;
+	if ( idx < _coordLinedFactors->size() )
+	    rad = osg::maximum( rad, fabs((*_coordLinedFactors)[idx]) );
+	if ( 2*idx < _coordLinedTriFactors->size() )
+	    rad = osg::maximum( rad, fabs((*_coordLinedTriFactors)[2*idx]) );
+	if ( 2*idx+1 < _coordLinedTriFactors->size() )
+	    rad = osg::maximum( rad, fabs((*_coordLinedTriFactors)[2*idx+1]) );
+
+	rad = rad*_worldWidth + fabs(getRepeatStep())*(_repeatNumber-1);
+	logSphere.expandBy( osg::BoundingSphere(_logPath->at(idx),rad) );
+    }
+
+    return logSphere;
 }
 
 
@@ -293,14 +354,12 @@ void PlaneWellLog::calcCoordinates( const osg::Vec3& normal, float screenSize )
     const osg::Vec3 appliedDir = normal * screenSize;
     const osg::Vec3 emptyPnt( 0, 0, 0 );
 
-    osg::BoundingSphere boundingSphere;
-
     for ( int idx=0; idx<nrSamples; idx++ )
     {
 	const float shpFactor = _coordLinedFactors->at( idx ) ;
 	const osg::Vec3 pathCoord = _logPath->at( idx );
 	
-	(*_logLinedPoints)[idx]= ( _lineWidth->getWidth() > 0 )
+	(*_logLinedPoints)[idx] = ( _lineWidth->getWidth() > 0 )
 	    ? ( pathCoord + appliedDir * shpFactor ) : emptyPnt;
 
 	if ( doFill )
@@ -324,8 +383,6 @@ void PlaneWellLog::calcCoordinates( const osg::Vec3& normal, float screenSize )
 	    }
 	    (*_logLinedTriPoints)[idx1] = pathCoord + appliedDir * shpfactor1;
 	    (*_logLinedTriPoints)[idx2] = pathCoord + appliedDir * shpfactor2; 
-	    boundingSphere.expandBy( (*_logLinedTriPoints)[idx1] );
-	    boundingSphere.expandBy( (*_logLinedTriPoints)[idx2] );
 	}
     }
 
@@ -334,14 +391,17 @@ void PlaneWellLog::calcCoordinates( const osg::Vec3& normal, float screenSize )
 	_logLinedTriPoints->dirty();
     _forceCoordReCalculation = false;
 
-    _trianglePrimitiveSet->setCount( _logLinedTriPoints->size()  );
+    _trianglePrimitiveSet->setCount( _logLinedTriPoints->size() );
     _lineGeometry->dirtyDisplayList();
     _triangleGeometry->dirtyDisplayList();
+    _lineGeometry->dirtyBound();
+    _triangleGeometry->dirtyBound();
 
-    const osg::BoundingBox& geometryBox = _triangleGeometry->getBound();
-    _triGeometryWidth = fabs( geometryBox.xMax() - geometryBox.xMin() );
-    _boundingSphere = boundingSphere;
+    const osg::BoundingBox& bb = _triangleGeometry->getBound();
+    _triGeometryWidth = osg::Vec2( bb.xMax()-bb.xMin(), bb.yMax()-bb.yMin() ).length();
 
+    if ( getRepeatNumber() > 1 )
+	dirtyBound();
 }
 
 
@@ -392,6 +452,7 @@ void PlaneWellLog::calcFactors()
 	{
 	    _coordLinedTriFactors->push_back( getShapeFactor( logVal,
 		_minShapeValue, _maxShapeValue ) );
+
 	    if( _dispSide == Left )
 	    {
 		if ( logVal < meanLogVal )
@@ -418,12 +479,11 @@ void PlaneWellLog::calcFactors()
 	    }
 	    else
 		_coordLinedTriFactors->push_back( .0 );
-	    
+
 	    _coordLinedTriFactors->push_back( getShapeFactor( logVal,
 		_minShapeValue, _maxShapeValue ) );
 
 	}
-
     }
 
     _logLinedPoints->resize( _coordLinedFactors->size() );
@@ -434,13 +494,13 @@ void PlaneWellLog::calcFactors()
     _trianglePrimitiveSet->setCount( _logLinedTriPoints->size()  ); 
 
     _forceReBuild = false;
-
+    dirtyBound();
 }
 
 
 osg::Vec3 PlaneWellLog::calcNormal( const osg::Vec3& projdir ) const
 {
-    osg::Vec3 res( 0 ,0, -1);
+    osg::Vec3 res( 0 , 0, -1 );
     res = res^projdir;
     if ( res.length2()<1e-6 )
 	res = osg::Vec3( 1, 0, 0 );

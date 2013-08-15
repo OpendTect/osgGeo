@@ -88,7 +88,6 @@ private:
     void			calcCoordinates( const osg::Vec3& normal, 
 						float screenSize );
     void			calcFactors();
-    osg::Vec3			updateNormal( const osg::Vec3 projDir ); 
     osg::Vec3			calcNormal( const osg::Vec3& projdir ) const;
     void			updateFilledLogColor();
     void		        clearFactors();
@@ -96,6 +95,7 @@ private:
     void			buildLineGeometry();
     void			buildTriangleGeometry();
     unsigned int		getLogItem();
+    float			getRepeatStep() const;
     	
     osg::ref_ptr<osg::DrawArrays>	_linePrimitiveSet;
     osg::ref_ptr<osg::Geometry>		_lineGeometry;
@@ -119,7 +119,7 @@ private:
     bool			_isFilled;
     float			_triGeometryWidth;
     bool			_isFullFilled;
-
+    float			_worldWidth;
 };
 
 
