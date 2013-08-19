@@ -33,7 +33,7 @@ $Id: PolygonSel.cpp 169 2013-01-18 11:47:07Z ranojay.sen@dgbes.com $
 int main( int argc, char** argv )
 {
     osgGeo::Viewer viewer( argc, argv );
-
+    viewer.setupWindow( 1500, 100, 800, 600 );
     osg::ref_ptr<osg::Camera> hudcamera = new osg::Camera;
     hudcamera->setGraphicsContext( viewer.getCamera()->getGraphicsContext() );
     hudcamera->setName("HUD Camera");
@@ -51,7 +51,7 @@ int main( int argc, char** argv )
     
     osg::ref_ptr<osgGeo::PolygonSelection> polygonsel
 					= new  osgGeo::PolygonSelection;
-    viewer.getCamera()->addEventCallback( polygonsel->createEventHandler() );
+    polygonsel->addEventHandlerCamera( viewer.getCamera() );
     polygonsel->setShapeType( osgGeo::PolygonSelection::Polygon );
     polygonsel->setColor( osg::Vec4(0,0.7,0,1) );
    
