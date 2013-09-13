@@ -26,6 +26,7 @@ $Id$
 #include <osgUtil/IntersectionVisitor>
 #include <osg/Geometry>
 #include <osg/LightModel>
+#include <osg/Matrix>
 #include <osgGeo/Vec2i>
 #include <osg/Version>
 
@@ -64,8 +65,8 @@ void TexturePlaneNode::BoundingGeometry::update()
 
     osg::ref_ptr<osg::Vec3Array> corners = new osg::Vec3Array( 4 );
 
-    (*corners)[0] = (*corners)[1] = _tpn.getCenter() - _tpn.getWidth()*0.5;
-    (*corners)[2] = (*corners)[3] = _tpn.getCenter() + _tpn.getWidth()*0.5;
+    (*corners)[0] = (*corners)[1] = _tpn.getWidth() * -0.5;
+    (*corners)[2] = (*corners)[3] = _tpn.getWidth() * 0.5;
 
     if ( _tpn.getThinDim() )
 	(*corners)[1].x() = (*corners)[2].x();
@@ -74,18 +75,23 @@ void TexturePlaneNode::BoundingGeometry::update()
 
     (*corners)[3] += (*corners)[0] - (*corners)[1];
 
-    setVertexArray( corners.get() );
+    osg::Matrix rotMat;
+    rotMat.makeRotate( _tpn.getRotation() );
 
     const float eps = 1e-4 * _tpn.getWidth().length();
     const osg::Vec3 margin( eps, eps, eps );
 
-    _boundingBox.expandBy( (*corners)[0] - margin );
-    _boundingBox.expandBy( (*corners)[0] + margin );
-    _boundingBox.expandBy( (*corners)[2] - margin );
-    _boundingBox.expandBy( (*corners)[2] + margin );
+    for ( int idx=0; idx<4; idx++ )
+    {
+	(*corners)[idx] = rotMat.preMult((*corners)[idx]) + _tpn.getCenter();
+	_boundingBox.expandBy( (*corners)[idx] - margin );
+	_boundingBox.expandBy( (*corners)[idx] + margin );
+    }
 
     dirtyBound();
     _tpn.dirtyBound();
+
+    setVertexArray( corners.get() );
 }
 
 
@@ -95,6 +101,7 @@ void TexturePlaneNode::BoundingGeometry::update()
 TexturePlaneNode::TexturePlaneNode()
     : _center( 0, 0, 0 )
     , _width( 1, 1, 0 )
+    , _rotation( 0.0, osg::Vec3(0,0,1) )
     , _textureBrickSize( 64 )
     , _isBrickSizeStrict( false )
     , _needsUpdate( true )
@@ -120,6 +127,7 @@ TexturePlaneNode::TexturePlaneNode( const TexturePlaneNode& node, const osg::Cop
     : osg::Node( node, co )
     , _center( node._center )
     , _width( node._width )
+    , _rotation( node._rotation )
     , _textureBrickSize( node._textureBrickSize )
     , _isBrickSizeStrict( node._isBrickSizeStrict )
     , _needsUpdate( true )
@@ -211,8 +219,8 @@ void TexturePlaneNode::traverse( osg::NodeVisitor& nv )
 	if ( iv && iv->getTraversalMask()!=Node::NodeMask(~0) ) 
 #endif
 	{
-	    osgUtil::Intersector* intersec = iv->getIntersector()->clone( *iv );
-	    if ( intersec && _boundingGeometry )
+	    osg::ref_ptr<osgUtil::Intersector> intersec = iv->getIntersector()->clone( *iv );
+	    if ( intersec.valid() && _boundingGeometry )
 		intersec->intersect( *iv, _boundingGeometry );
 	}
     }
@@ -274,6 +282,9 @@ bool TexturePlaneNode::updateGeometry()
     if ( !_texture ) 
 	return false;
 
+    osg::Matrix rotMat;
+    rotMat.makeRotate( _rotation );
+
     cleanUp();
     _texture->reInitTiling( getTexelSizeRatio() );
 
@@ -293,7 +304,8 @@ bool TexturePlaneNode::updateGeometry()
     const osg::Vec3 normal = thinDim==2 ? osg::Vec3( 0.0f, 0.0f, getSense() ) :
 			     thinDim==1 ? osg::Vec3( 0.0f,-getSense(), 0.0f ) :
 					  osg::Vec3( getSense(), 0.0f, 0.0f ) ;
-    normals->push_back( normal );
+
+    normals->push_back( rotMat.preMult(normal) );
     colors->push_back( osg::Vec4(1.0f,1.0f,1.0f,1.0f) );
 
     for ( int ids=0; ids<nrs; ids++ )
@@ -337,7 +349,7 @@ bool TexturePlaneNode::updateGeometry()
 		(*coords)[idx].x() *= _width.x();
 		(*coords)[idx].y() *= _width.y();
 		(*coords)[idx].z() *= _width.z();
-		(*coords)[idx] += _center;
+		(*coords)[idx] = rotMat.preMult((*coords)[idx]) + _center;
 	    }
 
 	    osg::ref_ptr<osg::Geometry> geometry = new osg::Geometry;
@@ -394,6 +406,18 @@ void TexturePlaneNode::setCenter( const osg::Vec3& center )
 
 const osg::Vec3& TexturePlaneNode::getCenter() const
 { return _center; }
+
+
+void TexturePlaneNode::setRotation( const osg::Quat& quaternion )
+{
+    _rotation = quaternion;
+    _boundingGeometry->update(); 
+    _needsUpdate = true;
+}
+
+
+const osg::Quat& TexturePlaneNode::getRotation() const
+{ return _rotation; }
 
 
 void TexturePlaneNode::setTextureBrickSize( short sz, bool strict )

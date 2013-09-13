@@ -25,6 +25,7 @@ $Id$
 #include <osg/Node>
 #include <osg/Vec3>
 #include <osg/NodeVisitor>
+#include <osg/Quat>
 #include <osgGeo/Common>
 
 
@@ -60,6 +61,10 @@ public:
 				/*!<One dim must be zero.
 				    Negative width yields mirrored dim. */
     const osg::Vec3&		getWidth() const;
+
+    void			setRotation(const osg::Quat& quaternion);
+				//!<Only needed if plane is not axes-aligned
+    const osg::Quat&		getRotation() const;
 
     void			swapTextureAxes(bool yn=true);
     bool			areTextureAxesSwapped() const;
@@ -107,6 +112,7 @@ protected:
 
     osg::Vec3				_center;
     osg::Vec3				_width;
+    osg::Quat				_rotation;
     short				_textureBrickSize;
     bool				_isBrickSizeStrict;
     bool				_needsUpdate;

@@ -270,6 +270,7 @@ int main( int argc, char** argv )
     usage->addCommandLineOption( "--bricksize <n>", "Brick size [1,->]" );
     usage->addCommandLineOption( "--sizepolicy <n>", "Texture size policy [0,2]" );
     usage->addCommandLineOption( "--dim <n>", "Thin dimension [0,2]" );
+    usage->addCommandLineOption( "--angle <phi>", "Rotation angle [deg]" );
     usage->addCommandLineOption( "--help | --usage", "Command line info" );
     usage->addCommandLineOption( "--image <path> [origin-opt] [scale-opt] [opacity-opt] [colormap-opt] [rgbamap-opt] [udfimage-opt] [border-opt] [udfcolor-opt] [filter-opt]", "Add texture layer" );
     usage->addCommandLineOption( "--origin <x0> <y0>", "Layer origin" );
@@ -303,8 +304,6 @@ int main( int argc, char** argv )
     }
 
     int thinDim = 1;
-    int brickSize = 64;
-
     while ( args.read("--dim", thinDim) )
     {
 	if ( thinDim<0 || thinDim>2 )
@@ -314,6 +313,10 @@ int main( int argc, char** argv )
 	}
     }
 
+    float rotationAngle( 0.0f );
+    while ( args.read("--angle", rotationAngle) );
+
+    int brickSize = 64;
     while ( args.read("--bricksize", brickSize) )
     {
 	if ( brickSize < 1 )
@@ -627,6 +630,9 @@ int main( int argc, char** argv )
 
     width.x() *= -1;		// Mirror x-dimension
     center.x() *= -1;
+
+    const osg::Vec3 rotationAxis( thinDim==1, thinDim==2, thinDim==0 );
+    root->setRotation( osg::Quat(rotationAngle*osg::PI/180,rotationAxis) );
 
     //root->setCenter( center );  // Move texture origin to center of screen
     root->setWidth( width );
