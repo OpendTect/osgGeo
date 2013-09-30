@@ -566,7 +566,7 @@ void LayeredTexture::turnOn( bool yn )
 {
     if ( _isOn!=yn )
     {
-	_updateSetupStateSet = true;
+	_tilingInfo->_retilingNeeded = true;
 	_isOn = yn;
     }
 }
