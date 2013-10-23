@@ -1,3 +1,6 @@
+#ifndef OSGGEO_VEC2I_H
+#define OSGGEO_VEC2I_H
+
 /* -*-c++-*- OpenSceneGraph - Copyright (C) 1998-2006 Robert Osfield 
  *
  * This library is open source and may be redistributed and/or modified under  
@@ -14,8 +17,6 @@
  *
 */
 
-#ifndef OSG_VEC2I
-#define OSG_VEC2I 1
 
 namespace osgGeo {
 
@@ -148,5 +149,6 @@ inline Vec2i componentDivide(const Vec2i& lhs, const Vec2i& rhs)
     return Vec2i(lhs[0]/rhs[0], lhs[1]/rhs[1]);
 }
 
-}    // end of namespace osg
-#endif
+}    // end of namespace osgGeo
+
+#endif //OSGGEO_VEC2I_H
