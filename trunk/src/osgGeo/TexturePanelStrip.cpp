@@ -207,7 +207,9 @@ void TexturePanelStripNode::setTexture( osgGeo::LayeredTexture* lt )
 
 void TexturePanelStripNode::setTextureBrickSize( short sz, bool strict )
 {
-    _textureBrickSize = sz;
+    if ( sz > 0 )
+	_textureBrickSize = sz;
+
     _isBrickSizeStrict = strict;
     _updateCount++;
 }
@@ -426,16 +428,11 @@ void TexturePanelStripNode::traverse( osg::NodeVisitor& nv )
 	osgUtil::IntersectionVisitor* iv =
 	    dynamic_cast<osgUtil::IntersectionVisitor*>( &nv );
 
-#if OSG_MIN_VERSION_REQUIRED(3,1,3)
 	if ( iv )
-#else
-	// Covers non-introduced osg::Dragger::setIntersectionMask(.) function
-        if ( iv && iv->getTraversalMask()!=Node::NodeMask(~0) )
-#endif
 	{
-	    osgUtil::Intersector* intersec = iv->getIntersector()->clone( *iv );
+	    osg::ref_ptr<osgUtil::Intersector> intersec = iv->getIntersector()->clone( *iv );
 
-	    if ( intersec && _boundingGeometry )
+	    if ( intersec.valid() && _boundingGeometry )
 		intersec->intersect( *iv, _boundingGeometry );
 	}
     }
