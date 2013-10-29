@@ -217,6 +217,10 @@ public:
 			   automatically derived from all known contexts. */
     int			getGraphicsContextID() const;
 
+    static void		overrideGraphicsContextMaxTextureSize(int);
+			/*!To be set before creating class instances.
+			   Use if graphics card exaggerates its specs. */
+
     int			maxTextureSize() const;
     int			nrTextureUnits() const;
 

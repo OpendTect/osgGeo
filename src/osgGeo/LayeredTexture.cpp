@@ -1025,6 +1025,11 @@ int LayeredTexture::getGraphicsContextID() const
 { return _texInfo->_contextId; }
 
 
+static int _maxTexSizeOverride = -1;
+void LayeredTexture::overrideGraphicsContextMaxTextureSize( int maxTexSize )
+{ _maxTexSizeOverride = maxTexSize; }
+
+
 void LayeredTexture::updateTextureInfoIfNeeded() const
 {
     if ( _texInfo->_isValid )
@@ -1048,7 +1053,13 @@ void LayeredTexture::updateTextureInfoIfNeeded() const
 	    _texInfo->_nrUnits = texExt->numTextureUnits();
 
 	if ( !_texInfo->_isValid || _texInfo->_maxSize>texExt->maxTextureSize() )
+	{
 	    _texInfo->_maxSize = texExt->maxTextureSize();
+	    while ( _maxTexSizeOverride>0 && _texInfo->_maxSize>_maxTexSizeOverride && _texInfo->_maxSize>64 )
+	    {
+		_texInfo->_maxSize /= 2;
+	    }
+	}
 
 	if ( !_texInfo->_isValid || _texInfo->_nonPowerOf2Support )
 	    _texInfo->_nonPowerOf2Support = texExt->isNonPowerOfTwoTextureSupported( osg::Texture::LINEAR_MIPMAP_LINEAR );
