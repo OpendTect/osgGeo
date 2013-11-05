@@ -36,7 +36,7 @@ class OSGGEO_EXPORT PolygonSelection : public osg::Node
 public:
 			    PolygonSelection();
     void		    accept(osg::NodeVisitor&);
-    void		    addEventHandlerCamera(osg::Camera*);
+    void		    setEventHandlerCamera(osg::Camera*);
     const osg::Vec3Array*   getCoords() const { return _coords; }
     enum ShapeType	    { Off, Polygon, Rectangle };
     ShapeType		    getShapeType() const  { return _shapeType; }
@@ -52,22 +52,23 @@ public:
 protected:
 
     friend class	    PolygonSelectionEventHandler;
-    osgGA::GUIEventHandler* createEventHandler();
     osg::BoundingSphere	    computeBound() const;
     void		    setLatestMousePoints(const osg::Vec3&);
+    bool		    checkInteractionObjectIntersection(const osg::Vec3&) const;
     bool		    handleEvent(const osgGA::GUIEventAdapter&);
 			    ~PolygonSelection();
     
-    osg::ref_ptr<osg::NodeCallback> _callback;
-    osg::ref_ptr<osg::Geode>	_geode;
-    osg::Geometry*	_lineGeometry;
-    osg::Camera*	_masterCamera;
-    osg::DrawArrays*	_coordsList;
-    ShapeType		_shapeType;
-    osg::Material*	_material;
-    osg::Vec3Array*	_coords;
-    float		_zcoord;
-    bool		_ison;
+    PolygonSelectionEventHandler*	_eventHandler;
+    osg::ref_ptr<osg::NodeCallback>	_callback;
+    osg::ref_ptr<osg::Geode>		_geode;
+    osg::Geometry*			_lineGeometry;
+    osg::Camera*			_masterCamera;
+    osg::DrawArrays*			_coordsList;
+    ShapeType				_shapeType;
+    osg::Material*			_material;
+    osg::Vec3Array*			_coords;
+    float				_zcoord;
+    bool				_ison;
 };
 
 } // osgGeo
