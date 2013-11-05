@@ -31,6 +31,8 @@ namespace osgGA { class GUIEventHandler; class GUIEventAdapter; }
 namespace osgGeo
 {
 
+class PolygonSelectionEventHandler;
+
 class OSGGEO_EXPORT PolygonSelection : public osg::Node
 {
 public:
