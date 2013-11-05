@@ -27,7 +27,6 @@ $Id$
 #include <osg/Material>
 #include <osgUtil/CullVisitor>
 
-
 namespace osgGeo
 {
 
@@ -38,7 +37,7 @@ public:
     { _polysel = ps; }
     
 protected:
-    bool handle (const osgGA::GUIEventAdapter &ea,
+    bool handle ( const osgGA::GUIEventAdapter &ea,
 					osgGA::GUIActionAdapter&,
 					osg::Object*,
 					osg::NodeVisitor*)
@@ -51,7 +50,7 @@ protected:
 	return osgGA::GUIEventHandler::handle(ea,aa);
     }
 
-    osg::ref_ptr<osgGeo::PolygonSelection>	    _polysel;
+    osgGeo::PolygonSelection*		_polysel;
 };
 
 
@@ -66,6 +65,7 @@ PolygonSelection::PolygonSelection()
     , _material(0)
     , _zcoord(0)
     , _masterCamera(0)
+    , _eventHandler(0) 
 {
     _lineGeometry->setVertexArray(_coords);
     _lineGeometry->addPrimitiveSet(_coordsList);
@@ -76,27 +76,39 @@ PolygonSelection::PolygonSelection()
 
 PolygonSelection::~PolygonSelection()
 {
-    if ( _masterCamera )
-	_masterCamera->unref();
-}
+    setEventHandlerCamera( 0 );
 
-
-void PolygonSelection::addEventHandlerCamera( osg::Camera* camera )
-{
-    if ( !_masterCamera )
+    if ( _eventHandler )
     {
-	_masterCamera = camera;
-	_masterCamera->ref();
-	_masterCamera->addEventCallback( createEventHandler() );
+	_eventHandler->setPolygonSelector( 0 );
+	_eventHandler->unref();
     }
 }
 
 
-osgGA::GUIEventHandler* PolygonSelection::createEventHandler()
+void PolygonSelection::setEventHandlerCamera( osg::Camera* camera )
 {
-    PolygonSelectionEventHandler* res = new PolygonSelectionEventHandler;
-    res->setPolygonSelector(this);
-    return res;
+    if ( _masterCamera )
+    {
+	_masterCamera->removeEventCallback( _eventHandler );
+	_masterCamera->unref();
+    }
+
+    _masterCamera = camera;
+
+    if ( _masterCamera )
+    {
+	_masterCamera->ref();
+
+	if ( !_eventHandler )
+	{
+	    _eventHandler = new PolygonSelectionEventHandler;
+	    _eventHandler->ref();
+	    _eventHandler->setPolygonSelector(this);
+	}
+
+	_masterCamera->addEventCallback( _eventHandler );
+    }
 }
 
 
@@ -114,15 +126,27 @@ void PolygonSelection::accept(osg::NodeVisitor& nv)
 }
 
 
+bool PolygonSelection::checkInteractionObjectIntersection( const osg::Vec3& ) const
+{
+    return false;
+}
+
+
 bool PolygonSelection::handleEvent(const osgGA::GUIEventAdapter& ea)
 {
     if (!_ison || _shapeType==Off)
+	return false;
+
+    if ( ea.getHandled() )
 	return false;
     
     const osg::Vec3 mousepos(ea.getX(),ea.getY(),_zcoord);
     if (ea.getEventType()==osgGA::GUIEventAdapter::PUSH 
 	&& ea.getButton()==osgGA::GUIEventAdapter::LEFT_MOUSE_BUTTON)
     {
+	if ( checkInteractionObjectIntersection( mousepos ) )
+	    return false;
+
 	_coords->clear();
 	if ( _shapeType == Rectangle )
 	{
