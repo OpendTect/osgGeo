@@ -76,10 +76,13 @@ public:
     osg::Vec2f		textureEnvelopeSize() const;
     osg::Vec2f		imageEnvelopeSize() const;
 
-    void		setDataLayerImage(int id,const osg::Image*);
+    void		setDataLayerImage(int id,const osg::Image*,
+					  bool freezewhile0=true);
 			/*!Preferred image formats: GL_LUMINANCE, GL_ALPHA,
 			   GL_LUMINANCE_ALPHA, GL_RGB, GL_RGBA, GL_BGR, GL_BGRA
-			   Preferred data types: GL_UNSIGNED_BYTE, GL_BYTE */
+			   Preferred data types: GL_UNSIGNED_BYTE, GL_BYTE.
+			   Option to freeze display updates as long as image=0
+			   yields a smooth transition on screen. */
 
     const osg::Image*	getDataLayerImage(int id) const;
 
@@ -200,7 +203,6 @@ public:
     bool		areShadersAllowed() const   { return _allowShaders; }
     bool		areShadersUsedNow() const   { return _useShaders; }
 
-
     enum TextureSizePolicy { PowerOf2, AnySize };
 
     void		setTextureSizePolicy(TextureSizePolicy);
@@ -242,6 +244,7 @@ protected:
     int			getSeamWidth(int layerIdx,int dim) const;
     int			getTileOverlapUpperBound(int dim) const;
     TextureSizePolicy	usedTextureSizePolicy() const;
+    bool		isDisplayFrozen() const;
 
     int /* nrProc */	getProcessInfo(std::vector<int>& orderedLayerIDs,
 				       int& nrUsedLayers,bool& useShaders,
