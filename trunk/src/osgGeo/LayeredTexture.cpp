@@ -206,6 +206,7 @@ struct LayeredTextureData : public osg::Referenced
 			    , _image( 0 )
 			    , _imageSource( 0 )
 			    , _imageScale( 1.0f, 1.0f )
+			    , _freezeDisplay( false )
 			    , _textureUnit( -1 )
 			    , _filterType(Linear)
 			    , _borderColor( 1.0f, 1.0f, 1.0f, 1.0f )
@@ -236,9 +237,11 @@ struct LayeredTextureData : public osg::Referenced
     osg::ref_ptr<const osg::Image>		_image;
     osg::ref_ptr<const osg::Image>		_imageSource;
     Vec2i					_imageSourceSize;
+    const unsigned char*			_imageSourceData;
     osg::Vec2f					_imageScale;
     int						_imageModifiedCount;
     bool					_imageModifiedFlag;
+    bool					_freezeDisplay;
     int						_textureUnit;
     FilterType					_filterType;
 
@@ -269,6 +272,7 @@ LayeredTextureData* LayeredTextureData::clone() const
     res->_scale = _scale; 
     res->_textureUnit = _textureUnit;
     res->_filterType = _filterType;
+    res->_freezeDisplay = _freezeDisplay;
     res->_imageModifiedCount = _imageModifiedCount;
     res->_imageScale = _imageScale; 
     res->_imageSource = _imageSource.get();
@@ -702,13 +706,14 @@ void LayeredTexture::setDataLayerScale( int id, const osg::Vec2f& scale )
 }
 
 
-void LayeredTexture::setDataLayerImage( int id, const osg::Image* image )
+void LayeredTexture::setDataLayerImage( int id, const osg::Image* image, bool freezewhile0 )
 {
     const int idx = getDataLayerIndex( id );
     if ( idx==-1 )
 	return;
 
     LayeredTextureData& layer = *_dataLayers[idx];
+    layer._freezeDisplay = freezewhile0 && !image;
 
     if ( image )
     {
@@ -721,7 +726,7 @@ void LayeredTexture::setDataLayerImage( int id, const osg::Image* image )
 	Vec2i newImageSize( image->s(), image->t() );
 
 #ifdef USE_IMAGE_STRIDE
-	const bool retile = layer._imageSource.get()!=image || layer._imageSourceSize!=newImageSize || !layer._tileImages.size();
+	const bool retile = layer._imageSource.get()!=image || layer._imageSourceData!=image->data() || layer._imageSourceSize!=newImageSize || !layer._tileImages.size();
 #else
 	const bool retile = true;
 #endif
@@ -753,6 +758,7 @@ void LayeredTexture::setDataLayerImage( int id, const osg::Image* image )
 	}
 
 	layer._imageSource = image;
+	layer._imageSourceData = image->data();
 	layer._imageSourceSize = newImageSize;
 	layer._imageModifiedCount = image->getModifiedCount();
 	layer.clearTransparencyType();
@@ -1142,8 +1148,24 @@ void LayeredTexture::updateTilingInfoIfNeeded() const
 }
 
 
+bool LayeredTexture::isDisplayFrozen() const
+{
+    std::vector<LayeredTextureData*>::const_iterator lit = _dataLayers.begin();
+    for ( ; lit!=_dataLayers.end(); lit++ )
+    {
+	if ( (*lit)->_freezeDisplay )
+	    return true;
+    }
+
+    return false;
+}
+
+
 bool LayeredTexture::needsRetiling() const
 {
+    if ( isDisplayFrozen() )
+	return false;
+
     std::vector<LayeredTextureData*>::const_iterator lit = _dataLayers.begin();
     for ( ; lit!=_dataLayers.end(); lit++ )
 	(*lit)->updateTileImagesIfNeeded();
@@ -1608,6 +1630,9 @@ osg::StateSet* LayeredTexture::getSetupStateSet()
 
 void LayeredTexture::updateSetupStateSetIfNeeded()
 {
+    if ( isDisplayFrozen() )
+	return;
+
     _lock.readLock();
 
     if ( !_setupStateSet )
