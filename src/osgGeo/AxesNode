@@ -48,6 +48,7 @@ public:
     float		getRadius() const { return _radius; }
     float		getLength() const { return _length; }
     void		setLength(const float&);
+    void		setAnnotationColor(osg::Vec4 col);
     void		setMasterCamera(osg::Camera*);
 
 protected:
@@ -61,6 +62,7 @@ protected:
     float			_length;
     osg::Vec2			_pos;
     osg::Vec2			_size;
+    osg::Vec4			_annotColor;
     bool			_needsUpdate;
     osg::Group*			_root;
     osg::ref_ptr<osg::Camera>		_mastercamera;
