@@ -169,30 +169,30 @@ float PlaneWellLog::getLineWidth() const
 void PlaneWellLog::buildLineGeometry()
 {
     _lineGeometry = new osg::Geometry();
-    _geode->addDrawable( _lineGeometry );
-    _lineGeometry->setVertexArray( _logLinedPoints.get() );
+    _geode->addDrawable(_lineGeometry);
+    _lineGeometry->setVertexArray(_logLinedPoints.get());
 
     _lineColor =  new osg::Vec4Array;
-    _lineColor->push_back( osg::Vec4d( 0, 0, 0, 0 ) );
-    _lineGeometry->setColorArray( _lineColor.get() );
-    _lineGeometry->setColorBinding( osg::Geometry::BIND_OVERALL );
+    _lineColor->push_back(osg::Vec4d(0, 0, 0, 0 ));
+    _lineGeometry->setColorArray(_lineColor.get());
+    _lineGeometry->setColorBinding(osg::Geometry::BIND_OVERALL);
     osg::ref_ptr<osg::Vec3Array> normals = new osg::Vec3Array;
-    normals->push_back( osg::Vec3 ( 0.0f,-1.0f,0.0f ) );
-    _lineGeometry->setNormalArray( normals.get() );
-    _lineGeometry->setNormalBinding( osg::Geometry::BIND_OVERALL );
+    normals->push_back( osg::Vec3 (0.0f,-1.0f,0.0f ));
+    _lineGeometry->setNormalArray(normals.get());
+    _lineGeometry->setNormalBinding(osg::Geometry::BIND_OVERALL);
     _linePrimitiveSet = new osg::DrawArrays(
-	osg::PrimitiveSet::LINE_STRIP, 0, 0 );
-    _lineGeometry->addPrimitiveSet( _linePrimitiveSet );
+	osg::PrimitiveSet::LINE_STRIP, 0, 0);
+    _lineGeometry->addPrimitiveSet(_linePrimitiveSet);
 
     _lineWidth =  new osg::LineWidth;
     _lineWidth->setWidth(1.0);
     osg::PolygonOffset* polyoffset = new osg::PolygonOffset;
-    polyoffset->setFactor( 1.0f );
-    polyoffset->setUnits( 1.0f );
-    getOrCreateStateSet()->setAttributeAndModes( _lineWidth );
-    getStateSet()->setMode( GL_LIGHTING, osg::StateAttribute::OFF );
+    polyoffset->setFactor(1.0f);
+    polyoffset->setUnits(1.0f);
+    getOrCreateStateSet()->setAttributeAndModes(_lineWidth);
+    getStateSet()->setMode(GL_LIGHTING, osg::StateAttribute::OFF);
     getStateSet()->setAttributeAndModes( 
-	polyoffset,osg::StateAttribute::OVERRIDE|osg::StateAttribute::ON );
+	polyoffset,osg::StateAttribute::OVERRIDE|osg::StateAttribute::ON);
 }
 
 
@@ -201,21 +201,21 @@ void PlaneWellLog::buildTriangleGeometry()
     _triangleGeometry  = new osg::Geometry();
     _geode->addDrawable( _triangleGeometry );
     osg::ref_ptr<osg::Vec3Array> shared_normals = new osg::Vec3Array;
-    shared_normals->push_back( osg::Vec3( 0.0f, -1.0f, 0.0f ) );
+    shared_normals->push_back(osg::Vec3( 0.0f, -1.0f, 0.0f ));
 
-    _triangleGeometry->setVertexArray( _logLinedTriPoints.get() );
-    _triangleGeometry->setNormalArray( shared_normals.get() );
-    _triangleGeometry->setNormalBinding( osg::Geometry::BIND_OVERALL );
+    _triangleGeometry->setVertexArray(_logLinedTriPoints.get());
+    _triangleGeometry->setNormalArray(shared_normals.get());
+    _triangleGeometry->setNormalBinding(osg::Geometry::BIND_OVERALL);
 
     _logColors = new osg::Vec4Array;
-    _triangleGeometry->setColorArray( _logColors.get() );
-    _triangleGeometry->setColorBinding( osg::Geometry::BIND_PER_VERTEX );
+    _triangleGeometry->setColorArray(_logColors.get());
+    _triangleGeometry->setColorBinding(osg::Geometry::BIND_PER_VERTEX);
 
     _trianglePrimitiveSet = new osg::DrawArrays(
-	osg::PrimitiveSet::TRIANGLE_STRIP, 0, 0 );
+	osg::PrimitiveSet::TRIANGLE_STRIP, 0, 0);
 
-    _triangleGeometry->addPrimitiveSet( _trianglePrimitiveSet );
-    _triangleGeometry->setDataVariance( osg::Object::DYNAMIC );
+    _triangleGeometry->addPrimitiveSet(_trianglePrimitiveSet);
+    _triangleGeometry->setDataVariance(osg::Object::DYNAMIC);
 }
 
 
@@ -239,13 +239,14 @@ void PlaneWellLog::traverse( osg::NodeVisitor& nv )
     else if ( nv.getVisitorType() == osg::NodeVisitor::CULL_VISITOR )
     {
 	osgUtil::CullVisitor* cv = dynamic_cast<osgUtil::CullVisitor*>(&nv);
-	const osg::Vec3 projdir = getPrjDirection( cv );
-	const osg::Vec3 normal = calcNormal( projdir );
+	const osg::Vec3 projdir = getPrjDirection(cv);
+	const osg::Vec3 normal = calcNormal(projdir);
 	const float newWorldWidth = calcWorldWidth(cv);
 	
-	if ( _forceCoordReCalculation || eyeChanged(projdir) || newWorldWidth!=_worldWidth )
+	if ( _forceCoordReCalculation || eyeChanged(projdir) || 
+	    newWorldWidth!=_worldWidth )
 	{
-	    calcCoordinates( normal, newWorldWidth ); 
+	    calcCoordinates(normal, newWorldWidth); 
 	    _preProjDir = projdir;
 	}
 
@@ -266,10 +267,10 @@ void PlaneWellLog::traverse( osg::NodeVisitor& nv )
 	{
 	    repeatTransform.setTrans( normal*idx*getRepeatStep() );
 	    osg::Matrix RMV = repeatTransform * (*modelViewMatrix);
-	    osg::ref_ptr<osg::RefMatrix> rfMx = new osg::RefMatrix( RMV );
+	    osg::ref_ptr<osg::RefMatrix> rfMx = new osg::RefMatrix(RMV);
 
-	    cv->addDrawable( _lineGeometry, rfMx );
-	    cv->addDrawable( _triangleGeometry, rfMx );
+	    cv->addDrawable(_lineGeometry, rfMx);
+	    cv->addDrawable(_triangleGeometry, rfMx);
 	}
 
 	if ( getStateSet() ) cv->popStateSet();
@@ -277,7 +278,7 @@ void PlaneWellLog::traverse( osg::NodeVisitor& nv )
     else
     {
 	osgUtil::IntersectionVisitor* iv =
-			dynamic_cast<osgUtil::IntersectionVisitor*>( &nv );
+			dynamic_cast<osgUtil::IntersectionVisitor*>(&nv);
 
 	if ( iv && iv->getModelMatrix() )
 	{
@@ -289,15 +290,16 @@ void PlaneWellLog::traverse( osg::NodeVisitor& nv )
 		repeatTransform.setTrans( normal*idx*getRepeatStep() );
 
 		osg::Matrix mat = repeatTransform * (*iv->getModelMatrix());
-		osg::ref_ptr<osg::RefMatrix> rfMx = new osg::RefMatrix( mat );
+		osg::ref_ptr<osg::RefMatrix> rfMx = new osg::RefMatrix(mat);
 
 		iv->pushModelMatrix( rfMx );
 
-		osg::ref_ptr<osgUtil::Intersector> intersec = iv->getIntersector()->clone( *iv );
+		osg::ref_ptr<osgUtil::Intersector> intersec = 
+		    iv->getIntersector()->clone(*iv);
 		if ( intersec.valid() )
 		{
-		    intersec->intersect( *iv, _lineGeometry );
-		    intersec->intersect( *iv, _triangleGeometry );
+		    intersec->intersect(*iv, _lineGeometry);
+		    intersec->intersect(*iv, _triangleGeometry);
 		}
 
 		iv->popModelMatrix();
@@ -332,14 +334,17 @@ osg::BoundingSphere PlaneWellLog::computeBound() const
     {
 	float radius = 0.0f;
 	if ( idx < _coordLinedFactors->size() )
-	    radius = osg::maximum<float>( radius, fabs((*_coordLinedFactors)[idx]) );
+	    radius = 
+	    osg::maximum<float>( radius, fabs((*_coordLinedFactors)[idx]));
 	if ( 2*idx < _coordLinedTriFactors->size() )
-	    radius = osg::maximum<float>( radius, fabs((*_coordLinedTriFactors)[2*idx]) );
+	    radius = 
+	    osg::maximum<float>( radius, fabs((*_coordLinedTriFactors)[2*idx]));
 	if ( 2*idx+1 < _coordLinedTriFactors->size() )
-	    radius = osg::maximum<float>( radius, fabs((*_coordLinedTriFactors)[2*idx+1]) );
+	    radius = 
+	    osg::maximum<float>( radius, fabs((*_coordLinedTriFactors)[2*idx+1]));
 
 	radius = radius*_worldWidth + fabs(getRepeatStep())*(_repeatNumber-1);
-	logSphere.expandBy( osg::BoundingSphere(_logPath->at(idx),radius) );
+	logSphere.expandBy(osg::BoundingSphere(_logPath->at(idx),radius));
     }
 
     return logSphere;
@@ -356,18 +361,18 @@ void PlaneWellLog::calcCoordinates( const osg::Vec3& normal, float screenSize )
 
     for ( int idx=0; idx<nrSamples; idx++ )
     {
-	const float shpFactor = _coordLinedFactors->at( idx ) ;
-	const osg::Vec3 pathCoord = _logPath->at( idx );
+	const float shpFactor = _coordLinedFactors->at(idx) ;
+	const osg::Vec3 pathCoord = _logPath->at(idx);
 	
-	(*_logLinedPoints)[idx] = ( _lineWidth->getWidth() > 0 )
+	(*_logLinedPoints)[idx] = (_lineWidth->getWidth() > 0)
 	    ? ( pathCoord + appliedDir * shpFactor ) : emptyPnt;
 
 	if ( doFill )
 	{
 	    const int idx1 = 2*idx;
 	    const int idx2 = idx1+1;
-	    const float shpfactor1 = _coordLinedTriFactors->at( 2*idx ) ;
-	    const float shpfactor2 = _coordLinedTriFactors->at( 2*idx + 1 ) ;
+	    const float shpfactor1 = _coordLinedTriFactors->at(2*idx) ;
+	    const float shpfactor2 = _coordLinedTriFactors->at(2*idx + 1) ;
 	    if ( (int)_logLinedTriPoints->size() > nrSamples && 
 		std::find(_outFillIndex.begin(),_outFillIndex.end(), idx) 
 			    != _outFillIndex.end() )
@@ -391,14 +396,15 @@ void PlaneWellLog::calcCoordinates( const osg::Vec3& normal, float screenSize )
 	_logLinedTriPoints->dirty();
     _forceCoordReCalculation = false;
 
-    _trianglePrimitiveSet->setCount( _logLinedTriPoints->size() );
+    _trianglePrimitiveSet->setCount(_logLinedTriPoints->size());
     _lineGeometry->dirtyDisplayList();
     _triangleGeometry->dirtyDisplayList();
     _lineGeometry->dirtyBound();
     _triangleGeometry->dirtyBound();
 
     const osg::BoundingBox& bb = _triangleGeometry->getBound();
-    _triGeometryWidth = osg::Vec2( bb.xMax()-bb.xMin(), bb.yMax()-bb.yMin() ).length();
+    _triGeometryWidth = 
+	osg::Vec2(bb.xMax()-bb.xMin(), bb.yMax()-bb.yMin() ).length();
 
     if ( getRepeatNumber() > 1 )
 	dirtyBound();
@@ -427,26 +433,26 @@ void PlaneWellLog::calcFactors()
 	}
     }
     
-    const float meanFactor = getShapeFactor( meanLogVal,
-	_minShapeValue, _maxShapeValue ); 
+    const float meanFactor = getShapeFactor(meanLogVal,
+	_minShapeValue, _maxShapeValue); 
 
     for ( int idx=0; idx<nrSamples; idx++ )
     {
 	float logVal = _shapeLog->at( idx );
 
 	if ( !_isFullFilled && 
-	   ( ( item == LOGLNFL_BOTH && _revScale ) || 
-	     ( item == LOGLINE_ONLY && _revScale ) ||
-	     ( item == SEISMIC_ONLY && _dispSide == Left ) ) )
+	   ((item == LOGLNFL_BOTH && _revScale) || 
+	     (item == LOGLINE_ONLY && _revScale) ||
+	     (item == SEISMIC_ONLY && _dispSide == Left)))
 	{
 	    logVal = _maxShapeValue - logVal;
 	}
 
-	logVal = ( logVal<_minShapeValue ) ? _minShapeValue : logVal;
-	logVal = ( logVal>_maxShapeValue ) ? _maxShapeValue : logVal;
+	logVal = (logVal<_minShapeValue) ? _minShapeValue : logVal;
+	logVal = (logVal>_maxShapeValue) ? _maxShapeValue : logVal;
 
-	_coordLinedFactors->push_back( getShapeFactor( logVal,
-	    _minShapeValue, _maxShapeValue ) );
+	_coordLinedFactors->push_back(getShapeFactor(logVal,
+	    _minShapeValue, _maxShapeValue));
 
         if ( item == SEISMIC_ONLY)
 	{
@@ -464,34 +470,34 @@ void PlaneWellLog::calcFactors()
 	    else
 	    {
 		if ( logVal > meanLogVal )
-		    _coordLinedTriFactors->push_back( meanFactor  );
+		    _coordLinedTriFactors->push_back(meanFactor);
 		else
-		    _coordLinedTriFactors->push_back( getShapeFactor( logVal,
-		    _minShapeValue, _maxShapeValue ) );
+		    _coordLinedTriFactors->push_back(getShapeFactor(logVal,
+		    _minShapeValue, _maxShapeValue ));
 	    }
 	}
 	else
 	{
-	    if ( _fillRevScale)
+	    if (_fillRevScale)
 	    {
-		_coordLinedTriFactors->push_back( getShapeFactor( _maxFillValue,
-		    _minShapeValue, _maxShapeValue ) );
+		_coordLinedTriFactors->push_back(getShapeFactor(_maxFillValue,
+		    _minShapeValue, _maxShapeValue ));
 	    }
 	    else
-		_coordLinedTriFactors->push_back( .0 );
+		_coordLinedTriFactors->push_back(.0);
 
-	    _coordLinedTriFactors->push_back( getShapeFactor( logVal,
-		_minShapeValue, _maxShapeValue ) );
+	    _coordLinedTriFactors->push_back(getShapeFactor(logVal,
+		_minShapeValue, _maxShapeValue ));
 
 	}
     }
 
-    _logLinedPoints->resize( _coordLinedFactors->size() );
-    _logLinedTriPoints->resize( _coordLinedTriFactors->size() );
-    _logColors->resize( _coordLinedTriFactors->size() );
+    _logLinedPoints->resize(_coordLinedFactors->size());
+    _logLinedTriPoints->resize(_coordLinedTriFactors->size());
+    _logColors->resize(_coordLinedTriFactors->size() );
 
-    _linePrimitiveSet->setCount( _logLinedPoints->size() );
-    _trianglePrimitiveSet->setCount( _logLinedTriPoints->size()  ); 
+    _linePrimitiveSet->setCount(_logLinedPoints->size());
+    _trianglePrimitiveSet->setCount(_logLinedTriPoints->size()); 
 
     _forceReBuild = false;
     dirtyBound();
@@ -517,8 +523,8 @@ void PlaneWellLog::updateFilledLogColor()
     {
 	for ( unsigned int idx=0; idx<_logPath->size(); idx++ )
 	{
-	    (*_logColors)[2*idx] =  _colorTable->at( 1 );
-	    (*_logColors)[2*idx+1] =  _colorTable->at( 1);
+	    (*_logColors)[2*idx] =  _colorTable->at(1);
+	    (*_logColors)[2*idx+1] =  _colorTable->at(1);
 	}
 	return ;
     }
@@ -526,23 +532,23 @@ void PlaneWellLog::updateFilledLogColor()
     if ( !_shapeLog->size() || !_isFilled)
 	return;
 
-    float clrStep = ( _maxFillValue - _minFillValue ) / 255;
+    const float clrStep = ( _maxFillValue - _minFillValue ) / 255;
     int   clrIndex = 0;
 
     const int nrSamples = _logPath->size();
     _outFillIndex.clear();
 
-    osg::FloatArray::iterator itmin = std::min_element(
+    const osg::FloatArray::iterator itmin = std::min_element(
 	_fillLogDepths->begin(), _fillLogDepths->end());
-    float minfillz = *itmin;
+    const float minfillz = *itmin;
 
-    osg::FloatArray::iterator itmax = std::max_element(
+    const osg::FloatArray::iterator itmax = std::max_element(
 	_fillLogDepths->begin(), _fillLogDepths->end());
-    float maxfillz = *itmax;
+    const float maxfillz = *itmax;
 
     for ( int idx=0; idx<nrSamples; idx++ )
     {
-	osg::Vec3f pos = _logPath->at(idx);
+	const osg::Vec3f pos = _logPath->at(idx);
 
 	if( pos[2] < minfillz || pos[2] > maxfillz )
 	{
@@ -550,21 +556,18 @@ void PlaneWellLog::updateFilledLogColor()
 	    continue;
 	}
 
-	osg::FloatArray::iterator it  = _fillLogDepths->begin();
+	const int fillIndex = getClosestIndex(*_fillLogDepths, pos[2]);
+	if ( fillIndex < 0 )
+	    continue;
 
-	while ( fabs(*it) < fabs( pos[2]) )
-	    ++it;
-
-	size_t fillIndex = std::distance(_fillLogDepths->begin(), it);
-	float fillLogVal = _fillLog->at( (int)fillIndex );
-	clrIndex = (int)( ( fillLogVal-_minFillValue ) / clrStep );
-	clrIndex = ( clrIndex > 255 ) ? 255 : clrIndex;
-	clrIndex = ( clrIndex < 0   ) ? 0   : clrIndex;
-	(*_logColors)[2*idx] =  _colorTable->at( clrIndex );
-	(*_logColors)[2*idx+1] =  _colorTable->at( clrIndex );
+	const float fillLogVal = _fillLog->at(fillIndex);
+	clrIndex = (int)((fillLogVal-_minFillValue )/clrStep);
+	clrIndex = (clrIndex > 255) ? 255 : clrIndex;
+	clrIndex = (clrIndex < 0  ) ? 0   : clrIndex;
+	(*_logColors)[2*idx] =  _colorTable->at(clrIndex);
+	(*_logColors)[2*idx+1] =  _colorTable->at(clrIndex);
     }
 
     _colorTableChanged = false;
 
 }
-
