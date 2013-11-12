@@ -42,6 +42,7 @@ AxesNode::AxesNode()
     : _needsUpdate(true)
     , _radius(1)
     , _length(10)
+    , _annotColor(osg::Vec4(1.0f,1.0f,1.0f,1.0f))
     , _root(new osg::Group)
     , _transform(new osg::MatrixTransform)
     , _mastercamera(0)
@@ -55,6 +56,7 @@ AxesNode::AxesNode( const AxesNode& node, const osg::CopyOp& co )
     , _needsUpdate(true)
     , _radius(node._radius)
     , _length(node._length)
+    , _annotColor(node._annotColor)
     , _root(node._root)
     , _transform(node._transform)
     , _mastercamera(node._mastercamera)
@@ -91,7 +93,7 @@ void AxesNode::traverse( osg::NodeVisitor& nv )
 
 osg::ref_ptr<osg::Node> arrowNode( const float rad, const float len, 
 				   const osg::Vec4& color, const osg::Vec3& dir,
-				   const char* text )
+				   const char* text, const osg::Vec4& annotclr )
 {
     osg::ref_ptr<osg::Vec3Array> coords = new osg::Vec3Array;
     osg::ref_ptr<osg::Vec3Array> normals = new osg::Vec3Array;
@@ -180,6 +182,7 @@ osg::ref_ptr<osg::Node> arrowNode( const float rad, const float len,
     annot->setCharacterSizeMode( osgText::TextBase::SCREEN_COORDS );
     annot->setAutoRotateToScreen( true );
     annot->setText( text );
+    annot->setColor( annotclr );
     textgeode->addDrawable( annot );
     osg::ref_ptr<osg::Group> grp = new osg::Group;
     grp->addChild( arrowgeode );
@@ -202,11 +205,12 @@ bool AxesNode::updateGeometry()
     osg::ref_ptr<osg::Geode> spheregeode = new osg::Geode();
     spheregeode->getOrCreateStateSet()->setAttribute( mat );
     spheregeode->addDrawable( sphere );
-
+    const osg::Vec4& c = _annotColor;
+    _root->removeChildren( 0, _root->getNumChildren() );
     _root->addChild( spheregeode );
-    _root->addChild( arrowNode(_radius,_length,red,osg::Vec3(0,1,0),  "N") );
-    _root->addChild( arrowNode(_radius,_length,green,osg::Vec3(1,0,0),"E") );
-    _root->addChild( arrowNode(_radius,_length,blue,osg::Vec3(0,0,-1),"Z") );
+    _root->addChild( arrowNode(_radius,_length,red,osg::Vec3(0,1,0),  "N", c) );
+    _root->addChild( arrowNode(_radius,_length,green,osg::Vec3(1,0,0),"E", c) );
+    _root->addChild( arrowNode(_radius,_length,blue,osg::Vec3(0,0,-1),"Z", c) );
     _transform->addChild( _root );
     _needsUpdate = false;
     return true;
@@ -258,6 +262,13 @@ void AxesNode::setSize( osg::Vec2 size )
     _radius = size.x();
     _length = size.y();
     _size = size;
+    _needsUpdate = true;
+}
+
+
+void AxesNode::setAnnotationColor( osg::Vec4 col )
+{
+    _annotColor = col;
     _needsUpdate = true;
 }
 
