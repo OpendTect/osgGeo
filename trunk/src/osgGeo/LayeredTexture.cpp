@@ -738,7 +738,7 @@ void LayeredTexture::setDataLayerImage( int id, const osg::Image* image, bool fr
 	if ( image->s()>=8 && image->t()>=8 && s*t>int(_maxTextureCopySize) )
 	    scaleImage = false;
 
-	if ( scaleImage && id!=_compositeLayerId )
+	if ( scaleImage && _textureSizePolicy!=AnySize && id!=_compositeLayerId )
 	{
 	    osg::Image* imageCopy = new osg::Image( *image );
 	    imageCopy->scaleImage( s, t, image->r() );
@@ -1544,7 +1544,10 @@ osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, co
 		    if ( !resizeHint ) 
 		    {
 			resizeHint = true;
-			std::cerr << "Can't avoid texture resampling for this cut-out: increase MaxTextureCopySize" << std::endl ;
+			if ( _textureSizePolicy!=AnySize )
+			{
+			    std::cerr << "Can't avoid texture resampling for this cut-out: increase MaxTextureCopySize" << std::endl ;
+			}
 		    }
 		    break;
 		}
