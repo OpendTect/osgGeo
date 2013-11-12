@@ -50,11 +50,10 @@ class OSGGEO_EXPORT PlaneWellLog : public osgGeo::WellLog
 {
 public:
 				PlaneWellLog();
-    enum			DisplaySide { Left, Right };
     void			setDisplaySide( DisplaySide );
-    DisplaySide			getDisplaySide() { return _dispSide; }
+    DisplaySide		getDisplaySide() { return _dispSide; }
     void			setRepeatNumber( unsigned int );
-    unsigned int		getRepeatNumber() { return _repeatNumber; }
+    unsigned int	getRepeatNumber() { return _repeatNumber; }
     void			setRepeatGap ( float );
     float			getRepeatGap() { return _repeatGap; }
     void			setFullFilled( bool );
@@ -69,7 +68,9 @@ public:
     float			getLineWidth() const;
 
     void			setLineColor( osg::Vec4d );
-    osg::Vec4d			getLineColor() const;
+    osg::Vec4d		getLineColor() const;
+	void			setResolution(int){};
+    int				getResolution(){ return 0; };
 
     virtual void		clearLog();
 
@@ -126,4 +127,5 @@ private:
 } // namespace
 
 #endif //OSGGEO_PLANEWELLLOG_H
+
 

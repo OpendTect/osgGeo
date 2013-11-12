@@ -302,3 +302,24 @@ void WellLog::setRevScale( bool yn )
 {
     _revScale = yn; 
 }
+
+
+struct ClosestCmp 
+{
+    bool operator()(const float &val1, const float& val2) 
+    {
+	return val1 > val2;
+    }
+};
+
+
+int WellLog::getClosestIndex(const osg::FloatArray& arr, float val)
+{
+    osg::FloatArray::const_iterator it =
+	std::lower_bound(arr.begin(), arr.end(), val, ClosestCmp());
+
+    if (it != arr.end()) 
+	return std::distance(arr.begin(),it);
+
+    return -1;
+}
