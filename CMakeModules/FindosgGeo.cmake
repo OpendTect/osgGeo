@@ -11,6 +11,7 @@
 
 find_path(OSGGEO_INCLUDE_DIR osgGeo/Horizon3D
     ${osgGeo_DIR}/include
+    ${osgGeo_DIR}/src
     $ENV{osgGeo_DIR}/include
     NO_DEFAULT_PATH
 )
@@ -26,6 +27,8 @@ macro(FIND_OSGGEO_LIBRARY MYLIBRARY MYLIBRARYNAME)
         ${osgGeo_DIR}/lib64/Debug
         ${osgGeo_DIR}/lib
         ${osgGeo_DIR}/lib64
+        ${osgGeo_DIR}/src/osgGeo/Debug
+        ${osgGeo_DIR}/src/osgGeo
         $ENV{osgGeo_DIR}/lib/debug
         $ENV{osgGeo_DIR}/lib64/debug
         $ENV{osgGeo_DIR}/lib
@@ -67,6 +70,8 @@ macro(FIND_OSGGEO_LIBRARY MYLIBRARY MYLIBRARYNAME)
         ${osgGeo_DIR}/lib64/Release
         ${osgGeo_DIR}/lib
         ${osgGeo_DIR}/lib64
+        ${osgGeo_DIR}/src/osgGeo/Release
+        ${osgGeo_DIR}/src/osgGeo
         $ENV{osgGeo_DIR}/lib/Release
         $ENV{osgGeo_DIR}/lib64/Release
         $ENV{osgGeo_DIR}/lib
