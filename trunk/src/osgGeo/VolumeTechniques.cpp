@@ -20,7 +20,7 @@ $Id: TrackballManipulator.cpp 231 2013-04-16 12:35:57Z kristofer.tingdahl@dgbes.
 #include <osg/Texture1D>
 #include <osg/Texture3D>
 #include <osgVolume/VolumeTile>
-#include <osgGeo/VolumeTechnique>
+#include <osgGeo/VolumeTechniques>
 
 
 namespace osgGeo
