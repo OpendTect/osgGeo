@@ -46,8 +46,9 @@ set ( LIB_PUBLIC_HEADERS
     TexturePanelStrip
     ThumbWheel
     TrackballManipulator
-	TubeWellLog
+    TubeWellLog
     Vec2i
+    VolumeTechniques
     WellLog )
 
 add_library( ${LIB_NAME} SHARED
@@ -74,7 +75,8 @@ add_library( ${LIB_NAME} SHARED
     TexturePanelStrip.cpp
     ThumbWheel.cpp
     TrackballManipulator.cpp 
-	TubeWellLog.cpp
+    TubeWellLog.cpp
+    VolumeTechniques.cpp
     WellLog.cpp )
 target_link_libraries(
     ${LIB_NAME}
