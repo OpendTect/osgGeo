@@ -1,0 +1,55 @@
+#ifndef OSGGEO_VOLUMETECHNIQUE_H
+#define OSGGEO_VOLUMETECHNIQUE_H
+
+/* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
+Copyright 2011 dGB Beheer B.V.
+
+osgGeo is free software; you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>
+
+$Id: TrackballManipulator 231 2013-04-16 12:35:57Z kristofer.tingdahl@dgbes.com $
+
+*/
+
+#include <osgGeo/Common>
+#include <osgVolume/FixedFunctionTechnique>
+#include <osgVolume/RayTracedTechnique>
+
+namespace osgGeo
+{
+
+/* FixedFunctionTechnique with overruled filter settings */
+class OSGGEO_EXPORT FixedFunctionTechnique : public osgVolume::FixedFunctionTechnique
+{
+    public :
+	FixedFunctionTechnique();
+	FixedFunctionTechnique(const FixedFunctionTechnique&,const osg::CopyOp& copyop=osg::CopyOp::SHALLOW_COPY);
+
+	virtual void init();
+};
+
+
+/* RayTracedTechnique with overruled filter settings */
+class OSGGEO_EXPORT RayTracedTechnique : public osgVolume::RayTracedTechnique
+{
+    public :
+	RayTracedTechnique();
+	RayTracedTechnique(const RayTracedTechnique&,const osg::CopyOp& copyop=osg::CopyOp::SHALLOW_COPY);
+
+	virtual void init();
+};
+
+} // namespace osgGeo
+
+
+#endif //OSGGEO_VOLUMETECHNIQUE_H
