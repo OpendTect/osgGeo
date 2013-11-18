@@ -26,6 +26,7 @@ $Id$
 #include <osg/Geometry>
 #include <osg/Material>
 #include <osgUtil/CullVisitor>
+#include <osgUtil/LineSegmentIntersector>
 
 namespace osgGeo
 {
@@ -66,6 +67,8 @@ PolygonSelection::PolygonSelection()
     , _zcoord(0)
     , _masterCamera(0)
     , _eventHandler(0) 
+    , _isInterSecting(false)
+    , _hudCamera(0)
 {
     _lineGeometry->setVertexArray(_coords);
     _lineGeometry->addPrimitiveSet(_coordsList);
@@ -77,7 +80,7 @@ PolygonSelection::PolygonSelection()
 PolygonSelection::~PolygonSelection()
 {
     setEventHandlerCamera( 0 );
-
+    setHUDCamera( 0 );
     if ( _eventHandler )
     {
 	_eventHandler->setPolygonSelector( 0 );
@@ -112,6 +115,18 @@ void PolygonSelection::setEventHandlerCamera( osg::Camera* camera )
 }
 
 
+void PolygonSelection::setHUDCamera( osg::Camera* hudCamera )
+{
+    if ( _hudCamera )
+    	_hudCamera->unref();
+
+    _hudCamera = hudCamera;
+
+    if ( _hudCamera )
+	_hudCamera->ref();
+}
+
+
 void PolygonSelection::accept(osg::NodeVisitor& nv)
 {
     osg::ref_ptr<osg::StateSet> stateset = getStateSet();
@@ -126,9 +141,18 @@ void PolygonSelection::accept(osg::NodeVisitor& nv)
 }
 
 
-bool PolygonSelection::checkInteractionObjectIntersection( const osg::Vec3& ) const
+bool PolygonSelection::checkInteractionObjectIntersection(
+						    const osg::Vec3& pos ) const
 {
-    return false;
+    if ( !_hudCamera )
+	return false;
+
+    osg::ref_ptr<osgUtil::LineSegmentIntersector> intersector =
+	new osgUtil::LineSegmentIntersector(
+			       osgUtil::Intersector::WINDOW, pos.x(), pos.y() );
+    osgUtil::IntersectionVisitor iv( intersector.get() );
+    _hudCamera->accept( iv );
+    return intersector->containsIntersections();
 }
 
 
@@ -137,14 +161,13 @@ bool PolygonSelection::handleEvent(const osgGA::GUIEventAdapter& ea)
     if (!_ison || _shapeType==Off)
 	return false;
 
-    if ( ea.getHandled() )
-	return false;
-    
     const osg::Vec3 mousepos(ea.getX(),ea.getY(),_zcoord);
+
     if (ea.getEventType()==osgGA::GUIEventAdapter::PUSH 
 	&& ea.getButton()==osgGA::GUIEventAdapter::LEFT_MOUSE_BUTTON)
     {
-	if ( checkInteractionObjectIntersection( mousepos ) )
+	_isInterSecting = checkInteractionObjectIntersection( mousepos );
+	if ( _isInterSecting )
 	    return false;
 
 	_coords->clear();
@@ -155,6 +178,10 @@ bool PolygonSelection::handleEvent(const osgGA::GUIEventAdapter& ea)
 	}
 	return true;
     }
+
+    if ( _isInterSecting )
+	return false;
+
     if (ea.getEventType()==osgGA::GUIEventAdapter::DRAG
 	&& ea.getButtonMask()==osgGA::GUIEventAdapter::LEFT_MOUSE_BUTTON)
     {
