@@ -39,6 +39,7 @@ public:
 			    PolygonSelection();
     void		    accept(osg::NodeVisitor&);
     void		    setEventHandlerCamera(osg::Camera*);
+    void		    setHUDCamera(osg::Camera*);
     const osg::Vec3Array*   getCoords() const { return _coords; }
     enum ShapeType	    { Off, Polygon, Rectangle };
     ShapeType		    getShapeType() const  { return _shapeType; }
@@ -65,12 +66,14 @@ protected:
     osg::ref_ptr<osg::Geode>		_geode;
     osg::Geometry*			_lineGeometry;
     osg::Camera*			_masterCamera;
+    osg::Camera*			_hudCamera;
     osg::DrawArrays*			_coordsList;
     ShapeType				_shapeType;
     osg::Material*			_material;
     osg::Vec3Array*			_coords;
     float				_zcoord;
     bool				_ison;
+    bool				_isInterSecting;
 };
 
 } // osgGeo

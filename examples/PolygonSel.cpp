@@ -30,6 +30,16 @@ $Id: PolygonSel.cpp 169 2013-01-18 11:47:07Z ranojay.sen@dgbes.com $
 #include "osggeoviewer.h"
 
 
+osg::Node* createHUDScene()
+{
+    osg::Geode* textgeode = new osg::Geode();
+    osgText::Text* text = new  osgText::Text;
+    text->setText( "Text on HUD is unselectable" );
+    textgeode->addDrawable( text );
+    return textgeode;
+}
+
+
 int main( int argc, char** argv )
 {
     osgGeo::Viewer viewer( argc, argv );
@@ -48,16 +58,19 @@ int main( int argc, char** argv )
     
     //we don't want the camera to grab event focus from the viewers main cam(s).
     hudcamera->setAllowEventFocus(false);
-    
     osg::ref_ptr<osgGeo::PolygonSelection> polygonsel
 					= new  osgGeo::PolygonSelection;
     polygonsel->setEventHandlerCamera( viewer.getCamera() );
+    polygonsel->setHUDCamera( hudcamera );
     polygonsel->setShapeType( osgGeo::PolygonSelection::Polygon );
     polygonsel->setColor( osg::Vec4(0,0.7,0,1) );
    
     osg::ref_ptr<osgViewer::View> hudview = new osgViewer::View;
     hudview->setCamera( hudcamera );
-    hudview->setSceneData( polygonsel );
+    osg::Group* hudscene = new osg::Group;
+    hudscene->addChild( createHUDScene() );
+    hudscene->addChild( polygonsel );
+    hudview->setSceneData( hudscene );
     viewer.addView( hudview );
     
     osg::Geode* geode = new osg::Geode;
