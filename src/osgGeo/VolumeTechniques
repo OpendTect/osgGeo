@@ -1,5 +1,5 @@
-#ifndef OSGGEO_VOLUMETECHNIQUE_H
-#define OSGGEO_VOLUMETECHNIQUE_H
+#ifndef OSGGEO_VOLUMETECHNIQUES_H
+#define OSGGEO_VOLUMETECHNIQUES_H
 
 /* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
 Copyright 2011 dGB Beheer B.V.
@@ -52,4 +52,4 @@ class OSGGEO_EXPORT RayTracedTechnique : public osgVolume::RayTracedTechnique
 } // namespace osgGeo
 
 
-#endif //OSGGEO_VOLUMETECHNIQUE_H
+#endif //OSGGEO_VOLUMETECHNIQUES_H
