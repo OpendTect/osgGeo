@@ -23,6 +23,7 @@ $Id$
 
 #include <osgGeo/Common>
 #include <osg/Node>
+#include <osg/Version>
 #include <osgGA/EventQueue>
 #include <osgGA/GUIEventHandler>
 
@@ -91,10 +92,16 @@ public:
     
     
 protected:
-    bool handle (const osgGA::GUIEventAdapter &ea, osgGA::GUIActionAdapter &aa,
-		 osg::Object*, osg::NodeVisitor*);
-    bool handle (const osgGA::GUIEventAdapter &ea, osgGA::GUIActionAdapter &aa)
-	{ return osgGA::GUIEventHandler::handle( ea, aa ); }
+    bool handle(const osgGA::GUIEventAdapter &ea,osgGA::GUIActionAdapter &aa,
+		osg::Object*,osg::NodeVisitor*);
+    bool handle(const osgGA::GUIEventAdapter &ea,osgGA::GUIActionAdapter &aa)
+	{ return osgGA::GUIEventHandler::handle(ea,aa); }
+
+#if OSG_MIN_VERSION_REQUIRED(3,3,1)
+    bool handle(osgGA::Event* ev,osg::Object* obj,osg::NodeVisitor* nv)
+	{ return osgGA::GUIEventHandler::handle(ev,obj,nv); }
+#endif
+
     std::vector<osg::ref_ptr<ThumbWheel> > _thumbwheels;
 };
 
