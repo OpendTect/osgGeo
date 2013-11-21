@@ -25,6 +25,7 @@ $Id$
 #include <osg/Geode>
 #include <osg/Geometry>
 #include <osg/Material>
+#include <osg/Version>
 #include <osgUtil/CullVisitor>
 #include <osgUtil/LineSegmentIntersector>
 
@@ -38,7 +39,7 @@ public:
     { _polysel = ps; }
     
 protected:
-    bool handle ( const osgGA::GUIEventAdapter &ea,
+    bool handle(const osgGA::GUIEventAdapter &ea,
 					osgGA::GUIActionAdapter&,
 					osg::Object*,
 					osg::NodeVisitor*)
@@ -50,6 +51,13 @@ protected:
     {
 	return osgGA::GUIEventHandler::handle(ea,aa);
     }
+
+#if OSG_MIN_VERSION_REQUIRED(3,3,1)
+    bool handle(osgGA::Event* ev,osg::Object* obj,osg::NodeVisitor* nv)
+    {
+	return osgGA::GUIEventHandler::handle(ev,obj,nv);
+    }
+#endif
 
     osgGeo::PolygonSelection*		_polysel;
 };
