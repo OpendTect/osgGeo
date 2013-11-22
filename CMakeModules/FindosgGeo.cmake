@@ -59,11 +59,7 @@ macro(FIND_OSGGEO_LIBRARY MYLIBRARY MYLIBRARYNAME)
         /usr/freeware/lib64
     )
 
-    if ( ${MYLIBRARY}_DEBUG STREQUAL "${MYLIBRARY}_DEBUG-NOTFOUND" )
-	unset(  ${MYLIBRARY}_DEBUG )
-    endif()
-    
-    find_library(${MYLIBRARY}
+    find_library("${MYLIBRARY}_RELEASE"
         NAMES "${MYLIBRARYNAME}${CMAKE_RELEASE_POSTFIX}"
         PATHS
         ${osgGeo_DIR}/lib/Release
@@ -85,7 +81,7 @@ macro(FIND_OSGGEO_LIBRARY MYLIBRARY MYLIBRARYNAME)
         NO_DEFAULT_PATH
     )
 
-    find_library(${MYLIBRARY}
+    find_library("${MYLIBRARY}_RELEASE"
         NAMES "${MYLIBRARYNAME}${CMAKE_RELEASE_POSTFIX}"
         PATHS
         ~/Library/Frameworks
@@ -102,20 +98,17 @@ macro(FIND_OSGGEO_LIBRARY MYLIBRARY MYLIBRARYNAME)
         /usr/freeware/lib64
     )
 
-    if ( ${MYLIBRARY} STREQUAL "${MYLIBRARY}-NOTFOUND" )
-	unset( ${MYLIBRARY} )
-    endif()
+    IF ( ${MYLIBRARY}_DEBUG AND ${MYLIBRARY}_RELEASE )
+	SET ( ${MYLIBRARY} "optimized" ${${MYLIBRARY}_RELEASE}
+			   "debug" ${${MYLIBRARY}_DEBUG} )
+    ELSEIF ( ${MYLIBRARY}_DEBUG )
+	set ( ${MYLIBRARY} ${${MYLIBRARY}_DEBUG} )
+    ELSEIF( ${MYLIBRARY}_RELEASE )
+	set ( ${MYLIBRARY} ${${MYLIBRARY}_RELEASE} )
+    ELSE()
+	set ( ${MYLIBRARY} ${MYLIBRARY}-NOTFOUND )
+    ENDIF()
 
-    if( NOT ${MYLIBRARY}_DEBUG )
-        if( ${MYLIBRARY} )
-            set(${MYLIBRARY}_DEBUG ${${MYLIBRARY}} )
-        endif( ${MYLIBRARY} )
-    endif( NOT ${MYLIBRARY}_DEBUG)
-
-    if( NOT ${MYLIBRARY} )
-	set(${MYLIBRARY} ${${MYLIBRARY}_DEBUG} )
-    endif(NOT ${MYLIBRARY} )
-           
 endmacro(FIND_OSGGEO_LIBRARY MYLIBRARY MYLIBRARYNAME)
 
 FIND_OSGGEO_LIBRARY(OSGGEO_LIBRARY osgGeo)
