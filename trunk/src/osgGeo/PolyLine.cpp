@@ -90,7 +90,8 @@ void PolyLineNode::traverse( osg::NodeVisitor& nv )
 	if ( getStateSet() )
 	    cv->pushStateSet(getStateSet());
 
-	cv->addDrawable(_geometry, cv->getModelViewMatrix());
+	const float depth = cv->getDistanceFromEyePoint( _bs.center(), false );
+	cv->addDrawableAndDepth( _geometry, cv->getModelViewMatrix(), depth );
 
 	if ( getStateSet() )
 	    cv->popStateSet();
