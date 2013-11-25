@@ -51,6 +51,9 @@ bool osgGeo::OneSideRenderNode::addDrawable( osg::Drawable* gset,
 					     const Line3& line )
 {
     _drawables.push_back( gset );
+    // Precalculate bounding sphere for (multi-threaded) cull traversal
+    gset->getBound();
+
     _lines.push_back( line );
     return true;
 }
@@ -84,7 +87,11 @@ void osgGeo::OneSideRenderNode::traverse( osg::NodeVisitor& nv )
 	{
 	    const osg::Vec3 viewline = eye-_lines[idx]._pos;
 	    if ( viewline*_lines[idx]._dir>=0 )
-		cv->addDrawable( _drawables[idx], cv->getModelViewMatrix() );
+	    {
+		const osg::BoundingBox bb = _drawables[idx]->getBound();
+		const float depth = cv->getDistanceFromEyePoint( bb.center(), false );
+		cv->addDrawableAndDepth( _drawables[idx], cv->getModelViewMatrix(), depth );
+	    }
 	}
 
 	if ( getStateSet() )

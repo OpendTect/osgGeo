@@ -195,7 +195,11 @@ void TexturePlaneNode::traverse( osg::NodeVisitor& nv )
 	for ( unsigned int idx=0; idx<_geometries.size(); idx++ )
 	{
 	    cv->pushStateSet( _statesets[idx] );
-	    cv->addDrawable( _geometries[idx], cv->getModelViewMatrix() );
+
+	    const osg::BoundingBox bb = _geometries[idx]->getBound();
+	    const float depth = cv->getDistanceFromEyePoint(bb.center(),false);
+	    cv->addDrawableAndDepth( _geometries[idx], cv->getModelViewMatrix(), depth );
+
 	    cv->popStateSet();
 	}
 
@@ -381,6 +385,9 @@ bool TexturePlaneNode::updateGeometry()
 	    }
 		    
 	    geometry->addPrimitiveSet( new osg::DrawArrays(GL_QUADS,0,4) );
+
+	    // Precalculate bounding sphere for (multi-threaded) cull traversal
+	    geometry->getBound();
 
 	    _geometries.push_back( geometry );
 	    _statesets.push_back( stateset );

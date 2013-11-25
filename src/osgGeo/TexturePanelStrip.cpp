@@ -411,7 +411,11 @@ void TexturePanelStripNode::traverse( osg::NodeVisitor& nv )
 	for ( unsigned int idx=0; idx<_geometries.size(); idx++ )
 	{
 	    cv->pushStateSet( _statesets[idx] );
-	    cv->addDrawable( _geometries[idx], cv->getModelViewMatrix() );
+
+	    const osg::BoundingBox bb = _geometries[idx]->getBound();
+	    const float depth = cv->getDistanceFromEyePoint(bb.center(),false);
+	    cv->addDrawableAndDepth( _geometries[idx], cv->getModelViewMatrix(), depth );
+
 	    cv->popStateSet();
 	}
 
@@ -714,6 +718,9 @@ bool TexturePanelStripNode::updateGeometry()
 
 	    GLenum primitive = _smoothNormals ? GL_TRIANGLE_STRIP : GL_QUADS;
 	    geometry->addPrimitiveSet( new osg::DrawArrays(primitive,0,coords->size()) );
+
+	    // Precalculate bounding sphere for (multi-threaded) cull traversal
+	    geometry->getBound();
 
 	    if ( !_altTileMode || (_altTileMode+sIdx+zIdx)%2 )
 	    {
