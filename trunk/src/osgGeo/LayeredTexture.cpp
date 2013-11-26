@@ -713,10 +713,14 @@ void LayeredTexture::setDataLayerImage( int id, const osg::Image* image, bool fr
 	return;
 
     LayeredTextureData& layer = *_dataLayers[idx];
-    layer._freezeDisplay = freezewhile0 && !image;
+
+    if ( freezewhile0 && !image && layer._imageSource.get() )
+	layer._freezeDisplay = true;
 
     if ( image )
     {
+	layer._freezeDisplay = false;
+
 	if ( !image->s() || !image->t() || !image->getPixelFormat() )
 	{
 	    std::cerr << "Data layer image cannot be set before allocation" << std::endl;
