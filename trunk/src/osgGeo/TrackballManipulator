@@ -24,6 +24,8 @@ $Id$
 #include <osgGeo/Common>
 #include <osgGA/TrackballManipulator>
 
+namespace osg { class View; }
+
 namespace osgGeo
 {
 
@@ -35,12 +37,60 @@ class OSGGEO_EXPORT TrackballManipulator : public osgGA::TrackballManipulator
 	TrackballManipulator( const TrackballManipulator& tm,
 			      const osg::CopyOp& copyOp = osg::CopyOp::SHALLOW_COPY );
 
-	virtual bool handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa);
-	void enableDragging(bool yn) {  _dragEnabled=yn; }
+
+	void enableDragging(bool yn) { _dragEnabled=yn; }
+        void setBoundTraversalMask(unsigned int nm) { _boundTraversalMask = nm; }
+        void setViewAllMargin(float nv) { _viewallMargin=nv; }
+        
+        void animateTo(const osg::Vec3d& center,
+                       const osg::Quat& rotation,
+                       double distance, bool animate = true );
+
+        void viewAll(osg::View*,bool animate);
+        osg::Matrix getInverseMatrix() const;
+
+    private:
+
+        static osg::Matrix getInverseMatrix(const osg::Vec3d& center,
+        				    const osg::Quat& rotation,
+                                            double distance );
+
+        bool computeViewAllParams(osg::View*,
+        			  osg::Vec3d& center,double& distance) const;
+        
+
+        bool handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa);
+        bool handleMouseWheel( const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& us );
+	bool handleMouseWheelZoomOut( const osgGA::GUIEventAdapter& ea,
+                                      osgGA::GUIActionAdapter& us );
+        bool handleMouseWheelZoomIn(  const osgGA::GUIEventAdapter& ea,
+                                      osgGA::GUIActionAdapter& us );
+                                      
+        bool getIntersectionPoint( const osgGA::GUIEventAdapter& ea,
+                                   osgGA::GUIActionAdapter& us,
+                                   osg::Vec3d& intersection ) const;
 
 
-    protected :
+        unsigned int			_boundTraversalMask;
 	bool				_dragEnabled;
+        float				_viewallMargin;
+        float				_viewAllInitalFactor;
+        
+        class TrackballAnimationData : public osgGA::StandardManipulator::AnimationData
+        {
+        public:
+            osg::Vec3d		_centerMovement;
+            osg::Quat		_rotationMovement;
+            double		_distanceMovement;
+            
+            void start( const osg::Vec3d& centerMovement,
+            		const osg::Quat& rotationMovement,
+                        double distanceMovement,
+                        const double startTime );
+        };
+        
+        void allocAnimationData() { _animationData = new TrackballAnimationData; }
+        void applyAnimationStep( const double currentProgress, const double prevProgress );
 };
 
 }

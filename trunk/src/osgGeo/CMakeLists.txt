@@ -29,9 +29,6 @@ set ( LIB_PUBLIC_HEADERS
     Export
     Common
     Config
-    Horizon3DBase
-    Horizon3D
-    Horizon3D2
     LayeredTexture
     LayerProcess
     Line3
@@ -60,9 +57,6 @@ add_library( ${LIB_NAME} SHARED
     ShaderUtility.cpp
     PolygonSelection.cpp
     PolyLine.cpp
-    Horizon3DBase.cpp
-    Horizon3D.cpp
-    Horizon3D2.cpp
     LayeredTexture.cpp
     LayerProcess.cpp
     Line3.cpp
