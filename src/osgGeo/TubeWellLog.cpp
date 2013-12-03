@@ -46,6 +46,7 @@ TubeWellLog::TubeWellLog()
 {
     buildTubeGeometry();
     buildCenterLineGeometry();
+    _tubeBoundingSphere.init();
 }
 
 
@@ -100,12 +101,15 @@ void TubeWellLog::buildCenterLineGeometry()
 
 void TubeWellLog::buildTubeGeometry()
 {
-   /* osg::ref_ptr<osg::Vec3Array> normals = new osg::Vec3Array;
-    normals->push_back(osg::Vec3( 0.0f, -1.0f, 0.0f ));*/
+    osg::ref_ptr<osg::Vec3Array> normals = new osg::Vec3Array;
+    normals->push_back(osg::Vec3( 0.0f, -1.0f, 0.0f ));
 
     _tubeGeometry  = new osg::Geometry();
     _geode->addDrawable(_tubeGeometry);
-    _tubeGeometry->setNormalArray(_logTubeCircleNormals.get());
+    _tubeGeometry->setNormalArray(normals.get());
+//    _tubeGeometry->setNormalArray(_logTubeCircleNormals.get());
+//  this is temporal solution, it will be figured out later on the normal issue
+
     _tubeGeometry->setNormalBinding(osg::Geometry::BIND_OVERALL);
     _tubeGeometry->setVertexArray(_logTubeVerts.get());
     _tubeLogColors = new osg::Vec4Array;
@@ -141,6 +145,7 @@ void TubeWellLog::setRenderMode( RenderMode mode )
 
 void TubeWellLog::traverse(osg::NodeVisitor& nv)
 {
+    WellLog::traverse( nv );
     if(!_logPath->size())
 	return;
 
@@ -148,6 +153,7 @@ void TubeWellLog::traverse(osg::NodeVisitor& nv)
     {
 	if (_colorTableChanged)
 	    updateTubeLogColor();
+	dirtyBound();
     }
 
     if (nv.getVisitorType() == osg::NodeVisitor::CULL_VISITOR)
@@ -159,9 +165,8 @@ void TubeWellLog::traverse(osg::NodeVisitor& nv)
 	    buildTube(true); 
 	    _colorTableChanged = true;
 	}
-    }
 
-   if (_nonShadingGroup) _nonShadingGroup->accept(nv);
+    }
 }
 
 
@@ -175,9 +180,10 @@ void TubeWellLog::buildTube(bool dirtybound)
     const double angle(osg::PI * 2./(double)_resolution);
 
     _tubeGeometry->removePrimitiveSet(0,_tubeGeometry->getNumPrimitiveSets());
-    osg::BoundingSphere boundingSphere;
-    int total(0);
 
+    _tubeBoundingSphere.init();
+
+    int total(0);
     for (int res = 0; res <_resolution + 1; res++)
     {
 	osg::ref_ptr<osg::DrawElementsUShort> drawElements = 
@@ -208,7 +214,7 @@ void TubeWellLog::buildTube(bool dirtybound)
 	    else
 		 (*_logTubeVerts)[total] = circlePnt;
 
-	    boundingSphere.expandBy((*_logTubeVerts)[total]);
+	    _tubeBoundingSphere.expandBy((*_logTubeVerts)[total]);
 		
 	    (*drawElements)[2*count] = total;
 	    (*drawElements)[2*count+1] = total + nrSamples;
@@ -225,21 +231,26 @@ void TubeWellLog::buildTube(bool dirtybound)
     _logPathVerts->insert(_logPathVerts->end(),_logPath->begin(),
 			  _logPath->end() );
 
+    if ( dirtybound )
+	dirtyBound();
+
+
     _logTubeVerts->dirty();
     _tubeGeometry->dirtyDisplayList();
    // osgUtil::SmoothingVisitor::smooth(*_tubeGeometry);
     _logPathGeometry->dirtyDisplayList();
-
-    _boundingSphere = boundingSphere;
-    if ( dirtybound )
-	dirtyBound();
 
 }
 
 
 osg::BoundingSphere TubeWellLog::computeBound() const
 {
-      return _boundingSphere;
+    if ( _tubeBoundingSphere.radius() >0.f )
+	return _tubeBoundingSphere;
+    osg::BoundingSphere inibs;
+    for ( int idx=0; idx< _logPath->size(); idx++ )
+	inibs.expandBy( _logPath->at(idx) );
+    return inibs;
 }
 
 

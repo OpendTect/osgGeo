@@ -64,6 +64,13 @@ WellLog::~WellLog()
 }
 
 
+void WellLog::traverse(osg::NodeVisitor& nv)
+{
+    if ( _logPath && _logPath->size() && _nonShadingGroup ) 
+	_nonShadingGroup->accept(nv);
+}
+
+
 void WellLog::setPath( osg::Vec3Array* vtxarraypath )
 {
     _logPath = vtxarraypath;

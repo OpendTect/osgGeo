@@ -94,6 +94,7 @@ private:
     void			buildTube(bool) ;
 
     std::vector<int>			    _outTubeIndex;
+	osg::BoundingSphere				_tubeBoundingSphere;
     osg::ref_ptr<osg::Vec3Array>	_logTubeVerts;
     osg::ref_ptr<osg::Geometry>		_tubeGeometry;
     osg::ref_ptr<osg::Vec4Array>	_tubeLogColors;
