@@ -487,6 +487,10 @@ ThumbWheelEventNodeVisitor::ThumbWheelEventNodeVisitor( float deltaangle )
 {}
 
 
+ThumbWheelEventNodeVisitor::~ThumbWheelEventNodeVisitor()
+{}
+
+
 void ThumbWheel::showWheel( bool animate )
 {
     const double now = osg::Timer::instance()->time_s();
