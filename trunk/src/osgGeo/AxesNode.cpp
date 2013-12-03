@@ -133,7 +133,7 @@ osg::ref_ptr<osg::Node> arrowNode( const float rad, const float len,
     //cone base
     osg::DrawElementsUInt* conebase =
 	new osg::DrawElementsUInt( osg::PrimitiveSet::TRIANGLE_FAN ); 
-    float conesz = coords->size();
+    const int conesz = coords->size();
     for ( int idx=0; idx<=resolution; idx++ )
     {
 	float angl = idx * 2 * M_PI / resolution;
@@ -144,7 +144,7 @@ osg::ref_ptr<osg::Node> arrowNode( const float rad, const float len,
     }
     
     // cylinder
-    float platesz = coords->size();
+    const int platesz = coords->size();
     for ( int idx=0; idx<=resolution; idx++ )
     {
 	float angl = idx * 2 * M_PI / resolution;
@@ -159,7 +159,7 @@ osg::ref_ptr<osg::Node> arrowNode( const float rad, const float len,
     arrowgeometry->setVertexArray( coords );
     arrowgeometry->addPrimitiveSet( cone );
     arrowgeometry->addPrimitiveSet( conebase );
-    const float cylsz = coords->size() - platesz;
+    const int cylsz = coords->size() - platesz;
     arrowgeometry->addPrimitiveSet( 
 		   new osg::DrawArrays( GL_TRIANGLE_STRIP, platesz, cylsz, 0 ));
     arrowgeometry->setNormalArray( normals.get() );
