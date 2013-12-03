@@ -123,7 +123,7 @@ public:
 protected:
 				~WellLog();
     virtual osg::BoundingSphere	computeBound() const = 0;
-    virtual void	    	traverse( osg::NodeVisitor& )= 0;
+    virtual void	    	traverse( osg::NodeVisitor& );
     virtual float	    	getShapeFactor(float logval, float minval,
 					       float maxval) const;
 

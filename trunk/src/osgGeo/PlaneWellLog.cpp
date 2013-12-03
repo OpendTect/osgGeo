@@ -221,6 +221,8 @@ void PlaneWellLog::buildTriangleGeometry()
 
 void PlaneWellLog::traverse( osg::NodeVisitor& nv )
 {
+    WellLog::traverse( nv );
+
     if( !_logPath->size() )
 	return;
 
