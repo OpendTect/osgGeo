@@ -50,6 +50,10 @@ TrackballManipulator::TrackballManipulator( const TrackballManipulator& tm, cons
 }
 
 
+TrackballManipulator::~TrackballManipulator()
+{}
+
+
 bool TrackballManipulator::computeViewAllParams(osg::View* view,
                                                 osg::Vec3d& center, double& distance) const
 {

@@ -97,6 +97,7 @@ protected:
 class OSGGEO_EXPORT ThumbWheelEventHandler : public osgGA::GUIEventHandler
 {
 public:
+    ~ThumbWheelEventHandler();
     void addThumbWheel(ThumbWheel* t)
     { _thumbwheels.push_back(osg::ref_ptr<ThumbWheel>(t)); }
     void removeThumbWheel(ThumbWheel* t);

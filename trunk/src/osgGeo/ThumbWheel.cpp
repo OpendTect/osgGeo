@@ -519,6 +519,9 @@ void ThumbWheel::showWheel( bool animate )
 }
 
 
+ThumbWheelEventHandler::~ThumbWheelEventHandler()
+{}
+
 bool ThumbWheelEventHandler::handle (const osgGA::GUIEventAdapter &ea,
 				     osgGA::GUIActionAdapter&,
 				     osg::Object*,

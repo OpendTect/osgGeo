@@ -36,12 +36,12 @@ class OSGGEO_EXPORT TrackballManipulator : public osgGA::TrackballManipulator
 	TrackballManipulator( int flags = DEFAULT_SETTINGS );
 	TrackballManipulator( const TrackballManipulator& tm,
 			      const osg::CopyOp& copyOp = osg::CopyOp::SHALLOW_COPY );
-
+	~TrackballManipulator();
 
 	void enableDragging(bool yn) { _dragEnabled=yn; }
         void setBoundTraversalMask(unsigned int nm) { _boundTraversalMask = nm; }
         void setViewAllMargin(float nv) { _viewallMargin=nv; }
-        
+
         void animateTo(const osg::Vec3d& center,
                        const osg::Quat& rotation,
                        double distance, bool animate = true );

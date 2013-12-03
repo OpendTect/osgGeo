@@ -35,6 +35,7 @@ namespace osgGeo
 class PolygonSelectionEventHandler : public osgGA::GUIEventHandler
 {
 public:
+    PolygonSelectionEventHandler()		{}
     void setPolygonSelector(osgGeo::PolygonSelection* ps)
     { _polysel = ps; }
     
