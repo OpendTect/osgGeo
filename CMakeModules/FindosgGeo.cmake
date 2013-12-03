@@ -7,16 +7,16 @@
 # $osgGeo_DIR is an environment variable that would
 # correspond to the ./configure --prefix=$osgGeo_DIR
 #
-# Created by Robert Osfield. 
+# Created by Kristofer Tingdahl
 
-find_path(OSGGEO_INCLUDE_DIR osgGeo/Horizon3D
+find_path(OSGGEO_INCLUDE_DIR osgGeo/Export
     ${osgGeo_DIR}/include
     ${osgGeo_DIR}/src
     $ENV{osgGeo_DIR}/include
     NO_DEFAULT_PATH
 )
 
-find_path(OSGGEO_INCLUDE_DIR osgGeo/Horizon3D)
+find_path(OSGGEO_INCLUDE_DIR osgGeo/Export)
 
 macro(FIND_OSGGEO_LIBRARY MYLIBRARY MYLIBRARYNAME)
 
