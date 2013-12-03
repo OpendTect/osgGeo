@@ -28,7 +28,7 @@ $Id$
 #include <osgGA/GUIEventHandler>
 
 
-namespace osg { class Geode; class NodeVisitor; class Geometry; }
+namespace osg { class Geode; class NodeVisitor; class Geometry; class Material;}
 
 namespace osgGeo
 {
@@ -51,7 +51,10 @@ public:
     const osg::Vec2& getMin() const { return _min; }
     const osg::Vec2& getMax() const { return _max; }
     void setAngle(float);
-    float getAngle() const { return _currentangle; }
+    float getAngle() const { return _currentAngle; }
+    
+    void setWheelColor(const osg::Vec4&);
+    void setBorderColor(const osg::Vec4&);
     
     void addRotateCallback(osg::NodeCallback *nc);
     void removeRotateCallback(osg::NodeCallback *nc);
@@ -64,7 +67,10 @@ protected:
     //!<\retval 1 is close
     //!<\retval 2 is over
     
-    void showWheel(bool yn);
+    void updateAnimation(float progress);
+    bool isAnimating() const { return _animationStart>0; }
+    
+    void showWheel( bool animate );
     bool handleEvent( const osgGA::GUIEventAdapter& ea );
     ~ThumbWheel();
     
@@ -72,14 +78,19 @@ protected:
     osg::Vec2 _max;
 
     osg::Geode* _geode;
-    osg::Geometry* _wheelgeometry;
-    osg::Geometry* _outlinegeometry;
-    bool _istracking;
-    float _startpos;
-    float _startangle;
-    float _currentangle;
+    osg::Geometry* _wheelGeometry;
+    osg::Material* _wheelMaterial;
+    osg::Geometry* _outlineGeometry;
+    osg::Material* _outlineMaterial;
+    bool _isTracking;
+    float _startPos;
+    float _startAngle;
+    float _currentAngle;
     short _dim;
     osg::ref_ptr<osg::NodeCallback> _cb;
+    
+    double _animationTime;
+    double _animationStart;
 };
 
 
