@@ -120,6 +120,7 @@ class OSGGEO_EXPORT ThumbWheelEventNodeVisitor : public osg::NodeVisitor
 {
 public:
     ThumbWheelEventNodeVisitor(float deltaangle);
+    ~ThumbWheelEventNodeVisitor();
     float getDeltaAngle() const { return _deltaangle; }
 protected:
     float _deltaangle;
