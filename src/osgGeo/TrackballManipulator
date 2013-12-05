@@ -48,6 +48,9 @@ class OSGGEO_EXPORT TrackballManipulator : public osgGA::TrackballManipulator
 
         void viewAll(osg::View*,bool animate);
         osg::Matrix getInverseMatrix() const;
+        
+        void changeDistance(float factor) { zoomModel( factor, true ); }
+        //!<factor is fraction of distance
 
     private:
 
