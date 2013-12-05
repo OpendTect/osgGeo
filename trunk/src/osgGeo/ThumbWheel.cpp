@@ -218,9 +218,8 @@ ThumbWheel::ThumbWheel()
     setShape( 0, osg::Vec2( 200, 200 ), osg::Vec2( 400,  250 ), 0 );
     setAngle( 0 );
 
-    updateAnimation( 1 );
+    updateAnimation( 4 );
 }
-
 
 
 ThumbWheel::~ThumbWheel()
@@ -233,14 +232,14 @@ ThumbWheel::~ThumbWheel()
 void ThumbWheel::setBorderColor( const osg::Vec4& col )
 {
     _outlineMaterial->setDiffuse( osg::Material::FRONT,
-                                  osg::Vec4(col[0],col[1],col[2], 0));
+                                  osg::Vec4(col[0],col[1],col[2], 1));
 }
 
 
 void ThumbWheel::setWheelColor( const osg::Vec4& col )
 {
     _wheelMaterial->setDiffuse( osg::Material::FRONT,
-                                 osg::Vec4(col[0],col[1],col[2], 0));
+                                 osg::Vec4(col[0],col[1],col[2], 1));
 }
 
 
@@ -423,6 +422,9 @@ char ThumbWheel::getMousePosStatus( const osg::Vec2& mousepos ) const
 
 bool ThumbWheel::handleEvent( const osgGA::GUIEventAdapter& ea )
 {
+    if ( ea.getEventType()==osgGA::GUIEventAdapter::FRAME )
+        return false;
+
     const osg::Vec2 mousepos( ea.getX(), ea.getY() );
     const char mouseposstatus = getMousePosStatus( mousepos );
     
