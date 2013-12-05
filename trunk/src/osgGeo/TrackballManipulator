@@ -51,6 +51,10 @@ class OSGGEO_EXPORT TrackballManipulator : public osgGA::TrackballManipulator
         
         void changeDistance(float factor) { zoomModel( factor, true ); }
         //!<factor is fraction of distance
+        
+        void addMovementCallback(osg::NodeCallback *nc);
+    	void removeMovementCallback(osg::NodeCallback *nc);
+
 
     private:
 
@@ -78,6 +82,7 @@ class OSGGEO_EXPORT TrackballManipulator : public osgGA::TrackballManipulator
 	bool				_dragEnabled;
         float				_viewallMargin;
         float				_viewAllInitalFactor;
+        osg::ref_ptr<osg::NodeCallback> _cb;
         
         class TrackballAnimationData : public osgGA::StandardManipulator::AnimationData
         {
@@ -95,6 +100,21 @@ class OSGGEO_EXPORT TrackballManipulator : public osgGA::TrackballManipulator
         void allocAnimationData() { _animationData = new TrackballAnimationData; }
         void applyAnimationStep( const double currentProgress, const double prevProgress );
 };
+
+
+
+
+class OSGGEO_EXPORT TrackballEventNodeVisitor : public osg::NodeVisitor
+{
+public:
+    TrackballEventNodeVisitor(float deltahorangle, float deltavertangle, float distfactor );
+    ~TrackballEventNodeVisitor();
+
+    float _deltahorangle;
+    float _deltavertangle;
+    float _distfactor;
+};
+
 
 }
 

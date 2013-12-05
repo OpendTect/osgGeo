@@ -141,11 +141,68 @@ osg::Matrix TrackballManipulator::getInverseMatrix(const osg::Vec3d& center,
 
 bool TrackballManipulator::handle( const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa )
 {
+    if ( ea.getEventType()==osgGA::GUIEventAdapter::FRAME )
+        return false;
+
     if ( !_dragEnabled && ea.getEventType()==osgGA::GUIEventAdapter::DRAG )
 	return false;
 
-    return osgGA::TrackballManipulator::handle( ea, aa );
+    osg::Vec3d oldEyePos, oldCenterPos, oldUpDir;
+    getTransformation( oldEyePos, oldCenterPos, oldUpDir );
+    const double oldDist = _distance;
+
+    const bool res = osgGA::TrackballManipulator::handle( ea, aa );
+
+    if ( _cb )
+    {
+        float horAngle = 0;
+        float vertAngle = 0;
+        if ( ea.getEventType()==osgGA::GUIEventAdapter::DRAG )
+        {
+            osg::Vec3 oldViewDir = oldEyePos-oldCenterPos;
+            oldViewDir.normalize();
+
+            osg::Vec3d newEyePos, newCenterPos, newUpDir;
+            getTransformation( newEyePos, newCenterPos, newUpDir );
+
+            osg::Vec3 newViewDir = newEyePos-newCenterPos;
+            newViewDir.normalize();
+
+            const float rotationAngle = newViewDir * oldViewDir;
+            if ( rotationAngle )
+            {
+                const osg::Vec3 rotationAxis = newViewDir^oldViewDir;
+
+                osg::Vec3 vertAxis = (oldViewDir)^oldUpDir;
+                vertAxis.normalize();
+                osg::Vec3 horAxis = oldUpDir;
+                horAxis.normalize();
+
+                horAngle = rotationAngle * (horAxis*rotationAxis);
+                vertAngle = rotationAngle * (vertAxis*rotationAxis);
+            }
+	}
+
+        TrackballEventNodeVisitor nv( horAngle, vertAngle,
+                                     (_distance-oldDist)/oldDist );
+        (*_cb)( 0, &nv );
+    }
+
+    return res;
 }
+
+
+TrackballEventNodeVisitor::TrackballEventNodeVisitor( float deltahorangle, float deltavertangle, float distfactor )
+    : _deltahorangle( deltahorangle )
+    , _deltavertangle( deltavertangle )
+    , _distfactor( distfactor )
+{}
+
+
+TrackballEventNodeVisitor::~TrackballEventNodeVisitor()
+{}
+
+    
 
 #define mDefaultHandling osgGA::TrackballManipulator::handleMouseWheel( ea, us )
     
@@ -390,6 +447,25 @@ void  TrackballManipulator::applyAnimationStep( const double currentProgress, co
     _distance += ad->_distanceMovement * progress;
 }
 
+
+void TrackballManipulator::addMovementCallback(osg::NodeCallback* nc)
+{
+    if ( !_cb )
+	_cb = nc;
+    else
+	_cb->addNestedCallback( nc );
+}
+
+
+void TrackballManipulator::removeMovementCallback(osg::NodeCallback* nc)
+{
+    if ( nc==_cb )
+        _cb = _cb->getNestedCallback();
+    else
+        _cb->removeNestedCallback( nc );
+
+
+}
 
 
 
