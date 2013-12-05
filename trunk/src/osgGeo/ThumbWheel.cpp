@@ -336,6 +336,8 @@ void ThumbWheel::setAngle( float angle )
     
     tcarr->dirty();
     _wheelGeometry->dirtyDisplayList();
+
+    showWheel( false );
 }
 
 
