@@ -28,7 +28,7 @@ $Id$
 #include <osgGA/GUIEventHandler>
 
 
-namespace osg { class Geode; class NodeVisitor; class Geometry; class Material;}
+namespace osg { class Geode; class NodeVisitor; class Geometry; class Material; class Texture2D; }
 
 namespace osgGeo
 {
@@ -62,17 +62,21 @@ public:
 protected:
     friend class OSGGEO_EXPORT ThumbWheelEventHandler;
     void updateCoords();
-    char getMousePosStatus(const osg::Vec2& mousepos ) const;
-    //!<\retval 0 is not close
-    //!<\retval 1 is close
-    //!<\retval 2 is over
+
+    enum MouseProximity { Above, Nearby, None };
+
+    MouseProximity getMouseProximity(const osg::Vec2& mousepos ) const;
     
-    void updateAnimation(float progress);
+    bool updateAnimation(float progress);
+    //!<Returns if we should continue to animate
     bool isAnimating() const { return _animationStart>0; }
     
-    void showWheel( bool animate );
-    bool handleEvent( const osgGA::GUIEventAdapter& ea );
+    void updateWheel( ThumbWheel::MouseProximity nmp );
+    bool handleEvent( const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& );
     ~ThumbWheel();
+    
+    static osg::Texture2D* getSharedTexture();
+    //Not threadsafe, don't call simultaniously
     
     osg::Vec2 _min;
     osg::Vec2 _max;
@@ -89,6 +93,8 @@ protected:
     short _dim;
     osg::ref_ptr<osg::NodeCallback> _cb;
     
+    MouseProximity _mouseProximity;
+
     double _animationTime;
     double _animationStart;
 };

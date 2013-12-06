@@ -46,9 +46,7 @@ AxesNode::AxesNode()
     , _root(new osg::Group)
     , _transform(new osg::MatrixTransform)
     , _mastercamera(0)
-{
-    setNumChildrenRequiringUpdateTraversal( 1 );
-}
+{}
 
 
 AxesNode::AxesNode( const AxesNode& node, const osg::CopyOp& co )
@@ -60,9 +58,7 @@ AxesNode::AxesNode( const AxesNode& node, const osg::CopyOp& co )
     , _root(node._root)
     , _transform(node._transform)
     , _mastercamera(node._mastercamera)
-{
-    setNumChildrenRequiringUpdateTraversal( 1 );
-}
+{}
 
 
 AxesNode::~AxesNode()

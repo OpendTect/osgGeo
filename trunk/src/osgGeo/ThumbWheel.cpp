@@ -169,12 +169,14 @@ unsigned char imagedata[] =
 	255, 255, 255, 255
     };
 
+
 ThumbWheel::ThumbWheel()
     : _geode( new osg::Geode )
     , _isTracking( false )
     , _currentAngle( 0 )
     , _animationStart( -1 )
     , _animationTime( 1 )
+    , _mouseProximity( None )
 {
     _geode->ref();
     
@@ -198,8 +200,7 @@ ThumbWheel::ThumbWheel()
     texture->setWrap( osg::Texture::WRAP_S, osg::Texture::CLAMP_TO_EDGE );
     texture->setWrap( osg::Texture::WRAP_T, osg::Texture::REPEAT );
 
-    texture->setImage( image );
-    _wheelGeometry->getStateSet()->setTextureAttributeAndModes( TEXUNIT, texture );
+    _wheelGeometry->getStateSet()->setTextureAttributeAndModes( TEXUNIT, getSharedTexture() );
     _geode->addDrawable( _wheelGeometry );
     
     _outlineGeometry = new osg::Geometry;
@@ -226,6 +227,26 @@ ThumbWheel::~ThumbWheel()
 {
     _geode->unref();
     _wheelGeometry->unref();
+}
+
+
+osg::Texture2D* ThumbWheel::getSharedTexture()
+{
+    static osg::ref_ptr<osg::Texture2D> texture = 0;
+    if ( !texture )
+    {
+        texture = new osg::Texture2D;
+        texture->setWrap( osg::Texture::WRAP_S, osg::Texture::CLAMP_TO_EDGE );
+        texture->setWrap( osg::Texture::WRAP_T, osg::Texture::REPEAT );
+
+        osg::Image* image = new osg::Image();
+        image->setImage( IMAGEHEIGHT, IMAGEWIDTH, 1, GL_RGBA, GL_RGBA,
+                        GL_UNSIGNED_BYTE, imagedata, osg::Image::NO_DELETE );
+
+        texture->setImage( image );
+    }
+
+    return texture;
 }
 
 
@@ -337,48 +358,64 @@ void ThumbWheel::setAngle( float angle )
     tcarr->dirty();
     _wheelGeometry->dirtyDisplayList();
 
-    showWheel( false );
+    updateWheel( Above );
 }
 
 
 void ThumbWheel::accept( osg::NodeVisitor& nv )
 {
-    if ( nv.getVisitorType()==osg::NodeVisitor::CULL_VISITOR )
+    if ( nv.getVisitorType()==osg::NodeVisitor::UPDATE_VISITOR )
     {
         float progress = (osg::Timer::instance()->time_s() - _animationStart)/_animationTime;
-        if ( isAnimating() )
+        if ( isAnimating() && !updateAnimation( progress ) )
         {
-            if ( progress>=4 )
-            {
-                progress = 4;
-                _animationStart = -1;
-            }
-
-            updateAnimation( progress );
+            _animationStart = -1;
+            setNumChildrenRequiringUpdateTraversal( getNumChildrenRequiringUpdateTraversal()-1);
         }
+
     }
 
     return _geode->accept( nv );
 }
 
 
-void ThumbWheel::updateAnimation( float progress )
+bool ThumbWheel::updateAnimation( float progress )
 {
+    const float curpoacity = _wheelMaterial->getDiffuse( osg::Material::FRONT).a();
     float opacity;
-    if ( progress<1 )
-    	opacity = progress;
-    else if ( progress<3 )
-        opacity = 1;
-    else if ( progress<4 )
-    	opacity = 4-progress;
-    else
-        opacity = 0;
-
-    if ( _wheelMaterial->getDiffuse( osg::Material::FRONT).a()!=opacity )
+    bool do_cont;
+    if ( _mouseProximity==Above )
     {
-    	_wheelMaterial->setAlpha( osg::Material::FRONT, opacity );
-        _outlineMaterial->setAlpha( osg::Material::FRONT, 1-opacity );
+        opacity = 1;
+        do_cont = false;
     }
+    else if ( _mouseProximity==Nearby )
+    {
+        if ( curpoacity==1 )
+        {
+            return false;
+        }
+
+        opacity = progress;
+        if ( opacity>1 ) opacity = 1;
+        do_cont = true;
+    }
+    else
+    {
+        if ( !curpoacity )
+        {
+            return false;
+        }
+
+        opacity = 1-progress;
+        if ( opacity<0 ) opacity = 0;
+        do_cont = true;
+    }
+
+    _wheelMaterial->setAlpha( osg::Material::FRONT, opacity );
+    _outlineMaterial->setAlpha( osg::Material::FRONT, 1-opacity );
+
+    return do_cont;
 }
 
 
@@ -405,10 +442,10 @@ void ThumbWheel::removeRotateCallback( osg::NodeCallback* nc )
 }
 
 
-char ThumbWheel::getMousePosStatus( const osg::Vec2& mousepos ) const
+ThumbWheel::MouseProximity ThumbWheel::getMouseProximity( const osg::Vec2& mousepos ) const
 {
     if ( mousepos[0]>_min[0] && mousepos[0]<_max[0] && mousepos[1]>_min[1] && mousepos[1]<_max[1] )
-	return 2;
+	return Above;
 
     const osg::Vec2 center = (_min+_max)/2;
 
@@ -416,40 +453,36 @@ char ThumbWheel::getMousePosStatus( const osg::Vec2& mousepos ) const
     const float hotarea2 = ((_min-_max)*2).length2();
 
     if ( diffLen2<hotarea2 )
-        return 1;
+        return Nearby;
     
-    return 0;
+    return None;
 }
 
+#define mTurnOffTracking \
+_isTracking = false; \
+setNumChildrenRequiringUpdateTraversal( getNumChildrenRequiringUpdateTraversal()-1 )
 
-bool ThumbWheel::handleEvent( const osgGA::GUIEventAdapter& ea )
+bool ThumbWheel::handleEvent( const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& )
 {
     if ( ea.getEventType()==osgGA::GUIEventAdapter::FRAME )
         return false;
 
-    const osg::Vec2 mousepos( ea.getX(), ea.getY() );
-    const char mouseposstatus = getMousePosStatus( mousepos );
-    
-    if ( mouseposstatus )
-	showWheel( mouseposstatus==1 );
+    const osg::Vec2 mousePos( ea.getX(), ea.getY() );
+    updateWheel( getMouseProximity( mousePos ) );
 
     if ( !_isTracking )
     {
 	if ( ea.getEventType()==osgGA::GUIEventAdapter::PUSH &&
 	     ea.getButton()==1 )
 	{
-	    if ( mouseposstatus==2 )
+	    if ( _mouseProximity==Above )
 	    {
 		_isTracking = true;
-		_startPos = mousepos[_dim];
+                setNumChildrenRequiringUpdateTraversal( getNumChildrenRequiringUpdateTraversal()+1 );
+		_startPos = mousePos[_dim];
 		_startAngle = _currentAngle;
 		return true;
 	    }
-	}
-	else if ( ea.getEventType()==osgGA::GUIEventAdapter::SCROLL )
-	{
-	    //TODO
-	    return false;
 	}
 	
 	return false;
@@ -457,8 +490,8 @@ bool ThumbWheel::handleEvent( const osgGA::GUIEventAdapter& ea )
     
     if ( ea.getEventType()==osgGA::GUIEventAdapter::RELEASE && ea.getButton()==1)
     {
-	_isTracking = false;
-	return true;
+        mTurnOffTracking;
+        return true;
     }
     
     if ( ea.getEventType()==osgGA::GUIEventAdapter::RESIZE ||
@@ -466,11 +499,11 @@ bool ThumbWheel::handleEvent( const osgGA::GUIEventAdapter& ea )
 	ea.getEventType()==osgGA::GUIEventAdapter::DOUBLECLICK )
     {
 	//Just quit
-	_isTracking = false;
-	return false;
+        mTurnOffTracking;
+        return false;
     }
     
-    const float movement = mousepos[_dim] - _startPos;
+    const float movement = mousePos[_dim] - _startPos;
     const float deltaAngleSinceStart = movement * 2 / (_max[_dim]-_min[_dim]);
     const float newAngle = _startAngle + deltaAngleSinceStart;
     const float deltaangle = _currentAngle-newAngle;
@@ -495,30 +528,17 @@ ThumbWheelEventNodeVisitor::~ThumbWheelEventNodeVisitor()
 {}
 
 
-void ThumbWheel::showWheel( bool animate )
+void ThumbWheel::updateWheel( ThumbWheel::MouseProximity nmp )
 {
-    const double now = osg::Timer::instance()->time_s();
+    if ( nmp!=_mouseProximity )
+    {
+        _mouseProximity = nmp;
 
-    if ( animate )
-    {
-        if ( isAnimating() )
+        if ( !isAnimating() )
         {
-            const float progress = (now-_animationStart)/_animationTime;
-            if ( progress<1 )
-                return;
-            if ( progress<3 )
-                _animationStart = now - _animationTime;
-            else if ( progress<4 )
-                _animationStart = now - (4-progress) * _animationTime;
-            else
-                _animationStart = now;
+            setNumChildrenRequiringUpdateTraversal( getNumChildrenRequiringUpdateTraversal()+1 );
+            _animationStart = osg::Timer::instance()->time_s();
         }
-        else
-            _animationStart = now;
-    }
-    else
-    {
-	_animationStart = now - _animationTime;
     }
 }
 
@@ -527,7 +547,7 @@ ThumbWheelEventHandler::~ThumbWheelEventHandler()
 {}
 
 bool ThumbWheelEventHandler::handle (const osgGA::GUIEventAdapter &ea,
-				     osgGA::GUIActionAdapter&,
+				     osgGA::GUIActionAdapter &us,
 				     osg::Object*,
 				     osg::NodeVisitor *)
 {
@@ -535,7 +555,7 @@ bool ThumbWheelEventHandler::handle (const osgGA::GUIEventAdapter &ea,
     for ( std::vector<osg::ref_ptr<ThumbWheel> >::iterator iter=_thumbwheels.begin();
 	 iter!=_thumbwheels.end(); ++iter )
     {
-	if ( iter->get()->handleEvent( ea ) )
+	if ( iter->get()->handleEvent( ea, us ) )
 	    handled = true;
     }
     
