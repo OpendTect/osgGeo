@@ -38,6 +38,7 @@ set ( LIB_PUBLIC_HEADERS
     PolygonSelection
     PolyLine
     OneSideRender
+    TabBoxDragger
     TabPlaneDragger
     TexturePlane
     TexturePanelStrip
@@ -65,6 +66,7 @@ add_library( ${LIB_NAME} SHARED
     PlaneWellLog.cpp
     OneSideRender.cpp
     TabPlaneDragger.cpp
+    TabBoxDragger.cpp
     TexturePlane.cpp
     TexturePanelStrip.cpp
     ThumbWheel.cpp
