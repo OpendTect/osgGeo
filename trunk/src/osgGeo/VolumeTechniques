@@ -27,6 +27,7 @@ $Id: TrackballManipulator 231 2013-04-16 12:35:57Z kristofer.tingdahl@dgbes.com 
 
 namespace osgGeo
 {
+    class BoundingGeometry;
 
 /* FixedFunctionTechnique with overruled filter settings */
 class OSGGEO_EXPORT FixedFunctionTechnique : public osgVolume::FixedFunctionTechnique
@@ -36,10 +37,14 @@ class OSGGEO_EXPORT FixedFunctionTechnique : public osgVolume::FixedFunctionTech
 	FixedFunctionTechnique(const FixedFunctionTechnique&,const osg::CopyOp& copyop=osg::CopyOp::SHALLOW_COPY);
 
 	virtual void init();
+	virtual void traverse(osg::NodeVisitor& nv);
+
+    protected:
+	osg::ref_ptr<BoundingGeometry> _boundingGeometry;
 };
 
 
-/* RayTracedTechnique with overruled filter settings */
+/* RayTracedTechnique with overruled filter settings and customized shaders */
 class OSGGEO_EXPORT RayTracedTechnique : public osgVolume::RayTracedTechnique
 {
     public :
@@ -47,7 +52,16 @@ class OSGGEO_EXPORT RayTracedTechnique : public osgVolume::RayTracedTechnique
 	RayTracedTechnique(const RayTracedTechnique&,const osg::CopyOp& copyop=osg::CopyOp::SHALLOW_COPY);
 
 	virtual void init();
+	virtual void traverse(osg::NodeVisitor& nv);
+
+	void setCustomShader(osg::Shader::Type,const char* code);
+	static const char* volumeTfFragDepthCode();
+
+    protected:
+	std::vector< osg::ref_ptr<osg::Shader> >	_customShaders;
+	osg::ref_ptr<BoundingGeometry>			_boundingGeometry;
 };
+
 
 } // namespace osgGeo
 
