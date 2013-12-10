@@ -179,6 +179,7 @@ ThumbWheel::ThumbWheel()
     , _mouseProximity( None )
 {
     _geode->ref();
+    _geode->setCullingActive( false );
     
     _wheelGeometry = new osg::Geometry;
     _wheelGeometry->ref();
@@ -374,7 +375,6 @@ void ThumbWheel::accept( osg::NodeVisitor& nv )
         }
 
     }
-
     return _geode->accept( nv );
 }
 
