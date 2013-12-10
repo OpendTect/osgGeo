@@ -23,31 +23,10 @@ $Id: TrackballManipulator.cpp 231 2013-04-16 12:35:57Z kristofer.tingdahl@dgbes.
 #include <osgGeo/VolumeTechniques>
 #include <osg/TexGenNode>
 #include <osgUtil/IntersectionVisitor>
-#include <osg/Geometry>
 
 
 namespace osgGeo
 {
-
-
-class BoundingGeometry : public osg::Geometry
-{
-/* BoundingGeometry is an auxiliary class tuning the intersection visitor
-   process in two ways: it passes the VolumeTile to the IntersectionVisitor 
-   as a simple implementation of volume intersection (only sufficient in case
-   of non-transparent volumes), and it provides a slightly bigger bounding
-   box to circumvent unjustified clipping by osgUtil::LineSegmentIntersector
-   which is caused by numerical instability. See osg-forum branch:
-   "LineSegmentIntersector gives incorrect results (intersections missing)". */
-
-public:
-    			BoundingGeometry(osgVolume::VolumeTechnique&);
-
-    osg::BoundingBox	computeBound() const    { return _boundingBox; }
-
-protected:
-    osg::BoundingBox		_boundingBox;
-};
 
 
 BoundingGeometry::BoundingGeometry( osgVolume::VolumeTechnique& vt )
