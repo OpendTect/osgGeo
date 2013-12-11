@@ -61,7 +61,7 @@ bool TrackballManipulator::computeViewAllParams(osg::View* view,
         return false;
 
     osg::ComputeBoundsVisitor visitor( osg::NodeVisitor::TRAVERSE_ACTIVE_CHILDREN );
-    visitor.setNodeMaskOverride( _boundTraversalMask );
+    visitor.setTraversalMask( _boundTraversalMask );
 
     _node->accept( visitor );
 
@@ -143,7 +143,7 @@ bool TrackballManipulator::handle( const osgGA::GUIEventAdapter& ea, osgGA::GUIA
 {
     if ( ea.getEventType()==osgGA::GUIEventAdapter::FRAME )
         return false;
-
+    
     if ( !_dragEnabled && ea.getEventType()==osgGA::GUIEventAdapter::DRAG )
 	return false;
 

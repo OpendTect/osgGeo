@@ -55,6 +55,7 @@ class OSGGEO_EXPORT TrackballManipulator : public osgGA::TrackballManipulator
         void addMovementCallback(osg::NodeCallback *nc);
     	void removeMovementCallback(osg::NodeCallback *nc);
 
+	bool isThrown() const { return _thrown; }
 
     private:
 
