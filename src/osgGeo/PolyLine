@@ -63,7 +63,9 @@ protected:
     bool		needsUpdate() const;
     void		getOrthoVecs(const osg::Vec3&,osg::Vec3&,
 				     osg::Vec3&) const;
-    osg::BoundingSphere	computeBound() const;  
+    osg::BoundingSphere	computeBound() const;
+    void			touch();
+    void			setUpdateFlag(bool);  
 
     float			_radius;
     int				_resolution;
