@@ -110,6 +110,22 @@ void PolyLineNode::traverse( osg::NodeVisitor& nv )
 }
 
 
+void PolyLineNode::touch()
+{
+    setUpdateFlag(true);
+}
+
+
+void PolyLineNode::setUpdateFlag( bool updt )
+{
+    _needsUpdate = updt;
+    if ( _needsUpdate )
+	setNumChildrenRequiringUpdateTraversal(1);
+    else
+	setNumChildrenRequiringUpdateTraversal(0);
+}
+
+
 bool PolyLineNode::isCameraChanged(const osgUtil::CullVisitor* cv)
 {
     if( !cv )
@@ -180,21 +196,21 @@ osg::BoundingSphere PolyLineNode::computeBound() const
 void PolyLineNode::setVertexArray(osg::Array* arr)
 {
     _polyLineCoords = (osg::Vec3Array*) arr;
-    _needsUpdate = true;
+    touch();
 }
 
 
 void PolyLineNode::setRadius(float rad)
 {
     _radius = rad;
-    _needsUpdate = true;
+    touch();
 }
 
 
 void PolyLineNode::setResolution(int res)
 {
     _resolution = res;
-    _needsUpdate = true;
+    touch();
 }
 
 
@@ -345,8 +361,8 @@ bool PolyLineNode::updateGeometry()
     _arrayModifiedCount = _polyLineCoords->getModifiedCount();
     _bs = bbox;
     dirtyBound();
-    _needsUpdate = false;
     _isGeometryChanged = true;
+    setUpdateFlag(false);
     return true;
 }
 
@@ -373,7 +389,7 @@ void PolyLineNode::addPrimitiveSet( osg::PrimitiveSet* ps )
 {
     _primitivesetModCount.push_back( ps->getModifiedCount() );
     _primitiveSets.push_back( ps );
-    _needsUpdate = true;
+    touch();
 }
 
 
@@ -393,7 +409,7 @@ void PolyLineNode::removePrimitiveSet( int idx )
 {
     _primitivesetModCount.erase(_primitivesetModCount.begin()+idx);
     _primitiveSets.erase(_primitiveSets.begin()+idx);
-    _needsUpdate = true;
+    touch();
 }
 
 
