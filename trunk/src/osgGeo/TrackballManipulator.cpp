@@ -53,6 +53,8 @@ TrackballManipulator::TrackballManipulator( const TrackballManipulator& tm, cons
 TrackballManipulator::~TrackballManipulator()
 {}
 
+#define MAX(x,y) ((x)>(y)?(x) : (y))
+
 
 bool TrackballManipulator::computeViewAllParams(osg::View* view,
                                                 osg::Vec3d& center, double& distance) const
@@ -85,7 +87,9 @@ bool TrackballManipulator::computeViewAllParams(osg::View* view,
 
         //Results are better if this is iterated, and two times is a nice compromize between
         //speed and result.
-        for ( int idx=0; idx<2; idx++ )
+	float changeFactor = 0.05f;
+	char prevsign = 0;
+        for ( int idx=0; idx<100; idx++ )
         {
             const osg::Matrix viewMatrix = getInverseMatrix( center, _rotation, distance );
             const osg::Matrix transform = viewMatrix * projMatrix * windowMatrix;
@@ -100,12 +104,32 @@ bool TrackballManipulator::computeViewAllParams(osg::View* view,
             screenBBox.expandBy( osg::Vec3( bb.xMax(), bb.yMax(), bb.zMin() ) * transform );
             screenBBox.expandBy( osg::Vec3( bb.xMax(), bb.yMax(), bb.zMax() ) * transform );
 
-            const float xWidth = (screenBBox.xMax()-screenBBox.xMin())/vp->width();
-            const float yWidth = (screenBBox.yMax()-screenBBox.yMin())/vp->height();
+	    const float relXMaxFactor = fabs(screenBBox.xMax()/vp->width()-0.5f)*2;
+	    const float relXMinFactor = fabs(screenBBox.xMin()/vp->width()-0.5f)*2;
+	    const float relYMaxFactor = fabs(screenBBox.yMax()/vp->height()-0.5f)*2;
+	    const float relYMinFactor = fabs(screenBBox.yMin()/vp->height()-0.5f)*2;
 
-            const float factor = (xWidth>yWidth ? xWidth : yWidth) * (1.0f+_viewallMargin);
+            const float xFactor = MAX(relXMaxFactor,relXMinFactor);
+	    const float yFactor = MAX(relYMaxFactor,relYMinFactor);
 
-            distance = factor * distance;
+            const float factor = MAX(xFactor,yFactor) * (1.0f+_viewallMargin);
+
+	    if ( factor>0.99 && factor<1.01 )
+		break;
+
+	    const char cursign = factor>1 ? 1 : -1;
+
+	    if ( !prevsign )
+		prevsign = factor>1 ? 1 : -1;
+	    else if ( prevsign!=cursign )
+		changeFactor /=2;
+
+	    if ( factor>1 )
+		distance *= (1+changeFactor);
+	    else
+		distance /= (1+changeFactor);
+
+	    prevsign = cursign;
         }
     }
     else
