@@ -34,10 +34,11 @@ set ( LIB_PUBLIC_HEADERS
     Line3
     MarkerSet
     MarkerShape
+    OneSideRender
     PlaneWellLog
     PolygonSelection
     PolyLine
-    OneSideRender
+    ScalarBar
     TabBoxDragger
     TabPlaneDragger
     TexturePlane
@@ -63,8 +64,9 @@ add_library( ${LIB_NAME} SHARED
     Line3.cpp
     MarkerSet.cpp
     MarkerShape.cpp
-    PlaneWellLog.cpp
     OneSideRender.cpp
+    PlaneWellLog.cpp
+    ScalarBar.cpp
     TabPlaneDragger.cpp
     TabBoxDragger.cpp
     TexturePlane.cpp
@@ -83,7 +85,8 @@ target_link_libraries(
     ${OSGGEO_OSGGA_LIBRARY}
     ${OSGGEO_OSGMANIPULATOR_LIBRARY}
     ${OSGGEO_OSGDB_LIBRARY}
-    ${OSGGEO_OSGTEXT_LIBRARY})
+    ${OSGGEO_OSGTEXT_LIBRARY}
+    ${OSGGEO_OSGSIM_LIBRARY})
 
 install(FILES
     ${LIB_PUBLIC_HEADERS}
