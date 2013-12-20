@@ -1,6 +1,8 @@
 #include <osgGeo/ScalarBar>
 #include <osgText/Text>
 #include <osg/Geometry>
+#include <osg/Version>
+
 #include <sstream>
 
 using namespace osgGeo;
@@ -177,13 +179,25 @@ void ScalarBar::createDrawables()
         cs->push_back(c);
         cs->push_back(c);
     }
+
+#if OSG_VERSION_LESS_THAN(3,2,1)
+    bar->setColorArray(cs.get());
+    bar->setColorBinding(osg::Geometry::BIND_PER_PRIMITIVE);
+#else
     bar->setColorArray(cs.get(), osg::Array::BIND_PER_VERTEX);
+#endif
 
     // Normal
     osg::ref_ptr<osg::Vec3Array> ns(new osg::Vec3Array);
     ns->push_back(osg::Matrix::transform3x3(osg::Vec3(0.0f,0.0f,1.0f),matrix));
-    bar->setNormalArray(ns.get(), osg::Array::BIND_OVERALL);
 
+#if OSG_VERSION_LESS_THAN(3,2,1)
+    bar->setNormalArray(ns.get());
+    bar->setNormalBinding(osg::Geometry::BIND_OVERALL);
+#else
+    bar->setNormalArray(ns.get(), osg::Array::BIND_OVERALL);
+#endif
+    
     // The Quad strip that represents the bar
     bar->addPrimitiveSet(new osg::DrawArrays(GL_QUADS,0,vs->size()));
 
@@ -263,7 +277,14 @@ void ScalarBar::createDrawables()
     rectangle->setVertexArray( rectvertices );
     osg::ref_ptr<osg::Vec4Array> rectcolor = new osg::Vec4Array;
     rectcolor->push_back( _textProperties._color );
+        
+#if OSG_VERSION_LESS_THAN(3,2,1)
+    rectangle->setColorArray( rectcolor.get() );
+    rectangle->setColorBinding(osg::Geometry::BIND_OVERALL );
+#else
     rectangle->setColorArray( rectcolor.get(), osg::Array::BIND_OVERALL );
+#endif
+
     setDrawable( 0, rectangle.get() ); //swap the drawables to avoid overlapping.
     addDrawable( bar );
 
@@ -284,8 +305,14 @@ void ScalarBar::createDrawables()
 
     osg::ref_ptr<osg::Geometry> sticks = new osg::Geometry;
     sticks->setVertexArray( stickvertices );
+        
+#if OSG_VERSION_LESS_THAN(3,2,1)
+    sticks->setColorArray( stickcolor.get() );
+    sticks->setColorBinding( osg::Geometry::BIND_OVERALL );
+#else
     sticks->setColorArray( stickcolor.get(), osg::Array::BIND_OVERALL );
-    sticks->addPrimitiveSet( new osg::DrawArrays(GL_LINES,0,stickvertices->size()) );
+#endif
 
+    sticks->addPrimitiveSet( new osg::DrawArrays(GL_LINES,0,stickvertices->size()) );
     addDrawable( sticks );
 }
