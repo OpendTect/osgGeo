@@ -180,7 +180,7 @@ void ScalarBar::createDrawables()
         cs->push_back(c);
     }
 
-#if OSG_VERSION_LESS_THAN(3,2,1)
+#if OSG_VERSION_LESS_THAN(3,2,0)
     bar->setColorArray(cs.get());
     bar->setColorBinding(osg::Geometry::BIND_PER_PRIMITIVE);
 #else
@@ -191,7 +191,7 @@ void ScalarBar::createDrawables()
     osg::ref_ptr<osg::Vec3Array> ns(new osg::Vec3Array);
     ns->push_back(osg::Matrix::transform3x3(osg::Vec3(0.0f,0.0f,1.0f),matrix));
 
-#if OSG_VERSION_LESS_THAN(3,2,1)
+#if OSG_VERSION_LESS_THAN(3,2,0)
     bar->setNormalArray(ns.get());
     bar->setNormalBinding(osg::Geometry::BIND_OVERALL);
 #else
@@ -278,7 +278,7 @@ void ScalarBar::createDrawables()
     osg::ref_ptr<osg::Vec4Array> rectcolor = new osg::Vec4Array;
     rectcolor->push_back( _textProperties._color );
         
-#if OSG_VERSION_LESS_THAN(3,2,1)
+#if OSG_VERSION_LESS_THAN(3,2,0)
     rectangle->setColorArray( rectcolor.get() );
     rectangle->setColorBinding(osg::Geometry::BIND_OVERALL );
 #else
@@ -306,7 +306,7 @@ void ScalarBar::createDrawables()
     osg::ref_ptr<osg::Geometry> sticks = new osg::Geometry;
     sticks->setVertexArray( stickvertices );
         
-#if OSG_VERSION_LESS_THAN(3,2,1)
+#if OSG_VERSION_LESS_THAN(3,2,0)
     sticks->setColorArray( stickcolor.get() );
     sticks->setColorBinding( osg::Geometry::BIND_OVERALL );
 #else
