@@ -29,14 +29,13 @@ MarkerSet::MarkerSet()
     , _colorArr(new osg::Vec4Array)
     , _vertexArr(new osg::Vec3Array)
     , _nonShadingSwitch(new osg::Switch)
-    , _needsUpdate(true)
-    , _arrayModCount(-1)
     , _minScale(0.0f)
     , _maxScale(25.5f)
     , _normalArr(new osg::Vec3Array)
     , _applySingleColor( false )
+    , _forceRedraw( false )
 {
-    setNumChildrenRequiringUpdateTraversal(1);
+    setNumChildrenRequiringUpdateTraversal(0);
     _singleColor = osg::Vec4(0.1f, 0.1f, 0.1f, 1.0f);
 }
 
@@ -50,8 +49,11 @@ void MarkerSet::traverse( osg::NodeVisitor& nv )
 {
     if ( nv.getVisitorType()==osg::NodeVisitor::UPDATE_VISITOR )
     {
-	if ( needsUpdate() )
+	if ( _forceRedraw )
+	{
+	    forceRedraw( false );
 	    updateShapes();
+	}
     }
     
     if ( _nonShadingSwitch ) 
@@ -61,8 +63,7 @@ void MarkerSet::traverse( osg::NodeVisitor& nv )
 
 bool MarkerSet::updateShapes()
 {
-    if (!_vertexArr || !_needsUpdate)
-	return false;
+    if (!_vertexArr ) return false;
 
     osg::Switch::ValueList valuelist = _nonShadingSwitch->getValueList();
     _nonShadingSwitch->removeChildren(0, _nonShadingSwitch->getNumChildren());
@@ -117,8 +118,6 @@ bool MarkerSet::updateShapes()
     }
     
     _nonShadingSwitch->setValueList(valuelist);
-    _needsUpdate = false;
-    _arrayModCount = _vertexArr->getModifiedCount();
     return true;
 }
 
@@ -127,9 +126,8 @@ void MarkerSet::turnMarkerOn(unsigned int idx,bool yn)
 {
     if ( idx >= _nonShadingSwitch->getNumChildren() )
 	return;
-
     _nonShadingSwitch->setChildValue(_nonShadingSwitch->getChild(idx), yn);
-    _needsUpdate = true;
+    forceRedraw(true);
 }
 
 
@@ -137,7 +135,7 @@ void MarkerSet::turnAllMarkersOn(bool yn)
 {
     yn = true ? _nonShadingSwitch->setAllChildrenOn() : 
 	       _nonShadingSwitch->setAllChildrenOff() ;
-    _needsUpdate = true;
+    forceRedraw(true);
 }
 
 
@@ -147,11 +145,13 @@ osg::BoundingSphere MarkerSet::computeBound() const
 }
 
 
-bool MarkerSet::needsUpdate()
+void MarkerSet::forceRedraw(bool yn)
 {
-    if ((int)_vertexArr->getModifiedCount()>_arrayModCount)
-	_needsUpdate = true;
-    return _needsUpdate;
+    if ( yn == _forceRedraw )
+	return;
+    setNumChildrenRequiringUpdateTraversal(
+    _nonShadingSwitch->getNumChildrenRequiringUpdateTraversal() + ((int) yn));
+    _forceRedraw = yn;
 }
 
 
@@ -160,7 +160,7 @@ void MarkerSet::setVertexArray(osg::Vec3Array* arr)
     if (arr==_vertexArr)
 	return;
     _vertexArr = arr;
-    _needsUpdate = true;
+    forceRedraw(true);
 }
 
 
@@ -169,14 +169,14 @@ void MarkerSet::setNormalArray(osg::Vec3Array* arr)
     if (arr==_normalArr)
 	return;
     _normalArr = arr;
-    _needsUpdate = true;
+    forceRedraw(true);
 }
 
 
 void MarkerSet::setShape(osgGeo::MarkerShape::ShapeType shape)
 {
     _markerShape.setType(shape);
-    _needsUpdate = true;
+    forceRedraw(true);
 }
 
 
@@ -195,7 +195,7 @@ const float MarkerSet::getMarkerSize()
 void MarkerSet::setMarkerHeightRatio(float markerHeightRatio)
 {
     _markerShape.setHeightRatio(markerHeightRatio);
-    _needsUpdate = true;
+    forceRedraw(true);
 }
 
 
@@ -208,7 +208,7 @@ const float MarkerSet::getMarkerHeightRatio()
 void MarkerSet::setDetail(float ratio)
 {
     _markerShape.setDetail(ratio);
-    _needsUpdate = true;
+    forceRedraw(true);
 }
 
 const float MarkerSet::getDetail()
@@ -221,28 +221,28 @@ const float MarkerSet::getDetail()
 void MarkerSet::setMinScale(float minScale)
 {
     _minScale = minScale;
-    _needsUpdate = true;
+    forceRedraw(true);
 }
 
 
 void MarkerSet::setMaxScale(float maxScale)
 {
     _maxScale = maxScale;
-    _needsUpdate = true;
+    forceRedraw(true);
 }
 
 
 void MarkerSet::setRotateMode( osg::AutoTransform::AutoRotateMode rtmode )
 {
     _rotateMode = rtmode;
-    _needsUpdate = true;
+    forceRedraw(true);
 }
 
 
 void MarkerSet::setColorArray(osg::Vec4Array* colorArr)
 {
     _colorArr = colorArr;
-    _needsUpdate = true;
+    forceRedraw(true);
 }
 
 
@@ -250,7 +250,7 @@ void MarkerSet::setMarkerSize(float markerSize, bool useScreenSize)
 {
     _markerShape.setSize(markerSize);
     _useScreenSize = useScreenSize;
-    _needsUpdate = true;
+    forceRedraw(true);
 }
 
 
