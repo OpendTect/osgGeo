@@ -21,6 +21,7 @@ $Id$
 
 */
 
+#include <osgGeo/Callback>
 #include <osgGeo/Common>
 #include <osg/Referenced>
 #include <osg/Vec4f>
@@ -46,7 +47,7 @@ extern OSGGEO_EXPORT TransparencyType multiplyOpacity(TransparencyType,float opa
 //============================================================================
 
 
-class OSGGEO_EXPORT ColorSequence
+class OSGGEO_EXPORT ColorSequence : public osgGeo::CallbackObject
 {
 public:
 				ColorSequence(unsigned char* array=0);
@@ -130,15 +131,18 @@ protected:
 
 class OSGGEO_EXPORT ColTabLayerProcess : public LayerProcess
 {
+    class ColSeqCallbackHandler;
+
 public: 
 				ColTabLayerProcess(LayeredTexture&);
+				~ColTabLayerProcess();
 
     void			setDataLayerID(int id, int channel=0);
     int				getDataLayerID(int idx=0) const;
     int				getDataLayerTextureChannel() const;
 
     void			checkForModifiedColorSequence();
-    void			setColorSequence(const ColorSequence*);
+    void			setColorSequence(ColorSequence*);
     const ColorSequence*	getColorSequence() const;
 
     bool			needsColorSequence() const    { return true; }
@@ -152,8 +156,10 @@ public:
 protected:
     int				_id; 
     int				_textureChannel;
-    const ColorSequence*	_colorSequence;
+    ColorSequence*		_colorSequence;
     int				_colSeqModifiedCount;
+
+    osg::ref_ptr<ColSeqCallbackHandler>		_colSeqCallbackHandler;
 };
 
 

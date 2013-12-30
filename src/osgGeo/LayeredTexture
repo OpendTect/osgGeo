@@ -24,6 +24,7 @@ $Id$
 #include <osgGeo/LayerProcess>
 #include <osgGeo/Vec2i>
 #include <osgGeo/Common>
+#include <osgGeo/Callback>
 #include <osg/Object>
 #include <osg/Vec2f>
 #include <osg/Vec4f>
@@ -43,7 +44,7 @@ struct TilingInfo;
 struct TextureInfo;
 
 
-class OSGGEO_EXPORT LayeredTexture : public osg::Object
+class OSGGEO_EXPORT LayeredTexture : public osgGeo::CallbackObject
 {
 friend class CompositeTextureTask;
 
@@ -184,7 +185,7 @@ public:
 			   and next (re)create your CutoutStateSets. */
 
     osg::StateSet*	getSetupStateSet();
-    void		updateSetupStateSet()	{ _updateSetupStateSet=true; }
+    void		updateSetupStateSet();
 
     void		setSeamPower(int power,int dim=-1);
 			/*!Default power 0 adds a one-texel seam to both tile
@@ -265,6 +266,23 @@ protected:
     void		createCompositeTexture(bool dummyTexture=false);
     void		setRenderingHint(bool stackIsOpaque);
 
+    void		setUpdateVar(bool& var,bool yn);
+			//! Will trigger redraw request if necessary
+
+    bool		_updateSetupStateSet;	// Only set via setUpdateVar(.)
+    bool		_retileCompositeLayer;	// Only set via setUpdateVar(.)
+
+			/* LayeredTexture is also responsible for requesting
+			   redraw, either directly or via setUpdateVar(.), if
+			   one of these auxiliary class variables is updated:
+
+			   TilingInfo::_needsUpdate
+			   TilingInfo::_retilingNeeded
+			   TextureInfo::_isValid
+			   LayeredTextureData::_freezeDisplay
+			   LayeredTextureData::_dirtyTileImages
+			*/
+
     bool				_isOn;
     OpenThreads::ReadWriteMutex		_lock;
     std::vector<LayeredTextureData*>	_dataLayers;
@@ -273,7 +291,6 @@ protected:
     std::vector<int>			_id2idxTable;
     std::vector<int>			_releasedIds;
 
-    bool				_updateSetupStateSet;
     osg::ref_ptr<osg::StateSet>		_setupStateSet;
 
     TextureSizePolicy			_textureSizePolicy;
@@ -296,7 +313,6 @@ protected:
 
     int					_compositeLayerId;
     bool				_compositeLayerUpdate;
-    bool				_retileCompositeLayer;
     bool				_reInitTiling;
 };
 

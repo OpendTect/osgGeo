@@ -27,6 +27,7 @@ $Id$
 #include <osg/NodeVisitor>
 #include <osg/Quat>
 #include <osgGeo/Common>
+#include <OpenThreads/ReadWriteMutex>
 
 
 namespace osg { class Geometry; }
@@ -39,6 +40,7 @@ class LayeredTexture;
 class OSGGEO_EXPORT TexturePlaneNode : public osg::Node
 {
     class BoundingGeometry;
+    class TextureCallbackHandler;
 
 public:
 
@@ -99,6 +101,8 @@ public:
 
     osg::BoundingSphere		computeBound() const;
 
+    void			forceRedraw(bool=true);
+
 protected:
     virtual			~TexturePlaneNode();
 
@@ -110,17 +114,26 @@ protected:
     bool			updateGeometry();
     float			getSense() const;
 
+    void			setUpdateVar(bool& var,bool yn);
+				//! Will trigger redraw request if necessary
+
+    bool			_needsUpdate;	// Only set via setUpdateVar(.)
+    bool			_frozen;	// Only set via setUpdateVar(.)
+
+    osg::ref_ptr<TextureCallbackHandler>	_textureCallbackHandler;
+
+    OpenThreads::ReadWriteMutex		_redrawLock;
+    int					_isRedrawing;
+
     osg::Vec3				_center;
     osg::Vec3				_width;
     osg::Quat				_rotation;
     short				_textureBrickSize;
     bool				_isBrickSizeStrict;
-    bool				_needsUpdate;
 
     bool				_swapTextureAxes;
 
     osg::ref_ptr<LayeredTexture>	_texture;
-    bool				_frozen;
     osg::Vec2				_textureShift;
     osg::Vec2				_textureGrowth;
 
@@ -134,7 +147,10 @@ public:
 
     int			_disperseFactor;
     void		setDisperseFactor( int val )
-			{ _disperseFactor = val; _needsUpdate = true; }
+			{
+			    _disperseFactor = val;
+			    setUpdateVar( _needsUpdate, true );
+			}
     int			getDisperseFactor() const
 			{ return _disperseFactor; }
 
