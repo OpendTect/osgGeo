@@ -112,6 +112,7 @@ void ColorSequence::touch()
 {
     _dirtyCount++;
     _transparencyType = TransparencyUnknown;
+    triggerRedrawRequest();
 }
 
 
@@ -509,12 +510,37 @@ bool LayeredTexture::areUndefLayersInverted() const
 //============================================================================
 
 
+class ColTabLayerProcess::ColSeqCallbackHandler : public ColorSequence::Callback
+{
+public:
+    ColSeqCallbackHandler( LayeredTexture& layTex )
+	: _layTex( layTex )
+    {}
+
+    virtual void requestRedraw() const	{ _layTex.triggerRedrawRequest(); }
+
+protected: 
+    LayeredTexture&	_layTex;
+};
+
+
+//============================================================================
+
+
 ColTabLayerProcess::ColTabLayerProcess( LayeredTexture& layTex )
     : LayerProcess( layTex )
     , _id( -1 )
     , _textureChannel( 0 )
     , _colorSequence( 0 )
-{}
+{
+    _colSeqCallbackHandler = new ColSeqCallbackHandler( layTex );
+}
+
+
+ColTabLayerProcess::~ColTabLayerProcess()
+{
+    setColorSequence( 0 );
+}
 
 
 void ColTabLayerProcess::setDataLayerID( int id, int channel )
@@ -547,12 +573,18 @@ void ColTabLayerProcess::checkForModifiedColorSequence()
 }
 
 
-void ColTabLayerProcess::setColorSequence( const ColorSequence* colSeq )
+void ColTabLayerProcess::setColorSequence( ColorSequence* colSeq )
 {
+    if ( _colorSequence )
+	_colorSequence->removeCallback( _colSeqCallbackHandler );
+
     _colorSequence = colSeq;
     _colSeqModifiedCount = -1;
-    _colSeqPtr = colSeq->getRGBAValues();
+    _colSeqPtr = colSeq ? colSeq->getRGBAValues() : 0;
     _layTex.updateSetupStateSet();
+
+     if ( _colorSequence )
+	  _colorSequence->addCallback( _colSeqCallbackHandler );
 }
 
 

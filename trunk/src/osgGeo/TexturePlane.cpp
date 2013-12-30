@@ -98,19 +98,39 @@ void TexturePlaneNode::BoundingGeometry::update()
 //============================================================================
 
 
+class TexturePlaneNode::TextureCallbackHandler : public LayeredTexture::Callback
+{
+public:
+    TextureCallbackHandler( TexturePlaneNode& tpn )
+	: _tpn( tpn )
+    {}
+
+    virtual void requestRedraw() const		{ _tpn.forceRedraw(); }
+
+protected:
+    TexturePlaneNode&	_tpn;
+};
+
+
+//============================================================================
+
+
 TexturePlaneNode::TexturePlaneNode()
     : _center( 0, 0, 0 )
     , _width( 1, 1, 0 )
     , _rotation( 0.0, osg::Vec3(0,0,1) )
     , _textureBrickSize( 64 )
     , _isBrickSizeStrict( false )
-    , _needsUpdate( true )
+    , _needsUpdate( false )
     , _swapTextureAxes( false )
     , _textureShift( 0.0f, 0.0f )
     , _textureGrowth( 0.0f, 0.0f )
     , _frozen( false )
+    , _isRedrawing( false )
     , _disperseFactor( 0 )
 {
+    setUpdateVar( _needsUpdate, true );
+
     osg::ref_ptr<osg::LightModel> lightModel = new osg::LightModel;
     lightModel->setTwoSided( true );
     getOrCreateStateSet()->setAttributeAndModes( lightModel.get() );
@@ -119,7 +139,7 @@ TexturePlaneNode::TexturePlaneNode()
     _boundingGeometry = new BoundingGeometry( *this );
     _boundingGeometry->update();
 
-    setNumChildrenRequiringUpdateTraversal( 1 );
+    _textureCallbackHandler = new TextureCallbackHandler( *this );  
 }
 
 
@@ -129,14 +149,18 @@ TexturePlaneNode::TexturePlaneNode( const TexturePlaneNode& node, const osg::Cop
     , _width( node._width )
     , _rotation( node._rotation )
     , _textureBrickSize( node._textureBrickSize )
+    , _needsUpdate( false )
     , _isBrickSizeStrict( node._isBrickSizeStrict )
-    , _needsUpdate( true )
     , _swapTextureAxes( node._swapTextureAxes )
     , _textureShift( node._textureShift )
     , _textureGrowth( node._textureGrowth )
-    , _frozen( node._frozen )
+    , _frozen( false )
+    , _isRedrawing( false )
     , _disperseFactor( node._disperseFactor )
 {
+    setUpdateVar( _needsUpdate, true );
+    setUpdateVar( _frozen, node._frozen );
+
     if ( node._texture )
     {
         if ( co.getCopyFlags()==osg::CopyOp::DEEP_COPY_ALL )
@@ -148,13 +172,14 @@ TexturePlaneNode::TexturePlaneNode( const TexturePlaneNode& node, const osg::Cop
     _boundingGeometry = new BoundingGeometry( *this );
     _boundingGeometry->update();
 
-    setNumChildrenRequiringUpdateTraversal(getNumChildrenRequiringUpdateTraversal()+1);
+    _textureCallbackHandler = new TextureCallbackHandler( *this );  
 }
 
 
 TexturePlaneNode::~TexturePlaneNode()
 {
     cleanUp();
+    setLayeredTexture( 0 );
 }
 
 
@@ -175,10 +200,36 @@ void TexturePlaneNode::cleanUp()
     _statesets.clear();
 }
 
+
+void TexturePlaneNode::forceRedraw( bool yn )
+{
+    _redrawLock.writeLock();
+    if ( _isRedrawing != yn )
+    {
+	_isRedrawing = yn;
+	int num = getNumChildrenRequiringUpdateTraversal();
+	num += yn ? 1 : -1;
+	setNumChildrenRequiringUpdateTraversal( num );
+    }
+    _redrawLock.writeUnlock();
+}
+
+
+void TexturePlaneNode::setUpdateVar( bool& variable, bool yn )
+{
+    if ( !variable && yn )
+	forceRedraw( true );
+
+    variable = yn;
+}
+
+
 void TexturePlaneNode::traverse( osg::NodeVisitor& nv )
 {
     if ( nv.getVisitorType()==osg::NodeVisitor::UPDATE_VISITOR )
     {
+	forceRedraw( false );
+
 	if ( !_frozen && needsUpdate() )
 	    updateGeometry();
     }
@@ -394,7 +445,7 @@ bool TexturePlaneNode::updateGeometry()
 	}
     }
 
-    _needsUpdate = false;
+    setUpdateVar( _needsUpdate, false );
     return true;
 }
 
@@ -407,7 +458,7 @@ void TexturePlaneNode::setCenter( const osg::Vec3& center )
 {
     _center = center;
     _boundingGeometry->update();
-    _needsUpdate = true;
+    setUpdateVar( _needsUpdate, true );
 }
 
 
@@ -419,7 +470,7 @@ void TexturePlaneNode::setRotation( const osg::Quat& quaternion )
 {
     _rotation = quaternion;
     _boundingGeometry->update(); 
-    _needsUpdate = true;
+    setUpdateVar( _needsUpdate, true );
 }
 
 
@@ -444,7 +495,7 @@ void TexturePlaneNode::setWidth( const osg::Vec3& width )
 {
     _width = width;
     _boundingGeometry->update();
-    _needsUpdate = true;
+    setUpdateVar( _needsUpdate, true );
 }
 
 
@@ -462,8 +513,15 @@ float TexturePlaneNode::getSense() const
 
 void TexturePlaneNode::setLayeredTexture( LayeredTexture* lt )
 {
-    _texture =  lt;
-    _needsUpdate = true;
+    if ( _texture )
+	_texture->removeCallback( _textureCallbackHandler );
+
+    _texture = lt;
+
+    if ( _texture )
+	_texture->addCallback( _textureCallbackHandler );
+
+    setUpdateVar( _needsUpdate, true );
 }
 
 
@@ -512,7 +570,7 @@ void TexturePlaneNode::freezeDisplay( bool yn )
 	traverse( nv );
     }
 
-    _frozen = yn;
+    setUpdateVar( _frozen, yn );
 }
 
 
@@ -523,7 +581,7 @@ bool TexturePlaneNode::isDisplayFrozen() const
 void TexturePlaneNode::setTextureShift( const osg::Vec2& shift )
 {
     _textureShift = shift;
-    _needsUpdate = true;
+    setUpdateVar( _needsUpdate, true );
 }
 
 
@@ -534,7 +592,7 @@ const osg::Vec2& TexturePlaneNode::getTextureShift() const
 void TexturePlaneNode::setTextureGrowth( const osg::Vec2& growth )
 {
     _textureGrowth = growth;
-    _needsUpdate = true;
+    setUpdateVar( _needsUpdate, true );
 }
 
 

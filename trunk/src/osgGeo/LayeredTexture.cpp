@@ -514,7 +514,7 @@ LayeredTexture::LayeredTexture()
 
 LayeredTexture::LayeredTexture( const LayeredTexture& lt,
 				const osg::CopyOp& co )
-    : osg::Object( lt, co )
+    : osgGeo::CallbackObject( lt, co )
     , _updateSetupStateSet( false )
     , _setupStateSet( 0 )
     , _maxTextureCopySize( lt._maxTextureCopySize )
@@ -566,11 +566,29 @@ LayeredTexture::~LayeredTexture()
 }
 
 
+void LayeredTexture::setUpdateVar( bool& variable, bool yn )
+{
+/*  Very suitable spot for breakpoints when debugging update issues
+    if ( &variable == &_tilingInfo->_needsUpdate )
+	std::cout << "_tilingInfo->_needsUpdate = " << yn << std::endl;
+    if ( &variable == &_tilingInfo->_retilingNeeded )
+	std::cout << "_tilingInfo->_retilingNeeded = " << yn << std::endl;
+    if ( &variable == & _updateSetupStateSet )
+	std::cout << " _updateSetupStateSet = " << yn << std::endl;
+*/
+
+    if ( !variable && yn )
+	triggerRedrawRequest();
+
+    variable = yn;
+}
+
+
 void LayeredTexture::turnOn( bool yn )
 {
     if ( _isOn!=yn )
     {
-	_tilingInfo->_retilingNeeded = true;
+	setUpdateVar( _tilingInfo->_retilingNeeded, true );
 	_isOn = yn;
     }
 }
@@ -623,7 +641,7 @@ void LayeredTexture::raiseUndefChannelRefCount( bool yn, int idx )
 	{
 	    const int cnt = _dataLayers[udfIdx]->_undefChannelRefCount[channel];
 	    if ( !cnt || (yn && cnt==1) )
-		 _tilingInfo->_retilingNeeded = true;
+		 setUpdateVar( _tilingInfo->_retilingNeeded, true );
 	 }
     }
 }
@@ -654,7 +672,7 @@ void LayeredTexture::removeDataLayer( int id )
 
 	osg::ref_ptr<LayeredTextureData> ltd = _dataLayers[idx];
 	_dataLayers.erase( _dataLayers.begin()+idx );
-	_tilingInfo->_needsUpdate = true;
+	setUpdateVar( _tilingInfo->_needsUpdate, true );
 	ltd->unref();
 
 	_id2idxTable[id] = -1;
@@ -690,7 +708,7 @@ void LayeredTexture::setDataLayerOrigin( int id, const osg::Vec2f& origin )
     if ( idx!=-1 )
     {
 	_dataLayers[idx]->_origin = origin; 
-	_tilingInfo->_needsUpdate = true;
+	setUpdateVar( _tilingInfo->_needsUpdate, true );
     }
 }
 
@@ -701,7 +719,7 @@ void LayeredTexture::setDataLayerScale( int id, const osg::Vec2f& scale )
     if ( idx!=-1 && scale.x()>=0.0f && scale.y()>0.0f )
     {
 	_dataLayers[idx]->_scale = scale;
-	_tilingInfo->_needsUpdate = true;
+	setUpdateVar( _tilingInfo->_needsUpdate, true );
     }
 }
 
@@ -715,11 +733,11 @@ void LayeredTexture::setDataLayerImage( int id, const osg::Image* image, bool fr
     LayeredTextureData& layer = *_dataLayers[idx];
 
     if ( freezewhile0 && !image && layer._imageSource.get() )
-	layer._freezeDisplay = true;
+	setUpdateVar( layer._freezeDisplay, true );
 
     if ( image )
     {
-	layer._freezeDisplay = false;
+	setUpdateVar( layer._freezeDisplay, false );
 
 	if ( !image->s() || !image->t() || !image->getPixelFormat() )
 	{
@@ -770,17 +788,17 @@ void LayeredTexture::setDataLayerImage( int id, const osg::Image* image, bool fr
 	if ( retile )
 	{
 	    layer.adaptColors();
-	    _tilingInfo->_needsUpdate = true;
+	    setUpdateVar( _tilingInfo->_needsUpdate, true );
 	}
 	else
-	    layer._dirtyTileImages = true;
+	    setUpdateVar( layer._dirtyTileImages, true );
     }
     else if ( layer._image )
     {
 	layer._image = 0; 
 	layer._imageSource = 0;
 	layer.adaptColors();
-	_tilingInfo->_needsUpdate = true;
+	setUpdateVar( _tilingInfo->_needsUpdate, true );
     }
 }
 
@@ -792,7 +810,7 @@ void LayeredTexture::setDataLayerUndefLayerID( int id, int undefId )
     {
 	raiseUndefChannelRefCount( false, idx );
 
-	_updateSetupStateSet = true;
+	setUpdateVar( _updateSetupStateSet, true );
 	_dataLayers[idx]->_undefLayerId = undefId;
 
 	raiseUndefChannelRefCount( true, idx );
@@ -807,7 +825,7 @@ void LayeredTexture::setDataLayerUndefChannel( int id, int channel )
     {
 	raiseUndefChannelRefCount( false, idx );
 
-	_updateSetupStateSet = true;
+	setUpdateVar( _updateSetupStateSet, true );
 
 	_dataLayers[idx]->_undefChannel = channel;
 	if ( _dataLayers[idx]->_undefLayerId<0 )
@@ -831,7 +849,7 @@ void LayeredTexture::setDataLayerImageUndefColor( int id, const osg::Vec4f& col 
 
 	_dataLayers[idx]->adaptColors();
 	if ( _dataLayers[idx]->_textureUnit>=0 )
-	    _updateSetupStateSet = true;
+	    setUpdateVar( _updateSetupStateSet, true );
     }
 }
 
@@ -852,7 +870,7 @@ void LayeredTexture::setDataLayerBorderColor( int id, const osg::Vec4f& col )
 
 	_dataLayers[idx]->adaptColors();
 	if ( _dataLayers[idx]->_textureUnit>=0 )
-	    _tilingInfo->_retilingNeeded = true;
+	    setUpdateVar( _tilingInfo->_retilingNeeded, true );
     }
 }
 
@@ -864,7 +882,7 @@ void LayeredTexture::setDataLayerFilterType( int id, FilterType filterType )
     {
 	_dataLayers[idx]->_filterType = filterType;
 	if ( _dataLayers[idx]->_textureUnit>=0 )
-	    _tilingInfo->_retilingNeeded = true;
+	    setUpdateVar( _tilingInfo->_retilingNeeded, true );
     }
 }
 
@@ -880,7 +898,7 @@ void LayeredTexture::setDataLayerTextureUnit( int id, int unit )
 void LayeredTexture::setStackUndefLayerID( int id )
 {
     raiseUndefChannelRefCount( false );
-    _updateSetupStateSet = true;
+    setUpdateVar( _updateSetupStateSet, true );
     _stackUndefLayerId = id;
     raiseUndefChannelRefCount( true );
 }
@@ -891,7 +909,7 @@ void LayeredTexture::setStackUndefChannel( int channel )
     if ( channel>=0 && channel<4 )
     {
 	raiseUndefChannelRefCount( false );
-	_updateSetupStateSet = true;
+	setUpdateVar( _updateSetupStateSet, true );
 	_stackUndefChannel = channel;
 	raiseUndefChannelRefCount( true );
     }
@@ -980,7 +998,7 @@ void LayeredTexture::addProcess( LayerProcess* process )
     process->ref();
     _lock.writeLock();
     _processes.push_back( process );
-    _updateSetupStateSet = true;
+    setUpdateVar( _updateSetupStateSet, true );
     _lock.writeUnlock();
 }
 
@@ -994,7 +1012,7 @@ void LayeredTexture::removeProcess( const LayerProcess* process )
     {
 	process->unref();
 	_processes.erase( it );
-	_updateSetupStateSet = true;
+	setUpdateVar( _updateSetupStateSet, true );
     }
 
     _lock.writeUnlock();
@@ -1012,7 +1030,7 @@ void LayeredTexture::func( const LayerProcess* process ) \
 	if ( cond ) \
 	{ \
 	    std::swap( *it, *neighbor ); \
-	    _updateSetupStateSet = true; \
+	    setUpdateVar( _updateSetupStateSet, true ); \
 	} \
     } \
     _lock.writeUnlock(); \
@@ -1044,6 +1062,9 @@ void LayeredTexture::updateTextureInfoIfNeeded() const
 {
     if ( _texInfo->_isValid )
 	return;
+
+    // Shortcut to force continuous redraw until texture info is available
+    const_cast<LayeredTexture*>(this)->triggerRedrawRequest();
 
     const int maxContextID = (int) osg::GraphicsContext::getMaxContextID();
     for( int contextID=0; contextID<=maxContextID; contextID++ )
@@ -1234,7 +1255,7 @@ void LayeredTexture::reInitTiling( float texelSizeRatio )
     for ( ; lit!=_dataLayers.end(); lit++ )
 	(*lit)->cleanUp();
 
-    _tilingInfo->_retilingNeeded = false;
+    setUpdateVar( _tilingInfo->_retilingNeeded, false );
     _externalTexelSizeRatio = texelSizeRatio; 
     _reInitTiling = false;
 }
@@ -1247,7 +1268,7 @@ void LayeredTexture::setSeamPower( int power, int dim )
     if ( dim!=0 )
 	_seamPower.y() = power;
 
-     _tilingInfo->_retilingNeeded = true;
+    setUpdateVar( _tilingInfo->_retilingNeeded, true );
 }
 
 
@@ -1348,7 +1369,7 @@ bool LayeredTexture::planTiling( unsigned short brickSize, std::vector<float>& x
 	    else 
 		actualSize[dim] -= overlap;
 
-	    // std::cerr << "Tile size: " << actualSize[dim] << ", overlap: " << overlap << std::endl;
+	    // std::cout << "Tile size: " << actualSize[dim] << ", overlap: " << overlap << std::endl;
 	}
     }
 
@@ -1628,6 +1649,12 @@ osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, co
 }
 
 
+void LayeredTexture::updateSetupStateSet()
+{
+    setUpdateVar( _updateSetupStateSet, true );
+}
+
+
 osg::StateSet* LayeredTexture::getSetupStateSet()
 {
     updateSetupStateSetIfNeeded();
@@ -1645,7 +1672,7 @@ void LayeredTexture::updateSetupStateSetIfNeeded()
     if ( !_setupStateSet )
     {
 	_setupStateSet = new osg::StateSet;
-	_updateSetupStateSet = true;
+	setUpdateVar( _updateSetupStateSet, true );
 	setRenderingHint( false );
     }
 
@@ -1659,7 +1686,7 @@ void LayeredTexture::updateSetupStateSetIfNeeded()
     {
 	_compositeLayerUpdate = !_retileCompositeLayer;
 	buildShaders();
-	_updateSetupStateSet = false;
+	setUpdateVar( _updateSetupStateSet, false );
     }
 
     _lock.readUnlock();
@@ -1679,7 +1706,7 @@ void LayeredTexture::checkForModifiedImages()
 	    {
 		setDataLayerImage( (*it)->_id, (*it)->_imageSource );
 		(*it)->_imageModifiedFlag = true;
-		_updateSetupStateSet = true;
+		setUpdateVar( _updateSetupStateSet, true );
 	    }
 	}
     }
@@ -1711,7 +1738,7 @@ void LayeredTexture::buildShaders()
     if ( !_useShaders )
     {
 	const bool create = !_retileCompositeLayer;
-	_retileCompositeLayer = false;
+	setUpdateVar( _retileCompositeLayer, false );
 
 	if ( create )
 	    createCompositeTexture( !_texInfo->_isValid );
@@ -1745,7 +1772,7 @@ void LayeredTexture::buildShaders()
 
     if ( minUnit<0 || (minUnit==0 && needColSeqTexture) )
     {
-	_tilingInfo->_retilingNeeded = true;
+	setUpdateVar( _tilingInfo->_retilingNeeded, true );
 	return;
     }
 
@@ -1963,9 +1990,9 @@ void LayeredTexture::assignTextureUnits()
 	setDataLayerTextureUnit( _compositeLayerId, 0 );
 
     if ( _tilingInfo->_retilingNeeded || _updateSetupStateSet )
-	_retileCompositeLayer = false;
+	setUpdateVar( _retileCompositeLayer, false );
 
-    _updateSetupStateSet = true;
+    setUpdateVar( _updateSetupStateSet, true );
     updateSetupStateSetIfNeeded();
 }
 
@@ -2135,7 +2162,7 @@ void LayeredTexture::allowShaders( bool yn, bool maySkipEarlyProcs )
     {
 	_allowShaders = yn;
 	_maySkipEarlyProcesses = maySkipEarlyProcs;
-	_tilingInfo->_retilingNeeded = true;
+	setUpdateVar( _tilingInfo->_retilingNeeded, true );
     }
 }
 
@@ -2143,7 +2170,7 @@ void LayeredTexture::allowShaders( bool yn, bool maySkipEarlyProcs )
 void LayeredTexture::setTextureSizePolicy( TextureSizePolicy policy )
 {
     _textureSizePolicy = policy;
-    _tilingInfo->_retilingNeeded = true;
+    setUpdateVar( _tilingInfo->_retilingNeeded, true );
 }
 
 
@@ -2398,17 +2425,18 @@ void LayeredTexture::createCompositeTexture( bool dummyTexture )
 
     setDataLayerImage( _compositeLayerId, image );
 
-    _retileCompositeLayer = _tilingInfo->_needsUpdate ||
-		    getDataLayerTextureUnit(_compositeLayerId)!=0 ||
-		    borderColor!=getDataLayerBorderColor(_compositeLayerId);
+    setUpdateVar( _retileCompositeLayer, 
+		  _tilingInfo->_needsUpdate ||
+		  getDataLayerTextureUnit(_compositeLayerId)!=0 ||
+		  borderColor!=getDataLayerBorderColor(_compositeLayerId) );
 
     if ( _reInitTiling || _useShaders )
-	_retileCompositeLayer = false;
+	setUpdateVar( _retileCompositeLayer, false );
 
     setDataLayerBorderColor( _compositeLayerId, borderColor );
 
-    _tilingInfo->_needsUpdate = false;
-    _tilingInfo->_retilingNeeded = retilingNeededAlready;
+    setUpdateVar( _tilingInfo->_needsUpdate, false );
+    setUpdateVar( _tilingInfo->_retilingNeeded, retilingNeededAlready );
 }
 
 

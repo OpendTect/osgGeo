@@ -94,6 +94,23 @@ void TexturePanelStripNode::BoundingGeometry::update()
 //============================================================================
 
 
+class TexturePanelStripNode::TextureCallbackHandler : public LayeredTexture::Callback
+{
+public:
+    TextureCallbackHandler( TexturePanelStripNode& tpsn )
+	: _tpsn( tpsn )
+    {}
+
+    virtual void requestRedraw() const		{ _tpsn.forceRedraw(); }
+
+protected:
+    TexturePanelStripNode&	_tpsn;
+};
+
+
+//============================================================================
+
+
 TexturePanelStripNode::TexturePanelStripNode()
     : _texture( 0 )
     , _textureBrickSize( 64 )
@@ -113,11 +130,13 @@ TexturePanelStripNode::TexturePanelStripNode()
     , _panelWidths( new osg::FloatArray )
     , _panelNormals( new osg::Vec3Array )
     , _knotNormals( new osg::Vec3Array )
-    , _updateCount( 0 )
-    , _lastUpdatedCount( -1 )
+    , _needsUpdate( false )
     , _frozen( false )
+    , _isRedrawing( false )
     , _altTileMode( 0 )
 {
+    setUpdateVar( _needsUpdate, true );
+
     osg::ref_ptr<osg::LightModel> lightModel = new osg::LightModel;
     lightModel->setTwoSided( true );	// Needed in non-shader case.
     getOrCreateStateSet()->setAttributeAndModes( lightModel.get() );
@@ -126,7 +145,7 @@ TexturePanelStripNode::TexturePanelStripNode()
     _boundingGeometry = new BoundingGeometry( *this );
     _boundingGeometry->update();
 
-    setNumChildrenRequiringUpdateTraversal( 1 );
+     _textureCallbackHandler = new TextureCallbackHandler( *this );
 }
 
 
@@ -150,11 +169,14 @@ TexturePanelStripNode::TexturePanelStripNode( const TexturePanelStripNode& node,
     , _panelWidths( new osg::FloatArray )
     , _panelNormals( new osg::Vec3Array )
     , _knotNormals( new osg::Vec3Array )
-    , _updateCount( 0 )
-    , _lastUpdatedCount( -1 )
-    , _frozen( node._frozen )
+    , _needsUpdate( false )
+    , _frozen( false )
+    , _isRedrawing( false )
     , _altTileMode( 0 )
 {
+    setUpdateVar( _needsUpdate, true );
+    setUpdateVar( _frozen, node._frozen );
+
     if ( node._texture )
     {
 	if ( op.getCopyFlags()==osg::CopyOp::DEEP_COPY_ALL )
@@ -169,13 +191,14 @@ TexturePanelStripNode::TexturePanelStripNode( const TexturePanelStripNode& node,
     _boundingGeometry = new BoundingGeometry( *this );
     _boundingGeometry->update();
 
-    setNumChildrenRequiringUpdateTraversal(getNumChildrenRequiringUpdateTraversal()+1);
+    _textureCallbackHandler = new TextureCallbackHandler( *this );
 }
 
 
 TexturePanelStripNode::~TexturePanelStripNode()
 {
     cleanUp();
+    setTexture( 0 );
 }
 
 
@@ -199,9 +222,16 @@ void TexturePanelStripNode::setTexture( osgGeo::LayeredTexture* lt )
 {
     if ( lt==_texture )
 	return;
+
+    if ( _texture )
+	_texture->removeCallback( _textureCallbackHandler );
     
     _texture = lt;
-    _updateCount++;
+
+    if ( _texture )
+	_texture->addCallback( _textureCallbackHandler );
+
+    setUpdateVar( _needsUpdate, true );
 }
 
 
@@ -211,7 +241,7 @@ void TexturePanelStripNode::setTextureBrickSize( short sz, bool strict )
 	_textureBrickSize = sz;
 
     _isBrickSizeStrict = strict;
-    _updateCount++;
+    setUpdateVar( _needsUpdate, true );
 }
 
 
@@ -220,7 +250,7 @@ void TexturePanelStripNode::setPath( const osg::Vec2Array& coords )
     *_pathCoords = coords;
     _boundingGeometry->update();
     computeNormals();
-    _updateCount++;
+    setUpdateVar( _needsUpdate, true );
 }
 
 
@@ -236,7 +266,7 @@ void TexturePanelStripNode::setPath2TextureMapping( const osg::FloatArray& offse
     }
 
     *_pathTexOffsets = offsets;
-    _updateCount++;
+    setUpdateVar( _needsUpdate, true );
 }
 
 
@@ -246,7 +276,7 @@ void TexturePanelStripNode::setPathTextureShift( float shift, int startIdx )
     {
 	_pathTextureShift = shift;
 	_pathTexShiftStartIdx = startIdx;
-	_updateCount++;
+	setUpdateVar( _needsUpdate, true );
     }
 }
 
@@ -256,7 +286,7 @@ void TexturePanelStripNode::setZRange( float top, float bottom )
     _top = top;
     _bottom = bottom;
     _boundingGeometry->update();
-    _updateCount++;
+    setUpdateVar( _needsUpdate, true );
 }
 
 
@@ -265,7 +295,7 @@ void TexturePanelStripNode::setZRange2TextureMapping( bool yn, float topOffset, 
     _validZRangeOffsets = yn;
     _topTexOffset = topOffset;
     _bottomTexOffset = bottomOffset;
-    _updateCount++;
+    setUpdateVar( _needsUpdate, true );
 }
 
 
@@ -296,7 +326,7 @@ void TexturePanelStripNode::setZTextureShift( float shift )
     if ( shift!=_zTextureShift )
     {
 	_zTextureShift = shift;
-	_updateCount++;
+	setUpdateVar( _needsUpdate, true );
     }
 }
 
@@ -306,7 +336,7 @@ void TexturePanelStripNode::swapTextureAxes( bool yn )
     if ( _swapTextureAxes != yn )
     {
 	_swapTextureAxes = yn;
-	_updateCount++;
+	setUpdateVar( _needsUpdate, true );
     }
 }
 
@@ -316,7 +346,7 @@ void TexturePanelStripNode::smoothNormals( bool yn )
     if ( _smoothNormals != yn )
     {
 	_smoothNormals = yn;
-	_updateCount++;
+	setUpdateVar( _needsUpdate, true );
     }
 }
 
@@ -388,15 +418,40 @@ void TexturePanelStripNode::computeNormals()
 }
 
 
+void TexturePanelStripNode::forceRedraw( bool yn )
+{
+    _redrawLock.writeLock();
+    if ( _isRedrawing != yn )
+    {
+	_isRedrawing = yn;
+	int num = getNumChildrenRequiringUpdateTraversal();
+	num += yn ? 1 : -1;
+	setNumChildrenRequiringUpdateTraversal( num );
+    }
+    _redrawLock.writeUnlock();
+}
+
+
+void TexturePanelStripNode::setUpdateVar( bool& variable, bool yn )
+{
+    if ( !variable && yn )
+	forceRedraw( true );
+
+    variable = yn;
+}
+
+
 void TexturePanelStripNode::traverse( osg::NodeVisitor& nv )
 {
     if ( nv.getVisitorType()==osg::NodeVisitor::UPDATE_VISITOR )
     {
-	if ( _texture && _texture->needsRetiling() )
-	    _updateCount++;
+	forceRedraw( false );
 
-	if ( !_frozen && _lastUpdatedCount<_updateCount && updateGeometry() )
-	    _lastUpdatedCount = _updateCount;
+	if ( _texture && _texture->needsRetiling() )
+	    setUpdateVar( _needsUpdate, true );
+
+	if ( !_frozen && _needsUpdate && updateGeometry() )
+	    setUpdateVar( _needsUpdate, false );
     }
     else if ( nv.getVisitorType()==osg::NodeVisitor::CULL_VISITOR )
     {
@@ -748,7 +803,7 @@ void TexturePanelStripNode::freezeDisplay( bool yn )
 	traverse( nv );
     }
 
-    _frozen = yn;
+    setUpdateVar( _frozen, yn );
 }
 
 

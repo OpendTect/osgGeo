@@ -26,6 +26,7 @@ $Id$
 #include <osg/Array>
 #include <osg/NodeVisitor>
 #include <osgGeo/Common>
+#include <OpenThreads/ReadWriteMutex>
 
 
 namespace osg { class Geometry; }
@@ -44,6 +45,7 @@ class LayeredTexture;
 class OSGGEO_EXPORT TexturePanelStripNode : public osg::Node
 {
     class BoundingGeometry;
+    class TextureCallbackHandler;
 
 public:
 				TexturePanelStripNode();
@@ -118,6 +120,8 @@ public:
 
     osg::BoundingSphere		computeBound() const;
 
+    void			forceRedraw(bool=true);
+
 protected:
     virtual			~TexturePanelStripNode();
 
@@ -140,6 +144,17 @@ protected:
 				    const std::vector<float>& tOrigins,
 				    std::vector<float>& zCoords,
 				    std::vector<float>& zOffsets);
+
+    void			setUpdateVar(bool& var,bool yn);
+				//! Will trigger redraw request if necessary
+
+    bool			_needsUpdate;	// Only set via setUpdateVar(.)
+    bool			_frozen;	// Only set via setUpdateVar(.)
+
+    osg::ref_ptr<TextureCallbackHandler>	_textureCallbackHandler;
+
+    OpenThreads::ReadWriteMutex			_redrawLock;
+    int						_isRedrawing;
     
     osg::ref_ptr<osgGeo::LayeredTexture>	_texture;
     short					_textureBrickSize;
@@ -158,19 +173,19 @@ protected:
     bool					_smoothNormals;
     std::vector<osg::Geometry*>			_geometries;
     std::vector<osg::StateSet*>			_statesets;
-    int						_updateCount;
-    int						_lastUpdatedCount;
     osg::ref_ptr<osg::FloatArray>		_panelWidths;
     osg::ref_ptr<osg::Vec3Array>		_panelNormals;
     osg::ref_ptr<osg::Vec3Array>		_knotNormals;
     osg::ref_ptr<BoundingGeometry>		_boundingGeometry;
-    bool					_frozen;
 
 public:
 			// Testing purposes only
     int			_altTileMode;
     void		toggleTilingMode()
-			{ _altTileMode=(_altTileMode+1)%3; _updateCount++; }
+			{
+			    _altTileMode=(_altTileMode+1)%3;
+			    setUpdateVar( _needsUpdate, true );
+			}
 };
 
 

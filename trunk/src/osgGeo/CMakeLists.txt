@@ -27,6 +27,7 @@ set ( LIB_PUBLIC_HEADERS
     AutoTransform
     AxesNode
     Export
+    Callback
     Common
     Config
     LayeredTexture
@@ -54,6 +55,7 @@ add_library( ${LIB_NAME} SHARED
     ${LIB_PUBLIC_HEADERS}
     AutoTransform.cpp
     AxesNode.cpp
+    Callback.cpp
     Palette.cpp
     PlaneWellLog
     ShaderUtility.cpp
