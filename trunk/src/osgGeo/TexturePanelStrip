@@ -154,7 +154,7 @@ protected:
     osg::ref_ptr<TextureCallbackHandler>	_textureCallbackHandler;
 
     OpenThreads::ReadWriteMutex			_redrawLock;
-    int						_isRedrawing;
+    bool					_isRedrawing;
     
     osg::ref_ptr<osgGeo::LayeredTexture>	_texture;
     short					_textureBrickSize;

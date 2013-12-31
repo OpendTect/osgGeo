@@ -159,7 +159,7 @@ protected:
     ColorSequence*		_colorSequence;
     int				_colSeqModifiedCount;
 
-    osg::ref_ptr<ColSeqCallbackHandler>		_colSeqCallbackHandler;
+    ColSeqCallbackHandler*	_colSeqCallbackHandler;
 };
 
 

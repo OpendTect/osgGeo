@@ -123,7 +123,7 @@ protected:
     osg::ref_ptr<TextureCallbackHandler>	_textureCallbackHandler;
 
     OpenThreads::ReadWriteMutex		_redrawLock;
-    int					_isRedrawing;
+    bool				_isRedrawing;
 
     osg::Vec3				_center;
     osg::Vec3				_width;

@@ -334,7 +334,7 @@ osg::BoundingSphere PlaneWellLog::computeBound() const
 {
     osg::BoundingSphere logSphere;
 
-    for( int idx=0; idx<_logPath->size(); idx++ )
+    for( unsigned int idx=0; idx<_logPath->size(); idx++ )
     {
 	float radius = 0.0f;
 	if ( idx < _coordLinedFactors->size() )

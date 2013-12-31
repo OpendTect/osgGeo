@@ -70,7 +70,7 @@ void TexturePanelStripNode::BoundingGeometry::update()
 
     osg::ref_ptr<osg::Vec3Array> coords = new osg::Vec3Array( 2*pathCoords.size() );
 
-    for ( int idx=0; idx<pathCoords.size()*2; idx++ )
+    for ( unsigned int idx=0; idx<pathCoords.size()*2; idx++ )
     {
 	(*coords)[idx] = osg::Vec3( pathCoords[idx/2][0], pathCoords[idx/2][1], (idx%2 ? _tpsn.getBottom() : _tpsn.getTop()) );
 
@@ -256,7 +256,7 @@ void TexturePanelStripNode::setPath( const osg::Vec2Array& coords )
 
 void TexturePanelStripNode::setPath2TextureMapping( const osg::FloatArray& offsets )
 {
-    for ( int idx=1; idx<offsets.size(); idx++ )
+    for ( unsigned int idx=1; idx<offsets.size(); idx++ )
     {
 	if ( offsets[idx-1]>offsets[idx] )
 	{
@@ -353,7 +353,7 @@ void TexturePanelStripNode::smoothNormals( bool yn )
 
 int TexturePanelStripNode::getValidNormalIdx( int idx, bool forward ) const
 {
-    if ( idx<0 || idx>=_panelWidths->size() )
+    if ( idx<0 || idx>=(int)_panelWidths->size() )
 	return -1;
 
     if ( (*_panelWidths)[idx]<=0.0f )	// Normal undefined
@@ -399,7 +399,7 @@ void TexturePanelStripNode::computeNormals()
     _panelNormals->clear();
     _knotNormals->clear();
 
-    for ( int idx=1; idx<_pathCoords->size(); idx++ )
+    for ( unsigned int idx=1; idx<_pathCoords->size(); idx++ )
     {
 	osg::Vec2 dif = (*_pathCoords)[idx] - (*_pathCoords)[idx-1];
 	_panelWidths->push_back( dif.length() );
@@ -407,10 +407,10 @@ void TexturePanelStripNode::computeNormals()
 	_panelNormals->push_back( osg::Vec3(-dif[1], dif[0], 0.0f) );
     }
 
-    for ( int idx=0; idx<_pathCoords->size(); idx++ )
+    for ( unsigned int idx=0; idx<_pathCoords->size(); idx++ )
 	_knotNormals->push_back( getAverageNormal(idx) );
 
-    for ( int idx=0; idx<_panelNormals->size(); idx++ )
+    for ( unsigned int idx=0; idx<_panelNormals->size(); idx++ )
     {
 	if ( (*_panelWidths)[idx]<=0.0f )
 	    (*_panelNormals)[idx] = (*_knotNormals)[idx];
@@ -500,7 +500,7 @@ void TexturePanelStripNode::traverse( osg::NodeVisitor& nv )
 
 float TexturePanelStripNode::calcPathTexOffset( int idx ) const
 {
-    if ( idx<0 || idx>=_pathTexOffsets->size() )
+    if ( idx<0 || idx>=(int)_pathTexOffsets->size() )
     {
 	std::cerr << "_pathTexOffsets index out of bound" << std::endl;
 	return -1.0f;
@@ -523,7 +523,7 @@ float TexturePanelStripNode::calcPathTexOffset( int idx ) const
 bool TexturePanelStripNode::getLocalGeomAtTexOffset( osg::Vec2& pathCoord, osg::Vec3& normal, float texOffset, int guessPanelIdx ) const
 {
     int nrKnots = _pathTexOffsets->size();
-    if ( nrKnots>_pathCoords->size() )
+    if ( nrKnots>(int)_pathCoords->size() )
 	nrKnots = _pathCoords->size();
 
     if ( nrKnots<2 )
@@ -608,7 +608,7 @@ float TexturePanelStripNode::getTexelSizeRatio() const
 	return 0.0f;
 
     float pathLength = 0.0f;
-    for ( int idx=1; idx<_pathCoords->size(); idx++ )
+    for ( unsigned int idx=1; idx<_pathCoords->size(); idx++ )
 	pathLength += ((*_pathCoords)[idx]-(*_pathCoords)[idx-1]).length();
 
     if ( pathLength==0.0 )
@@ -624,7 +624,7 @@ bool TexturePanelStripNode::updateGeometry()
     cleanUp();
 
     int nrKnots = _pathTexOffsets->size();
-    if ( nrKnots>_pathCoords->size() )
+    if ( nrKnots>(int)_pathCoords->size() )
 	nrKnots = _pathCoords->size();
 
     if ( !_texture || nrKnots<2 )
@@ -704,7 +704,7 @@ bool TexturePanelStripNode::updateGeometry()
 	const float firstOffset = (*tileOffsets)[0];
 	const float lastOffset = (*tileOffsets)[last];
 
-	for ( int zIdx=1; zIdx<zCoords.size(); zIdx++ )
+	for ( unsigned int zIdx=1; zIdx<zCoords.size(); zIdx++ )
 	{
 	    osg::ref_ptr<osg::Vec3Array> coords = new osg::Vec3Array;
 	    osg::ref_ptr<osg::Vec3Array> normals = new osg::Vec3Array;
