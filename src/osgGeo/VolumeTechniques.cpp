@@ -177,7 +177,7 @@ void RayTracedTechnique::init()
     osg::StateAttribute* attr2 = stateSet->getAttribute( osg::StateAttribute::PROGRAM );
     osg::Program* program = dynamic_cast<osg::Program*>( attr2 );
 
-    for ( int idx=0; program && idx<_customShaders.size(); idx++ )
+    for ( unsigned int idx=0; program && idx<_customShaders.size(); idx++ )
     {
 	for ( int idy=program->getNumShaders()-1; idy>=0; idy-- )
 	{
@@ -207,7 +207,7 @@ void RayTracedTechnique::traverse( osg::NodeVisitor& nv )
 
 void RayTracedTechnique::setCustomShader( osg::Shader::Type type, const char* code )
 {
-    for ( int idx=0; idx<_customShaders.size(); idx++ )
+    for ( unsigned int idx=0; idx<_customShaders.size(); idx++ )
     {
 	if ( type==_customShaders[idx]->getType() )
 	{
