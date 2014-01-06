@@ -534,13 +534,14 @@ ColTabLayerProcess::ColTabLayerProcess( LayeredTexture& layTex )
     , _colorSequence( 0 )
 {
     _colSeqCallbackHandler = new ColSeqCallbackHandler( layTex );
+    _colSeqCallbackHandler->ref();
 }
 
 
 ColTabLayerProcess::~ColTabLayerProcess()
 {
     setColorSequence( 0 );
-    delete _colSeqCallbackHandler;
+    _colSeqCallbackHandler->unref();
 }
 
 
