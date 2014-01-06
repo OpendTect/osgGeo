@@ -1080,8 +1080,10 @@ void LayeredTexture::updateTextureInfoIfNeeded() const
 	if ( !vertExt || !fragExt || !texExt )
 	    continue;
 
+#if OSG_VERSION_LESS_THAN(3,3,0)
 	if ( !_texInfo->_isValid || _texInfo->_nrUnits>texExt->numTextureUnits() )
 	    _texInfo->_nrUnits = texExt->numTextureUnits();
+#endif
 
 	if ( !_texInfo->_isValid || _texInfo->_maxSize>texExt->maxTextureSize() )
 	{
