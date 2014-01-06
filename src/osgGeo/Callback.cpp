@@ -61,8 +61,8 @@ void CallbackObject::removeCallback(Callback* cb)
 
     if ( it!=_callbacks.end() )
     {
-	_callbacks.erase( it );
 	(*it)->unref();
+	_callbacks.erase( it );
     }
 }
 
