@@ -360,6 +360,8 @@ void ThumbWheel::setAngle( float angle )
     _wheelGeometry->dirtyDisplayList();
 
     updateWheel( Above );
+    updateAnimation( 0 );
+    updateWheel( None );
 }
 
 
@@ -537,8 +539,9 @@ void ThumbWheel::updateWheel( ThumbWheel::MouseProximity nmp )
         if ( !isAnimating() )
         {
             setNumChildrenRequiringUpdateTraversal( getNumChildrenRequiringUpdateTraversal()+1 );
-            _animationStart = osg::Timer::instance()->time_s();
         }
+
+        _animationStart = osg::Timer::instance()->time_s();
     }
 }
 
