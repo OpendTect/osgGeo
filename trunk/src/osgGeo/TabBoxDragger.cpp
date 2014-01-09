@@ -33,7 +33,7 @@ TabBoxDragger::TabBoxDragger( float handleScaleFactor )
 {
     for (int i=0; i<6; ++i)
     {
-        _planeDraggers.push_back(new osgManipulator::TabPlaneDragger(handleScaleFactor));
+        _planeDraggers.push_back(new osgGeo::TabPlaneDragger(handleScaleFactor));
         addChild(_planeDraggers[i].get());
         addDragger(_planeDraggers[i].get());
     }
@@ -45,32 +45,33 @@ TabBoxDragger::TabBoxDragger( float handleScaleFactor )
         osg::Quat rotation; rotation.makeRotate(osg::Vec3(0.0f, -1.0f, 0.0f), osg::Vec3(0.0f, 1.0f, 0.0f));
         _planeDraggers[1]->setMatrix(osg::Matrix(rotation)*osg::Matrix::translate(osg::Vec3(0.0,-0.5,0.0)));
     }
-    {
-        osg::Quat rotation; rotation.makeRotate(osg::Vec3(0.0f, 0.0f, 1.0f), osg::Vec3(0.0f, 1.0f, 0.0f));
-        _planeDraggers[2]->setMatrix(osg::Matrix(rotation)*osg::Matrix::translate(osg::Vec3(0.0,0.0,-0.5)));
-    }
 
     {
         osg::Quat rotation; rotation.makeRotate(osg::Vec3(0.0f, 1.0f, 0.0f), osg::Vec3(0.0f, 0.0f, 1.0f));
-        _planeDraggers[3]->setMatrix(osg::Matrix(rotation)*osg::Matrix::translate(osg::Vec3(0.0,0.0,0.5)));
+        _planeDraggers[2]->setMatrix(osg::Matrix(rotation)*osg::Matrix::translate(osg::Vec3(0.0,0.0,0.5)));
     }
-
     {
-        osg::Quat rotation; rotation.makeRotate(osg::Vec3(1.0f, 0.0f, 0.0f), osg::Vec3(0.0f, 1.0f, 0.0f));
-        _planeDraggers[4]->setMatrix(osg::Matrix(rotation)*osg::Matrix::translate(osg::Vec3(-0.5,0.0,0.0)));
+        osg::Quat rotation; rotation.makeRotate(osg::Vec3(0.0f, 0.0f, 1.0f), osg::Vec3(0.0f, 1.0f, 0.0f));
+        _planeDraggers[3]->setMatrix(osg::Matrix(rotation)*osg::Matrix::translate(osg::Vec3(0.0,0.0,-0.5)));
     }
 
     {
         osg::Quat rotation; rotation.makeRotate(osg::Vec3(0.0f, 1.0f, 0.0f), osg::Vec3(1.0f, 0.0f, 0.0f));
-        _planeDraggers[5]->setMatrix(osg::Matrix(rotation)*osg::Matrix::translate(osg::Vec3(0.5,0.0,0.0)));
+        _planeDraggers[4]->setMatrix(osg::Matrix(rotation)*osg::Matrix::translate(osg::Vec3(0.5,0.0,0.0)));
+    }
+    {
+        osg::Quat rotation; rotation.makeRotate(osg::Vec3(1.0f, 0.0f, 0.0f), osg::Vec3(0.0f, 1.0f, 0.0f));
+        _planeDraggers[5]->setMatrix(osg::Matrix(rotation)*osg::Matrix::translate(osg::Vec3(-0.5,0.0,0.0)));
     }
 
     setParentDragger(getParentDragger());
 }
 
+
 TabBoxDragger::~TabBoxDragger()
 {
 }
+
 
 void TabBoxDragger::setupDefaultGeometry()
 {
@@ -78,10 +79,48 @@ void TabBoxDragger::setupDefaultGeometry()
         _planeDraggers[i]->setupDefaultGeometry(false);
 }
 
+
 void TabBoxDragger::setPlaneColor(const osg::Vec4& color)
 {
     for (unsigned int i=0; i<_planeDraggers.size(); ++i)
         _planeDraggers[i]->setPlaneColor(color);
+}
+
+
+void TabBoxDragger::set1DTranslateModKeyMaskOfPlanes(int mask)
+{
+    for (unsigned int i=0; i<_planeDraggers.size(); ++i)
+        _planeDraggers[i]->set1DTranslateModKeyMask( mask );
+}
+
+
+void TabBoxDragger::set2DTranslateModKeyMaskOfPlanes(int mask)
+{
+    for (unsigned int i=0; i<_planeDraggers.size(); ++i)
+        _planeDraggers[i]->set2DTranslateModKeyMask( mask );
+}
+
+
+int TabBoxDragger::get1DTranslateModKeyMaskOfPlanes() const
+{
+    return _planeDraggers[0]->get1DTranslateModKeyMask(); 
+}
+
+
+int TabBoxDragger::get2DTranslateModKeyMaskOfPlanes() const
+{
+    return _planeDraggers[0]->get2DTranslateModKeyMask();
+}
+
+
+int TabBoxDragger::getEventHandlingTabPlaneIdx() const
+{
+    for (unsigned int i=0; i<_planeDraggers.size(); ++i)
+    {
+	if ( _planeDraggers[i]->isCurrentEventHandler() )
+	    return i;
+    }
+    return -1;
 }
 
 

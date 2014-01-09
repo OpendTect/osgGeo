@@ -32,7 +32,7 @@ TabPlaneDragger::TabPlaneDragger( float handleScaleFactor )
 }
 
 
-bool TabPlaneDragger::handle(const osgManipulator::PointerInfo& pointer, const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa)
+bool TabPlaneDragger::handleInternal(const osgManipulator::PointerInfo& pointer, const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa)
 {
     if (ea.getButtonMask() & osgGA::GUIEventAdapter::RIGHT_MOUSE_BUTTON) return false;
 
@@ -77,6 +77,23 @@ bool TabPlaneDragger::handle(const osgManipulator::PointerInfo& pointer, const o
     // End of customization
 
     return false;
+}
+
+
+static TabPlaneDragger* _currentEventHandler = 0;
+
+bool TabPlaneDragger::handle(const osgManipulator::PointerInfo& pointer, const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa)
+{
+    _currentEventHandler = this;
+    bool res = handleInternal( pointer, ea, aa );
+    _currentEventHandler = 0;
+    return res;
+}
+
+
+bool TabPlaneDragger::isCurrentEventHandler() const
+{
+    return _currentEventHandler==this;
 }
 
 

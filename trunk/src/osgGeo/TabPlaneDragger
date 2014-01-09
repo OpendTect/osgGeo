@@ -37,12 +37,16 @@ class OSGGEO_EXPORT TabPlaneDragger : public osgManipulator::TabPlaneDragger
 
 	virtual bool handle(const osgManipulator::PointerInfo& pi, const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa);
 
+        bool isCurrentEventHandler() const;
+
 	void set1DTranslateModKeyMask(int mask)	{ _modKeyMask1D = mask; }
 	void set2DTranslateModKeyMask(int mask)	{ _modKeyMask2D = mask; }
 	int get1DTranslateModKeyMask() const	{ return _modKeyMask1D; }
 	int get2DTranslateModKeyMask() const	{ return _modKeyMask2D; }
 
     protected:
+
+	bool handleInternal(const osgManipulator::PointerInfo& pi, const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa);
 
 	bool convToTranslatePlaneDraggerEvent(osgGA::GUIEventAdapter&) const;
 
