@@ -22,7 +22,7 @@ $Id: TrackballManipulator 231 2013-04-16 12:35:57Z kristofer.tingdahl@dgbes.com 
 */
 
 #include <osgGeo/Common>
-#include <osgManipulator/TabPlaneDragger>
+#include <osgGeo/TabPlaneDragger>
 
 namespace osgGeo
 {
@@ -45,11 +45,18 @@ class OSGGEO_EXPORT TabBoxDragger : public osgManipulator::CompositeDragger
 
 	void setPlaneColor(const osg::Vec4& color);
 
+	int getEventHandlingTabPlaneIdx() const;
+
+	void set1DTranslateModKeyMaskOfPlanes(int mask);
+	void set2DTranslateModKeyMaskOfPlanes(int mask);
+	int get1DTranslateModKeyMaskOfPlanes() const;
+	int get2DTranslateModKeyMaskOfPlanes() const;
+
     protected:
 
 	virtual ~TabBoxDragger();
 
-	std::vector< osg::ref_ptr< osgManipulator::TabPlaneDragger > > _planeDraggers;
+	std::vector< osg::ref_ptr< osgGeo::TabPlaneDragger > > _planeDraggers;
 };
 
 }
