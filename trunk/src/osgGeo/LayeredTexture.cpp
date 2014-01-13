@@ -577,7 +577,7 @@ void LayeredTexture::setUpdateVar( bool& variable, bool yn )
 	std::cout << " _updateSetupStateSet = " << yn << std::endl;
 */
 
-    if ( !variable && yn )
+    if ( yn )
 	triggerRedrawRequest();
 
     variable = yn;

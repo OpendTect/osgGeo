@@ -434,7 +434,7 @@ void TexturePanelStripNode::forceRedraw( bool yn )
 
 void TexturePanelStripNode::setUpdateVar( bool& variable, bool yn )
 {
-    if ( !variable && yn )
+    if ( yn )
 	forceRedraw( true );
 
     variable = yn;
