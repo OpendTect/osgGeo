@@ -217,7 +217,7 @@ void TexturePlaneNode::forceRedraw( bool yn )
 
 void TexturePlaneNode::setUpdateVar( bool& variable, bool yn )
 {
-    if ( !variable && yn )
+    if ( yn )
 	forceRedraw( true );
 
     variable = yn;
