@@ -21,6 +21,7 @@ $Id$
 #include "osgGeo/MarkerSet"
 #include <osg/Switch>
 
+
 using namespace osgGeo;
 
 
@@ -34,6 +35,7 @@ MarkerSet::MarkerSet()
     , _normalArr(new osg::Vec3Array)
     , _applySingleColor( false )
     , _forceRedraw( false )
+    , _dirtyBoundAtNextCullStage( false )
 {
     setNumChildrenRequiringUpdateTraversal(0);
     _singleColor = osg::Vec4(0.1f, 0.1f, 0.1f, 1.0f);
@@ -53,6 +55,14 @@ void MarkerSet::traverse( osg::NodeVisitor& nv )
 	{
 	    forceRedraw( false );
 	    updateShapes();
+	}
+    }
+    else if ( nv.getVisitorType()==osg::NodeVisitor::CULL_VISITOR )
+    {
+	if ( _dirtyBoundAtNextCullStage )
+	{
+	    _dirtyBoundAtNextCullStage = false;
+	    dirtyBound();
 	}
     }
     
@@ -116,6 +126,10 @@ bool MarkerSet::updateShapes()
 	for ( int i = 0; i < diff; i++ )
 	    valuelist.pop_back();
     }
+
+    // In case of autoscale to screen, new AutoTransforms cannot compute
+    // their bounding spheres till after their first cull traversal. 
+    _dirtyBoundAtNextCullStage = true;
     
     _nonShadingSwitch->setValueList(valuelist);
     return true;
@@ -141,7 +155,7 @@ void MarkerSet::turnAllMarkersOn(bool yn)
 
 osg::BoundingSphere MarkerSet::computeBound() const
 {
-   return _nonShadingSwitch->getBound();
+    return _nonShadingSwitch->getBound();
 }
 
 
