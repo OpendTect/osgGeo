@@ -578,7 +578,10 @@ void ColTabLayerProcess::checkForModifiedColorSequence()
 void ColTabLayerProcess::setColorSequence( ColorSequence* colSeq )
 {
     if ( _colorSequence )
+    {
 	_colorSequence->removeCallback( _colSeqCallbackHandler );
+	_colorSequence->unref();
+    }
 
     _colorSequence = colSeq;
     _colSeqModifiedCount = -1;
@@ -586,7 +589,10 @@ void ColTabLayerProcess::setColorSequence( ColorSequence* colSeq )
     _layTex.updateSetupStateSet();
 
      if ( _colorSequence )
+     {
+	 _colorSequence->ref();
 	  _colorSequence->addCallback( _colSeqCallbackHandler );
+     }
 }
 
 
