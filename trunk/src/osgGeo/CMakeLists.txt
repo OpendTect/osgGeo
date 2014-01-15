@@ -30,6 +30,7 @@ set ( LIB_PUBLIC_HEADERS
     Callback
     Common
     Config
+    Draggers
     LayeredTexture
     LayerProcess
     Line3
@@ -56,6 +57,7 @@ add_library( ${LIB_NAME} SHARED
     AutoTransform.cpp
     AxesNode.cpp
     Callback.cpp
+    Draggers.cpp
     Palette.cpp
     PlaneWellLog
     ShaderUtility.cpp
