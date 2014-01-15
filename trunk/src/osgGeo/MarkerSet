@@ -45,16 +45,16 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 {
     public:
 			    		MarkerSet();
-						~MarkerSet();
+					~MarkerSet();
 					 
 	void				setVertexArray(osg::Vec3Array*);
-	osg::Vec3Array*		getVertexArray() const { return _vertexArr; }
+	osg::Vec3Array*			getVertexArray() const { return _vertexArr; }
 
 	void				setNormalArray(osg::Vec3Array*);
-	osg::Vec3Array*		getNormalArray() const { return _normalArr; }
+	osg::Vec3Array*			getNormalArray() const { return _normalArr; }
 
 	void				setColorArray(osg::Vec4Array*);
-	osg::Vec4Array*		getColorArray() const { return _colorArr; }
+	osg::Vec4Array*			getColorArray() const { return _colorArr; }
 
 	void				setSingleColor(osg::Vec4&);
 	osg::Vec4			getSingleColor() const { return _singleColor; }
@@ -90,7 +90,7 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 	void				forceRedraw(bool);
 
     protected:
-	osg::BoundingSphere	computeBound() const;
+	osg::BoundingSphere		computeBound() const;
 	void				traverse(osg::NodeVisitor&);
 	bool				updateShapes();
 
@@ -99,17 +99,17 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 	osg::ref_ptr<osg::Vec3Array>		_vertexArr;
 	osg::ref_ptr<osg::Vec4Array>		_colorArr;
 	osg::ref_ptr<osg::Vec3Array>		_normalArr;
-	osg::ref_ptr<osg::Switch>			_nonShadingSwitch;
+	osg::ref_ptr<osg::Switch>		_nonShadingSwitch;
 	osg::AutoTransform::AutoRotateMode	_rotateMode;
-	osg::Vec4f							_singleColor;
+	osg::Vec4f				_singleColor;
 
-	float								_minScale;
-	float								_maxScale;
-	bool								_useScreenSize;
-	bool								_applySingleColor;
-	osgGeo::MarkerShape					_markerShape;
-	bool								_forceRedraw;
-
+	float					_minScale;
+	float					_maxScale;
+	bool					_useScreenSize;
+	bool					_applySingleColor;
+	osgGeo::MarkerShape			_markerShape;
+	bool					_forceRedraw;
+	bool					_dirtyBoundAtNextCullStage;
 };
 
 }
