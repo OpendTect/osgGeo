@@ -182,7 +182,7 @@ void ScalarBar::createDrawables()
 
 #if OSG_VERSION_LESS_THAN(3,2,0)
     bar->setColorArray(cs.get());
-    bar->setColorBinding(osg::Geometry::BIND_PER_PRIMITIVE);
+    bar->setColorBinding(osg::Geometry::BIND_PER_VERTEX);
 #else
     bar->setColorArray(cs.get(), osg::Array::BIND_PER_VERTEX);
 #endif
@@ -210,7 +210,7 @@ void ScalarBar::createDrawables()
     float characterSize = _textProperties._characterSize;
     if(characterSize == 0) characterSize = _width * 0.03f;
 
-    osgText::Font* font = osgText::readFontFile(_textProperties._fontFile.c_str());
+    //osgText::Font* font = osgText::readFontFile(_textProperties._fontFile.c_str());
 
     std::vector<osgText::Text*> texts(_numLabels);      // We'll need to collect pointers to these for later
     float labelIncr = (_numLabels>0) ? (_stc->getMax()-_stc->getMin())/(_numLabels-1) : 0.0f;
@@ -219,7 +219,7 @@ void ScalarBar::createDrawables()
     for(i=0; i<_numLabels; ++i)
     {
         osgText::Text* text = new osgText::Text;
-        text->setFont(font);
+        //text->setFont(font);
         text->setColor(_textProperties._color);
         text->setFontResolution(_textProperties._fontResolution.first,_textProperties._fontResolution.second);
         text->setCharacterSize(characterSize);
@@ -243,7 +243,7 @@ void ScalarBar::createDrawables()
     if(_title != "")
     {
         osgText::Text* text = new osgText::Text;
-        text->setFont(font);
+        //text->setFont(font);
         text->setColor(_textProperties._color);
         text->setFontResolution(_textProperties._fontResolution.first,_textProperties._fontResolution.second);
         text->setCharacterSize(characterSize);
