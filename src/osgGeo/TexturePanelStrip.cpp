@@ -23,6 +23,8 @@ $Id$
 
 #include <osgGeo/TexturePanelStrip>
 #include <osgGeo/LayeredTexture>
+#include <osgGeo/ComputeBoundsVisitor>
+
 #include <osg/Geometry>
 #include <osg/LightModel>
 #include <osg/Version>
@@ -494,6 +496,14 @@ void TexturePanelStripNode::traverse( osg::NodeVisitor& nv )
 	    if ( intersec.valid() && _boundingGeometry )
 		intersec->intersect( *iv, _boundingGeometry );
 	}
+
+	osgGeo::ComputeBoundsVisitor* cbv =
+	    dynamic_cast<osgGeo::ComputeBoundsVisitor*>( &nv );
+	if ( cbv )
+	{
+	    cbv->applyBBox(_boundingGeometry->getBound());
+	}
+
     }
 }
 

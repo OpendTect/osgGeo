@@ -29,6 +29,7 @@ set ( LIB_PUBLIC_HEADERS
     Export
     Callback
     Common
+    ComputeBoundsVisitor
     Config
     Draggers
     LayeredTexture

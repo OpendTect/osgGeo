@@ -23,6 +23,7 @@ $Id$
 
 #include <osg/Node>
 #include <osg/Vec3>
+#include <osg/BoundingBox>
 #include <osg/NodeVisitor>
 #include <osgGeo/Common>
 
@@ -38,8 +39,7 @@ class OSGGEO_EXPORT	PolyLineNode : public osg::Node
 public:
 			PolyLineNode();
 			PolyLineNode(const PolyLineNode&,
-				const osg::CopyOp& op =
-				    osg::CopyOp::DEEP_COPY_ALL);
+			    const osg::CopyOp& op = osg::CopyOp::DEEP_COPY_ALL);
 			META_Node(osgGeo,PolyLineNode);
 
     void		traverse(osg::NodeVisitor&);
@@ -61,23 +61,22 @@ protected:
     void		reScaleCoordinates(const osgUtil::CullVisitor*);
     bool		isCameraChanged(const osgUtil::CullVisitor*);
     bool		needsUpdate() const;
-    void		getOrthoVecs(const osg::Vec3&,osg::Vec3&,
-				     osg::Vec3&) const;
+    void		getOrthoVecs(const osg::Vec3&,osg::Vec3&,osg::Vec3&) const;
     osg::BoundingSphere	computeBound() const;
-    void			touch();
-    void			setUpdateFlag(bool);  
+    void			 touch();
+    void			 setUpdateFlag(bool);  
 
     float			_radius;
     int				_resolution;
-    osg::BoundingSphere		_bs;
+    osg::BoundingBox		_bbox;
 
-    osg::Matrix			_viewMatrix;
-    bool			_needsUpdate;
-    bool			_isGeometryChanged;
-    bool			_screenSizeScaling;
+    osg::Matrix			 _viewMatrix;
+    bool			 _needsUpdate;
+    bool			 _isGeometryChanged;
+    bool			 _screenSizeScaling;
     
-    unsigned int		_arrayModifiedCount;
-    std::vector<unsigned int>	_primitivesetModCount;
+    unsigned int                 _arrayModifiedCount;
+    std::vector<unsigned int>	 _primitivesetModCount;
 
     osg::Vec3Array*		 _geom3DCoords;
     osg::Vec3Array*		 _geom3DNormals;			    	

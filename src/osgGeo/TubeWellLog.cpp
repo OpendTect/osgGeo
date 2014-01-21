@@ -19,6 +19,7 @@ $Id$
 */
 
 #include <osgGeo/TubeWellLog>
+#include <osgGeo/ComputeBoundsVisitor>
 #include <osg/MatrixTransform>
 #include <osgViewer/Viewer>
 #include <osg/PolygonOffset>
@@ -46,7 +47,7 @@ TubeWellLog::TubeWellLog()
 {
     buildTubeGeometry();
     buildCenterLineGeometry();
-    _tubeBoundingSphere.init();
+    _bbox.init();
 }
 
 
@@ -167,6 +168,15 @@ void TubeWellLog::traverse(osg::NodeVisitor& nv)
 	}
 
     }
+    else
+    {
+	osgGeo::ComputeBoundsVisitor* cbv =
+	    dynamic_cast<osgGeo::ComputeBoundsVisitor*>( &nv );
+	if ( cbv )
+	    cbv->applyBBox(_bbox);
+    }
+	
+
 }
 
 
@@ -181,7 +191,8 @@ void TubeWellLog::buildTube(bool dirtybound)
 
     _tubeGeometry->removePrimitiveSet(0,_tubeGeometry->getNumPrimitiveSets());
 
-    _tubeBoundingSphere.init();
+    osg::BoundingBox bbox;
+    bbox.init();
 
     int total(0);
     for (int res = 0; res <_resolution + 1; res++)
@@ -194,7 +205,7 @@ void TubeWellLog::buildTube(bool dirtybound)
 	for (int idx = 0; idx<nrSamples; idx++)
 	{
 	    const osg::Vec3 pathCoord = (*_logPath)[idx];
-
+	    bbox.expandBy( pathCoord );
 	    const osg::Vec3 edgePnt = pathCoord + (*_logTubeShapePoints)[idx];
 	    osg::Vec3 pnt1 = edgePnt - pathCoord;
 	    pnt1.normalize();
@@ -214,7 +225,7 @@ void TubeWellLog::buildTube(bool dirtybound)
 	    else
 		 (*_logTubeVerts)[total] = circlePnt;
 
-	    _tubeBoundingSphere.expandBy((*_logTubeVerts)[total]);
+	    bbox.expandBy((*_logTubeVerts)[total]);
 		
 	    (*drawElements)[2*count] = total;
 	    (*drawElements)[2*count+1] = total + nrSamples;
@@ -231,26 +242,40 @@ void TubeWellLog::buildTube(bool dirtybound)
     _logPathVerts->insert(_logPathVerts->end(),_logPath->begin(),
 			  _logPath->end() );
 
-    if ( dirtybound )
-	dirtyBound();
+    if ( _bbox._min != bbox._min || _bbox._max != bbox._max )
+    {
+	dirtyBound(); 
+	dirtybound = false;
+	_bbox = bbox;
+    }
 
+    if ( dirtybound )
+    {
+	_bbox.init();
+	dirtyBound();
+    }
 
     _logTubeVerts->dirty();
     _tubeGeometry->dirtyDisplayList();
    // osgUtil::SmoothingVisitor::smooth(*_tubeGeometry);
     _logPathGeometry->dirtyDisplayList();
 
+
 }
 
 
 osg::BoundingSphere TubeWellLog::computeBound() const
 {
-    if ( _tubeBoundingSphere.radius() >0.f )
-	return _tubeBoundingSphere;
-    osg::BoundingSphere inibs;
-    for ( int idx=0; idx< _logPath->size(); idx++ )
-	inibs.expandBy( _logPath->at(idx) );
-    return inibs;
+    if ( _bbox.valid() )
+       return _bbox;
+
+    osg::BoundingBox bbox;
+
+    for ( unsigned int idx=0; idx<_logPath->size(); idx++ )
+	bbox.expandBy((*_logPath)[idx]);
+
+    return bbox;
+
 }
 
 

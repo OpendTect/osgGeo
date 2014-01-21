@@ -20,7 +20,7 @@ $Id$
 
 
 #include <osgGeo/PolygonSelection>
-
+#include <osgGeo/ComputeBoundsVisitor>
 #include <osg/Camera>
 #include <osg/Geode>
 #include <osg/Geometry>
@@ -83,6 +83,7 @@ PolygonSelection::PolygonSelection()
     _lineGeometry->addPrimitiveSet(_coordsList);
     _geode->addDrawable(_lineGeometry);
     setColor(osg::Vec4(1,0,0,1));
+    _bbox.init();
 }
 
 
@@ -143,10 +144,16 @@ void PolygonSelection::accept(osg::NodeVisitor& nv)
     if (stateset && cv)
 	cv->pushStateSet(stateset);
 
-    _geode->accept(nv);
+    osgGeo::ComputeBoundsVisitor* cbv =
+	dynamic_cast<osgGeo::ComputeBoundsVisitor*>( &nv );
+    if ( cbv )
+	cbv->applyBBox(_bbox);
+    else
+	_geode->accept(nv);
 
     if (stateset && cv)
 	cv->popStateSet();
+
 }
 
 
@@ -214,6 +221,9 @@ bool PolygonSelection::handleEvent(const osgGA::GUIEventAdapter& ea)
 
 void PolygonSelection::setLatestMousePoints(const osg::Vec3& pos)
 {   
+    osg::BoundingBox bbox;
+    bbox.init();
+    
     if (_shapeType == Rectangle)
     {
 	(*_coords)[1] = osg::Vec3(pos.x(),_coords->at(0).y(),pos.z());
@@ -227,7 +237,18 @@ void PolygonSelection::setLatestMousePoints(const osg::Vec3& pos)
 	_coordsList->setCount(_coords->size());
     }
 
+
+    for ( unsigned int idx=0; idx<_coords->size(); idx++ )
+	bbox.expandBy((*_coords)[idx]);
+
+    if ( _bbox._min != bbox._min || _bbox._max!= bbox._max )
+    {
+	_bbox = bbox;
+	dirtyBound();
+    }
+
     _lineGeometry->dirtyDisplayList();
+
 }
 
 
@@ -247,7 +268,15 @@ osg::Vec2 PolygonSelection::projectPointToScreen(osg::Vec3 pointin3d) const
 
 osg::BoundingSphere PolygonSelection::computeBound() const
 {
-    return _geode->computeBound();
+    if ( _bbox.valid() )
+	return _bbox;
+
+    osg::BoundingBox bbox;
+
+    for ( unsigned int idx=0; idx<_coords->size(); idx++ )
+	bbox.expandBy((*_coords)[idx]);
+
+    return bbox;
 }
 
 
@@ -301,5 +330,3 @@ void PolygonSelection::removeCallBack(osg::NodeCallback *nc)
 }
 
 } // osgGeo
-
-

@@ -20,30 +20,31 @@ $Id$
 
 
 #include <osgGeo/OneSideRender>
+#include <osgGeo/ComputeBoundsVisitor>
 #include <osgUtil/CullVisitor>
 
 osgGeo::OneSideRenderNode::OneSideRenderNode()
 {}
 
 
-osgGeo::OneSideRenderNode::OneSideRenderNode( const OneSideRenderNode& b,
-					      const osg::CopyOp& op )
+osgGeo::OneSideRenderNode::OneSideRenderNode(const OneSideRenderNode& b,
+					      const osg::CopyOp& op)
     : osg::Node( b, op )
 {
     for ( DrawableList::const_iterator itr=b._drawables.begin();
 	  itr!=b._drawables.end(); ++itr)
     {
 	osg::Drawable* drawable = op( itr->get() );
-	if ( drawable ) addDrawable( drawable );
+	if ( drawable ) addDrawable(drawable);
     }
 
     _lines = b._lines;
 }
 
 
-bool osgGeo::OneSideRenderNode::addDrawable( osg::Drawable* gset )
+bool osgGeo::OneSideRenderNode::addDrawable(osg::Drawable* gset)
 {
-    return addDrawable( gset, Line3(osg::Vec3(0,0,0), osg::Vec3(0,0,1)) );
+    return addDrawable(gset, Line3(osg::Vec3(0,0,0), osg::Vec3(0,0,1)));
 }
 
 
@@ -59,9 +60,10 @@ bool osgGeo::OneSideRenderNode::addDrawable( osg::Drawable* gset,
 }
 
 
-bool osgGeo::OneSideRenderNode::removeDrawable( osg::Drawable* gset )
+bool osgGeo::OneSideRenderNode::removeDrawable(osg::Drawable* gset)
 {
-    DrawableList::iterator drawable = std::find( _drawables.begin(), _drawables.end(), gset);
+    DrawableList::iterator drawable = std::find(
+	_drawables.begin(), _drawables.end(), gset);
 
     const int idx = drawable - _drawables.begin();
     if ( idx<0 )
@@ -73,7 +75,7 @@ bool osgGeo::OneSideRenderNode::removeDrawable( osg::Drawable* gset )
     return true;
 }
 
-void osgGeo::OneSideRenderNode::traverse( osg::NodeVisitor& nv )
+void osgGeo::OneSideRenderNode::traverse(osg::NodeVisitor& nv)
 {
     if ( nv.getVisitorType()==osg::NodeVisitor::CULL_VISITOR )
     {
@@ -81,7 +83,8 @@ void osgGeo::OneSideRenderNode::traverse( osg::NodeVisitor& nv )
 
 	if ( getStateSet() )
 	    cv->pushStateSet( getStateSet() );
-
+	osg::BoundingBox bbox;
+	bbox.init();
 	const osg::Vec3 eye = cv->getEyePoint();
 	for ( unsigned int idx=0; idx<_drawables.size(); idx++ )
 	{
@@ -89,21 +92,51 @@ void osgGeo::OneSideRenderNode::traverse( osg::NodeVisitor& nv )
 	    if ( viewline*_lines[idx]._dir>=0 )
 	    {
 		const osg::BoundingBox bb = _drawables[idx]->getBound();
-		const float depth = cv->getDistanceFromEyePoint( bb.center(), false );
-		cv->addDrawableAndDepth( _drawables[idx], cv->getModelViewMatrix(), depth );
+		const float depth = cv->getDistanceFromEyePoint(
+		    bb.center(), false );
+		cv->addDrawableAndDepth(
+		    _drawables[idx], cv->getModelViewMatrix(), depth );
+		bbox.expandBy( bb );
 	    }
+	}
+
+	if ( _bbox._min != bbox._min || _bbox._max != bbox._max )
+	{
+	       dirtyBound();
+	       _bbox = bbox;
 	}
 
 	if ( getStateSet() )
 	    cv->popStateSet();
     }
     else
-	osg::Node::traverse( nv );
+    {
+	osgGeo::ComputeBoundsVisitor* cbv =
+	    dynamic_cast<osgGeo::ComputeBoundsVisitor*>( &nv );
+	if ( cbv )
+	    cbv->applyBBox(_bbox);
+	else
+	    osg::Node::traverse( nv );
+    }
 }
 
 
-void osgGeo::OneSideRenderNode::setLine(unsigned int idx,const Line3& line )
+void osgGeo::OneSideRenderNode::setLine(unsigned int idx,const Line3& line)
 {
     if ( idx<_lines.size() )
 	_lines[idx] = line;
+}
+
+
+osg::BoundingSphere osgGeo::OneSideRenderNode::computeBound() const
+{
+   if ( _bbox.valid() )
+    return _bbox;
+
+   osg::BoundingBox bbox;
+
+   for ( unsigned int idx=0; idx< _lines.size(); idx++ )
+       bbox.expandBy(_lines[idx]._pos);
+
+   return bbox;
 }

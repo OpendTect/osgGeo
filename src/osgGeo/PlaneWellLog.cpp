@@ -19,6 +19,7 @@ $Id$
 */
 
 #include <osgGeo/PlaneWellLog>
+#include <osgGeo/ComputeBoundsVisitor>
 #include <osg/MatrixTransform>
 #include <osgViewer/Viewer>
 #include <osg/PolygonOffset>
@@ -33,19 +34,19 @@ using namespace osgGeo;
 
 PlaneWellLog::PlaneWellLog()
     :WellLog()
-,_coordLinedFactors( new osg::FloatArray )
-,_coordLinedTriFactors( new osg::FloatArray )
-,_logLinedPoints( new osg::Vec3Array )
-,_logLinedTriPoints ( new osg::Vec3Array )
-,_logColors( new osg::Vec4Array )
-,_dispSide( Left )
-,_repeatNumber( 1 )
-,_repeatGap( 100.0f )
-,_seisStyle( false )
-,_isFilled( false )
-,_triGeometryWidth( .0 )
-,_isFullFilled( false )
-,_worldWidth( FLT_MAX )
+,_coordLinedFactors(new osg::FloatArray)
+,_coordLinedTriFactors(new osg::FloatArray)
+,_logLinedPoints(new osg::Vec3Array)
+,_logLinedTriPoints (new osg::Vec3Array)
+,_logColors(new osg::Vec4Array)
+,_dispSide(Left)
+,_repeatNumber(1)
+,_repeatGap(100.0f)
+,_seisStyle(false)
+,_isFilled(false)
+,_triGeometryWidth(.0)
+,_isFullFilled(false)
+,_worldWidth(FLT_MAX)
 
 {
     buildLineGeometry();
@@ -68,21 +69,21 @@ void PlaneWellLog::clearLog()
 }
 
 
-void PlaneWellLog::setSeisLogStyle( bool stl )
+void PlaneWellLog::setSeisLogStyle(bool stl)
 {
     _seisStyle = stl;
     _forceReBuild = true;
 }
 
 
-void PlaneWellLog::setDisplaySide( PlaneWellLog::DisplaySide side )
+void PlaneWellLog::setDisplaySide(PlaneWellLog::DisplaySide side)
 {
     _dispSide = side;
     _forceReBuild = true;
 }
 
 
-void PlaneWellLog::setRepeatNumber( unsigned int repeatnumber )
+void PlaneWellLog::setRepeatNumber(unsigned int repeatnumber)
 {
     if ( _repeatNumber != repeatnumber )
     {
@@ -92,7 +93,7 @@ void PlaneWellLog::setRepeatNumber( unsigned int repeatnumber )
 }
 
 
-void PlaneWellLog::setRepeatGap ( float repeatgap )
+void PlaneWellLog::setRepeatGap (float repeatgap)
 {
     if ( _repeatGap != repeatgap )
     {
@@ -113,7 +114,7 @@ float PlaneWellLog::getRepeatStep() const
 }
 
 
-void PlaneWellLog::setFullFilled( bool isfullpanel )
+void PlaneWellLog::setFullFilled(bool isfullpanel)
 {
     _isFullFilled = isfullpanel;
     _forceReBuild = true;
@@ -136,18 +137,18 @@ void PlaneWellLog::clearCoords()
 
 float PlaneWellLog::getShapeFactor(float val, float minval, float maxval )const
 {
-    float res = WellLog::getShapeFactor( val, minval, maxval );
+    float res = WellLog::getShapeFactor(val, minval, maxval);
     return _dispSide==Left ? -res : res;
 }
 
 
-void PlaneWellLog::setLineWidth( float lineWidth )
+void PlaneWellLog::setLineWidth(float lineWidth)
 {
     _lineWidth->setWidth( lineWidth );
 }
 
 
-void PlaneWellLog::setLineColor( osg::Vec4d lineColor )
+void PlaneWellLog::setLineColor(osg::Vec4d lineColor)
 {
     (*_lineColor)[0] = lineColor;
     _lineColor->dirty();
@@ -219,7 +220,7 @@ void PlaneWellLog::buildTriangleGeometry()
 }
 
 
-void PlaneWellLog::traverse( osg::NodeVisitor& nv )
+void PlaneWellLog::traverse(osg::NodeVisitor& nv)
 {
     WellLog::traverse( nv );
 
@@ -265,6 +266,7 @@ void PlaneWellLog::traverse( osg::NodeVisitor& nv )
 	if ( getStateSet() ) cv->pushStateSet( getStateSet() );
 
 	osg::Matrix repeatTransform;
+	osg::BoundingBox bbox;
 	for ( int idx=0; idx<(int)_repeatNumber; idx++ )
 	{
 	    repeatTransform.setTrans( normal*idx*getRepeatStep() );
@@ -272,9 +274,16 @@ void PlaneWellLog::traverse( osg::NodeVisitor& nv )
 	    osg::ref_ptr<osg::RefMatrix> rfMx = new osg::RefMatrix(RMV);
 
 	    const osg::BoundingBox bb = _triangleGeometry->getBound();
+	    bbox.expandBy( bb );
 	    const float depth = cv->getDistanceFromEyePoint(bb.center(),false);
 	    cv->addDrawableAndDepth( _lineGeometry, rfMx, depth );
 	    cv->addDrawableAndDepth( _triangleGeometry, rfMx, depth );
+	}
+
+	if ( _bbox._min != bbox._min || _bbox._max != bbox._max )
+	{
+	    dirtyBound();
+	    _bbox = bbox;
 	}
 
 	if ( getStateSet() ) cv->popStateSet();
@@ -291,7 +300,7 @@ void PlaneWellLog::traverse( osg::NodeVisitor& nv )
 	    osg::Matrix repeatTransform;
 	    for ( int idx=0; idx<(int)_repeatNumber; idx++ )
 	    {
-		repeatTransform.setTrans( normal*idx*getRepeatStep() );
+		repeatTransform.setTrans(normal*idx*getRepeatStep());
 
 		osg::Matrix mat = repeatTransform * (*iv->getModelMatrix());
 		osg::ref_ptr<osg::RefMatrix> rfMx = new osg::RefMatrix(mat);
@@ -309,7 +318,13 @@ void PlaneWellLog::traverse( osg::NodeVisitor& nv )
 		iv->popModelMatrix();
 	    }
 	}
+
+	osgGeo::ComputeBoundsVisitor* cbv =
+	    dynamic_cast<osgGeo::ComputeBoundsVisitor*>(&nv);
+	if ( cbv )
+	    cbv->applyBBox(_bbox);
     }
+
 }
 
 
@@ -323,7 +338,7 @@ unsigned int PlaneWellLog::getLogItem()
 }
 
 
-void PlaneWellLog::setLogFill( bool isFill )
+void PlaneWellLog::setLogFill(bool isFill)
 {
     _isFilled = isFill;
     _forceReBuild = true;
@@ -332,6 +347,9 @@ void PlaneWellLog::setLogFill( bool isFill )
 
 osg::BoundingSphere PlaneWellLog::computeBound() const
 {
+    if ( _bbox.valid() )
+	return _bbox;
+
     osg::BoundingSphere logSphere;
 
     for( unsigned int idx=0; idx<_logPath->size(); idx++ )
@@ -355,11 +373,11 @@ osg::BoundingSphere PlaneWellLog::computeBound() const
 }
 
 
-void PlaneWellLog::calcCoordinates( const osg::Vec3& normal, float screenSize )
+void PlaneWellLog::calcCoordinates(const osg::Vec3& normal, float screenSize)
 {
     int nrSamples = _logPath->size();
 
-    const bool doFill = ( getLogItem() != LOGLINE_ONLY );
+    const bool doFill = (getLogItem() != LOGLINE_ONLY);
     const osg::Vec3 appliedDir = normal * screenSize;
     const osg::Vec3 emptyPnt( 0, 0, 0 );
 
@@ -466,9 +484,9 @@ void PlaneWellLog::calcFactors()
 	    if( _dispSide == Left )
 	    {
 		if ( logVal < meanLogVal )
-		    _coordLinedTriFactors->push_back( meanFactor );
+		    _coordLinedTriFactors->push_back(meanFactor);
 		else
-		    _coordLinedTriFactors->push_back( getShapeFactor( logVal,
+		    _coordLinedTriFactors->push_back(getShapeFactor(logVal,
 		    _minShapeValue, _maxShapeValue ));
 	    }
 	    else
@@ -508,12 +526,12 @@ void PlaneWellLog::calcFactors()
 }
 
 
-osg::Vec3 PlaneWellLog::calcNormal( const osg::Vec3& projdir ) const
+osg::Vec3 PlaneWellLog::calcNormal(const osg::Vec3& projdir) const
 {
-    osg::Vec3 res( 0 , 0, -1 );
+    osg::Vec3 res(0 , 0, -1);
     res = res^projdir;
     if ( res.length2()<1e-6 )
-	res = osg::Vec3( 1, 0, 0 );
+	res = osg::Vec3(1, 0, 0);
     else
 	res.normalize();
 
@@ -556,7 +574,7 @@ void PlaneWellLog::updateFilledLogColor()
 
 	if( pos[2] < minfillz || pos[2] > maxfillz )
 	{
-	    _outFillIndex.push_back( idx );
+	    _outFillIndex.push_back(idx);
 	    continue;
 	}
 

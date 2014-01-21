@@ -20,6 +20,7 @@ $Id$
 
 #include "osgGeo/MarkerSet"
 #include <osg/Switch>
+#include <osgGeo/ComputeBoundsVisitor>
 
 
 using namespace osgGeo;
@@ -39,6 +40,7 @@ MarkerSet::MarkerSet()
 {
     setNumChildrenRequiringUpdateTraversal(0);
     _singleColor = osg::Vec4(0.1f, 0.1f, 0.1f, 1.0f);
+    _bbox.init();
 }
 
 
@@ -65,6 +67,16 @@ void MarkerSet::traverse( osg::NodeVisitor& nv )
 	    dirtyBound();
 	}
     }
+    else
+    {
+	osgGeo::ComputeBoundsVisitor* cbv =
+	    dynamic_cast<osgGeo::ComputeBoundsVisitor*>( &nv );
+	if ( cbv )
+	{
+	    cbv->applyBBox(_bbox);
+	    return;
+	}
+    }
     
     if ( _nonShadingSwitch ) 
 	_nonShadingSwitch->accept( nv );
@@ -78,6 +90,8 @@ bool MarkerSet::updateShapes()
     osg::Switch::ValueList valuelist = _nonShadingSwitch->getValueList();
     _nonShadingSwitch->removeChildren(0, _nonShadingSwitch->getNumChildren());
 
+    osg::BoundingBox bbox;
+    bbox.init();
     for (unsigned int idx=0;idx<_vertexArr->size();idx++)
     {
 	if( !_applySingleColor && _colorArr )
@@ -104,6 +118,7 @@ bool MarkerSet::updateShapes()
 	autotrans->setAutoScaleToScreen(true);
 	autotrans->setMinimumScale(0.0f);
 	autotrans->setMaximumScale(DBL_MAX);
+	bbox.expandBy(_vertexArr->at(idx));
 
 	if ( !_useScreenSize )
 	    autotrans->setScale( (double)1.0 );
@@ -132,6 +147,13 @@ bool MarkerSet::updateShapes()
     _dirtyBoundAtNextCullStage = true;
     
     _nonShadingSwitch->setValueList(valuelist);
+
+    if ( _bbox._min != bbox._min || _bbox._max!= bbox._max )
+    {
+	_bbox = bbox;
+	dirtyBound();
+    }
+
     return true;
 }
 
@@ -155,7 +177,15 @@ void MarkerSet::turnAllMarkersOn(bool yn)
 
 osg::BoundingSphere MarkerSet::computeBound() const
 {
-    return _nonShadingSwitch->getBound();
+    if ( _bbox.valid() )
+	return _bbox;
+
+    osg::BoundingBox bbox;
+
+    for ( unsigned int idx=0; idx<_vertexArr->size(); idx++ )
+	bbox.expandBy((*_vertexArr)[idx]);
+
+    return bbox;
 }
 
 

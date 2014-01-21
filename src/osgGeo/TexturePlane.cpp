@@ -20,7 +20,7 @@ $Id$
 
 
 #include <osgGeo/TexturePlane>
-
+#include <osgGeo/ComputeBoundsVisitor>
 #include <osgGeo/LayeredTexture>
 #include <osgUtil/CullVisitor>
 #include <osgUtil/IntersectionVisitor>
@@ -278,6 +278,14 @@ void TexturePlaneNode::traverse( osg::NodeVisitor& nv )
 	    if ( intersec.valid() && _boundingGeometry )
 		intersec->intersect( *iv, _boundingGeometry );
 	}
+
+	osgGeo::ComputeBoundsVisitor* cbv =
+	    dynamic_cast<osgGeo::ComputeBoundsVisitor*>( &nv );
+	if ( cbv )
+	{
+	    cbv->applyBBox(_boundingGeometry->getBound());
+	}
+
     }
 }
 

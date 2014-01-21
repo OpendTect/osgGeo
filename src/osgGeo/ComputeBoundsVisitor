@@ -1,0 +1,45 @@
+#ifndef OSGGEO_COMPUTEBOUNDSVISITOR_H
+#define OSGGEO_COMPUTEBOUNDSVISITOR_H
+
+/* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
+Copyright 2011 dGB Beheer B.V.
+
+osgGeo is free software; you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>
+
+$Id: ComputeBoundsVisitor 282 2014-01-20 04:18:19Z kristofer.tingdahl@dgbes.com $
+
+*/
+
+#include <osg/ComputeBoundsVisitor>
+#include <osgGeo/Common>
+
+namespace osgGeo {
+
+class OSGGEO_EXPORT ComputeBoundsVisitor : public osg::ComputeBoundsVisitor
+{
+public:
+    ComputeBoundsVisitor(osg::NodeVisitor::TraversalMode traversalMode)
+	: osg::ComputeBoundsVisitor( traversalMode ) {}
+
+    const std::vector<osg::Matrix>&  getMatrixStack() const
+				     { return _matrixStack; }
+
+    void applyBBox(const osg::BoundingBox&);
+};
+
+
+
+} //namespace
+
+#endif
