@@ -22,7 +22,7 @@ $Id$
 */
 
 #include <osgGeo/Common>
-#include <osg/geode>
+#include <osg/Geode>
 #include <osg/Node>
 #include <osgGA/GUIEventHandler>
 
