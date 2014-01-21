@@ -22,6 +22,7 @@ $Id$
 */
 
 #include <osg/Node>
+#include <osg/Geode>
 #include <osg/NodeVisitor>
 #include <osgGeo/Common>
 #include <osgGeo/Line3>
@@ -39,8 +40,7 @@ public:
 
 			OneSideRenderNode();
 			OneSideRenderNode(const OneSideRenderNode&,
-			      const osg::CopyOp& op =
-			      osg::CopyOp::DEEP_COPY_ALL);
+					  const osg::CopyOp& op = osg::CopyOp::DEEP_COPY_ALL);
 			META_Node(osgGeo,OneSideRenderNode)
 
     int			getNumDrawables() const { return _drawables.size(); }
@@ -60,9 +60,11 @@ public:
 
 protected:
     typedef std::vector<osg::ref_ptr<osg::Drawable> > DrawableList;
+    osg::BoundingSphere			computeBound() const;
 
-    std::vector<Line3>				_lines;
-    DrawableList				_drawables;
+    std::vector<Line3>			_lines;
+    DrawableList			_drawables;
+    osg::BoundingBox			_bbox;
 };
 
 }

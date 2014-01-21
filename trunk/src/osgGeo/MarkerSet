@@ -83,7 +83,7 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 
 	void				setRotateMode(osg::AutoTransform::AutoRotateMode);
 	osg::AutoTransform::AutoRotateMode
-						getRotateMode() const { return _rotateMode; }
+					getRotateMode() const { return _rotateMode; }
 
 	void				turnMarkerOn(unsigned int idx,bool);
 	void				turnAllMarkersOn(bool);
@@ -109,6 +109,7 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 	bool					_applySingleColor;
 	osgGeo::MarkerShape			_markerShape;
 	bool					_forceRedraw;
+	osg::BoundingBox			_bbox;
 	bool					_dirtyBoundAtNextCullStage;
 };
 

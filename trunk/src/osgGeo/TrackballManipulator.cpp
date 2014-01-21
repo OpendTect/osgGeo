@@ -20,13 +20,37 @@ $Id$
 #include <osgGeo/TrackballManipulator>
 
 #include <osgUtil/LineSegmentIntersector>
-#include <osg/ComputeBoundsVisitor>
+#include <osgGeo/ComputeBoundsVisitor>
 #include <osg/Timer>
 
 #define mAllTraversals (0xFFFFFFFF)
 
 namespace osgGeo
 {
+
+
+void ComputeBoundsVisitor::applyBBox(const osg::BoundingBox& bbox)
+{
+    if ( !bbox.valid() )
+	return;
+
+    if ( _matrixStack.empty()) _bb.expandBy( bbox );
+    else
+    {
+	const osg::Matrix& matrix = _matrixStack.back();
+	if (_bb.valid())
+	{
+	    _bb.expandBy(bbox.corner(0) * matrix);
+	    _bb.expandBy(bbox.corner(1) * matrix);
+	    _bb.expandBy(bbox.corner(2) * matrix);
+	    _bb.expandBy(bbox.corner(3) * matrix);
+	    _bb.expandBy(bbox.corner(4) * matrix);
+	    _bb.expandBy(bbox.corner(5) * matrix);
+	    _bb.expandBy(bbox.corner(6) * matrix);
+	    _bb.expandBy(bbox.corner(7) * matrix);
+	}
+    }
+}
 
 
 TrackballManipulator::TrackballManipulator( int flags )
@@ -62,7 +86,7 @@ bool TrackballManipulator::computeViewAllParams(osg::View* view,
     if ( !_node )
         return false;
 
-    osg::ComputeBoundsVisitor visitor( osg::NodeVisitor::TRAVERSE_ACTIVE_CHILDREN );
+    osgGeo::ComputeBoundsVisitor visitor( osg::NodeVisitor::TRAVERSE_ACTIVE_CHILDREN );
     visitor.setTraversalMask( _boundTraversalMask );
 
     _node->accept( visitor );
@@ -497,4 +521,3 @@ void TrackballManipulator::removeMovementCallback(osg::NodeCallback* nc)
 
 
 } // end namespace
-

@@ -48,53 +48,52 @@ namespace osgGeo
 class OSGGEO_EXPORT TubeWellLog : public osgGeo::WellLog
 {
 public:
-							TubeWellLog();
+					TubeWellLog();
 
-	enum RenderMode { RenderBackSide=-1, RenderBothSides, RenderFrontSide };
-    void					setResolution(int);
-    int						getResolution() {return _resolution;}
-	void					setRenderMode(RenderMode mode);
+    enum RenderMode { RenderBackSide=-1, RenderBothSides, RenderFrontSide };
+    void				setResolution(int);
+    int					getResolution() {return _resolution;}
+    void				setRenderMode(RenderMode mode);
 
- 	virtual void			setDisplaySide(DisplaySide) {};
-    virtual DisplaySide		getDisplaySide(){return Left;};
+    virtual void			setDisplaySide(DisplaySide) {};
+    virtual DisplaySide			getDisplaySide(){return Left;};
     virtual void			setRepeatNumber(unsigned int) {};
-    virtual unsigned int	getRepeatNumber() {return 0;};
+    virtual unsigned int		getRepeatNumber() {return 0;};
     virtual void			setRepeatGap (float) {};
     virtual float			getRepeatGap() {return .0f;};
     virtual void			setFullFilled(bool){};
     virtual bool			getFullFilled(){return false;};
-	virtual void			setSeisLogStyle(bool){};
+    virtual void			setSeisLogStyle(bool){};
     virtual bool 			getSeisLogStyle() const{return false;};
     virtual void			setLogFill(bool){};
     virtual void			setLineWidth( float ){};
     virtual float			getLineWidth() const { return 0; };
     virtual void			setLineColor( osg::Vec4d ){};
-    virtual osg::Vec4d		getLineColor() const 
-							{return osg::Vec4d(0,0,0,0);};
+    virtual osg::Vec4d			getLineColor() const 
+						{return osg::Vec4d(0,0,0,0);};
     virtual void			clearLog();
 
 
 protected:
-	osg::BoundingSphere		computeBound() const;
-	virtual void	 		traverse(osg::NodeVisitor&);
+    osg::BoundingSphere			computeBound() const;
+    virtual void	 		traverse(osg::NodeVisitor&);
     virtual float			getShapeFactor(float val, float minval, 
-											float maxval) const;
-    						~TubeWellLog();
+							float maxval) const;
+    					~TubeWellLog();
 
-    enum					{LOGLINE_ONLY,SEISMIC_ONLY,
-							 LOGFILL_ONLY,LOGLNFL_BOTH};
+    enum				{LOGLINE_ONLY,SEISMIC_ONLY,
+						LOGFILL_ONLY,LOGLNFL_BOTH};
 
 private:
     void			calcTubeShape(float);
     void			updateTubeLogColor();
-    void		    clearTubeShape();
+    void			clearTubeShape();
     void			clearVerts();
     void			buildTubeGeometry();
     void			buildCenterLineGeometry();
     void			buildTube(bool) ;
 
-    std::vector<int>			    _outTubeIndex;
-	osg::BoundingSphere				_tubeBoundingSphere;
+    std::vector<int>			_outTubeIndex;
     osg::ref_ptr<osg::Vec3Array>	_logTubeVerts;
     osg::ref_ptr<osg::Geometry>		_tubeGeometry;
     osg::ref_ptr<osg::Vec4Array>	_tubeLogColors;
@@ -107,7 +106,7 @@ private:
     osg::ref_ptr<osg::LineWidth>	_logPathWidth;
     osg::ref_ptr<osg::Vec3Array>	_logTubeShapePoints;
     osg::ref_ptr<osg::Vec3Array>	_logTubeCircleNormals;
-    int								_resolution;
+    int					_resolution;
 
 };
 

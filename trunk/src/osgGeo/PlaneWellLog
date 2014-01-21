@@ -50,26 +50,26 @@ class OSGGEO_EXPORT PlaneWellLog : public osgGeo::WellLog
 {
 public:
 				PlaneWellLog();
-    void			setDisplaySide( DisplaySide );
-    DisplaySide		getDisplaySide() { return _dispSide; }
+    void			setDisplaySide(DisplaySide);
+    DisplaySide			getDisplaySide() { return _dispSide; }
     void			setRepeatNumber( unsigned int );
-    unsigned int	getRepeatNumber() { return _repeatNumber; }
-    void			setRepeatGap ( float );
+    unsigned int		getRepeatNumber() { return _repeatNumber; }
+    void			setRepeatGap (float);
     float			getRepeatGap() { return _repeatGap; }
-    void			setFullFilled( bool );
+    void			setFullFilled(bool);
     bool			getFullFilled() { return _isFullFilled; }
 
-    void			setSeisLogStyle( bool );
+    void			setSeisLogStyle(bool);
     bool 			getSeisLogStyle() const { return _seisStyle; }
 
-    void			setLogFill( bool );
+    void			setLogFill(bool);
 
-    void			setLineWidth( float );
+    void			setLineWidth(float);
     float			getLineWidth() const;
 
-    void			setLineColor( osg::Vec4d );
-    osg::Vec4d		getLineColor() const;
-	void			setResolution(int){};
+    void			setLineColor(osg::Vec4d);
+    osg::Vec4d			getLineColor() const;
+    void			setResolution(int){};
     int				getResolution(){ return 0; };
 
     virtual void		clearLog();
@@ -77,21 +77,20 @@ public:
 
 protected:
     osg::BoundingSphere		computeBound() const;
-    virtual void	    	traverse( osg::NodeVisitor& );
-    virtual float		getShapeFactor( float val, float minval, 
-						float maxval ) const;
-    				~PlaneWellLog();
+    virtual void	    	traverse(osg::NodeVisitor&);
+    virtual float		getShapeFactor(float val, float minval, 
+                                           float maxval) const;
+				 ~PlaneWellLog();
 
-    enum			{ LOGLINE_ONLY,SEISMIC_ONLY,
-					    LOGFILL_ONLY,LOGLNFL_BOTH };
+    enum			{LOGLINE_ONLY,SEISMIC_ONLY,
+				 LOGFILL_ONLY,LOGLNFL_BOTH};
 
 private:
-    void			calcCoordinates( const osg::Vec3& normal, 
-						float screenSize );
+    void			calcCoordinates(const osg::Vec3& normal,float screenSize);
     void			calcFactors();
-    osg::Vec3			calcNormal( const osg::Vec3& projdir ) const;
+    osg::Vec3			calcNormal(const osg::Vec3& projdir) const;
     void			updateFilledLogColor();
-    void		        clearFactors();
+    void			clearFactors();
     void			clearCoords();
     void			buildLineGeometry();
     void			buildTriangleGeometry();
@@ -113,19 +112,17 @@ private:
     osg::ref_ptr<osg::Vec4Array>	_lineColor;
     osg::ref_ptr<osg::LineWidth>	_lineWidth;
 
-    unsigned int		_repeatNumber;
-    float			_repeatGap;
-    DisplaySide			_dispSide;
-    bool  			_seisStyle;
-    bool			_isFilled;
-    float			_triGeometryWidth;
-    bool			_isFullFilled;
-    float			_worldWidth;
+    unsigned int    _repeatNumber;
+    float	    _repeatGap;
+    DisplaySide     _dispSide;
+    bool  	    _seisStyle;
+    bool	    _isFilled;
+    float	    _triGeometryWidth;
+    bool	    _isFullFilled;
+    float	    _worldWidth;
 };
 
 
 } // namespace
 
 #endif //OSGGEO_PLANEWELLLOG_H
-
-

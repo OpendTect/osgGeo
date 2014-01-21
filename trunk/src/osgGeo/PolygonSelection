@@ -22,6 +22,7 @@ $Id$
 */
 
 #include <osgGeo/Common>
+#include <osg/geode>
 #include <osg/Node>
 #include <osgGA/GUIEventHandler>
 
@@ -67,13 +68,14 @@ protected:
     osg::Geometry*			_lineGeometry;
     osg::Camera*			_masterCamera;
     osg::Camera*			_hudCamera;
-    osg::DrawArrays*			_coordsList;
+    osg::DrawArrays*                    _coordsList;
     ShapeType				_shapeType;
     osg::Material*			_material;
     osg::Vec3Array*			_coords;
-    float				_zcoord;
-    bool				_ison;
-    bool				_isInterSecting;
+    float                               _zcoord;
+    bool                                _ison;
+    bool                                _isInterSecting;
+    osg::BoundingBox	                _bbox;
 };
 
 } // osgGeo

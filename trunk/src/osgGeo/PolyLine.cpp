@@ -21,6 +21,7 @@ $Id$
 #include <osgGeo/PolyLine>
 
 #include <osgGeo/Line3>
+#include <osgGeo/ComputeBoundsVisitor>
 #include <osg/Geometry>
 #include <osgUtil/CullVisitor>
 #include <osgUtil/IntersectionVisitor>
@@ -90,11 +91,13 @@ void PolyLineNode::traverse( osg::NodeVisitor& nv )
 	if ( getStateSet() )
 	    cv->pushStateSet(getStateSet());
 
-	const float depth = cv->getDistanceFromEyePoint( _bs.center(), false );
+	const float depth = cv->getDistanceFromEyePoint( _bbox.center(), false );
 	cv->addDrawableAndDepth( _geometry, cv->getModelViewMatrix(), depth );
 
 	if ( getStateSet() )
 	    cv->popStateSet();
+
+	cv->updateCalculatedNearFar(*cv->getModelViewMatrix(), _geometry->getBound() );
     }
     else
     {
@@ -105,7 +108,15 @@ void PolyLineNode::traverse( osg::NodeVisitor& nv )
 	    osgUtil::Intersector* intersec = iv->getIntersector()->clone( *iv );
 	    if ( intersec )
 		intersec->intersect( *iv, _geometry );
+
+	    return;
 	}
+
+	osgGeo::ComputeBoundsVisitor* cbv =
+	    dynamic_cast<osgGeo::ComputeBoundsVisitor*>( &nv );
+	if ( cbv )
+	    cbv->applyBBox(_bbox);
+
     }
 }
 
@@ -189,7 +200,16 @@ void PolyLineNode::reScaleCoordinates(const osgUtil::CullVisitor* cv)
 
 osg::BoundingSphere PolyLineNode::computeBound() const
 {
-    return _bs;
+    if ( _bbox.valid() )
+        return _bbox;
+    
+    osg::BoundingBox bbox;
+
+    for ( unsigned int idx=0; idx<_polyLineCoords->size(); idx++ )
+	bbox.expandBy((*_polyLineCoords)[idx]); 
+
+    return bbox;
+
 }
 
 
@@ -251,6 +271,7 @@ void PolyLineNode::clearAll()
     _geometry->getPrimitiveSetList().clear();
     _geom3DCoords ->clear();
     _geom3DNormals->clear();
+    _bbox.init();
 }
 
 
@@ -260,7 +281,7 @@ void PolyLineNode::clearAll()
     norm.normalize();\
     _geom3DNormals->push_back(norm); \
     triindices->push_back(ci++); \
-    bbox.expandBy(pos); \
+    _bbox.expandBy(pos); \
 
 
 #define mAddCap(croner,p) \
@@ -270,7 +291,7 @@ void PolyLineNode::clearAll()
 		_geom3DCoords ->push_back(p); \
 		triindices->push_back(ci++); \
 		_geom3DNormals->push_back(norm); \
-		bbox.expandBy(p); \
+		_bbox.expandBy(p); \
 
 bool PolyLineNode::updateGeometry()
 {
@@ -278,7 +299,6 @@ bool PolyLineNode::updateGeometry()
 	return false;
     
     clearAll();
-    osg::BoundingBox bbox;
     int ci = 0;
     osg::ref_ptr<osg::Vec3Array> corners1 = new osg::Vec3Array(_resolution);
     osg::ref_ptr<osg::Vec3Array> corners2 = new osg::Vec3Array(_resolution);
@@ -359,7 +379,7 @@ bool PolyLineNode::updateGeometry()
 
     _unScaledGeomCoords = (osg::Vec3Array*) _geom3DCoords ->clone(osg::CopyOp::SHALLOW_COPY);
     _arrayModifiedCount = _polyLineCoords->getModifiedCount();
-    _bs = bbox;
+
     dirtyBound();
     _isGeometryChanged = true;
     setUpdateFlag(false);
