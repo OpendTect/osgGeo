@@ -36,7 +36,7 @@ MarkerSet::MarkerSet()
     , _normalArr(new osg::Vec3Array)
     , _applySingleColor( false )
     , _forceRedraw( false )
-    , _dirtyBoundAtNextCullStage( false )
+    , _waitForAutoTransformUpdate( false )
 {
     setNumChildrenRequiringUpdateTraversal(0);
     _singleColor = osg::Vec4(0.1f, 0.1f, 0.1f, 1.0f);
@@ -61,9 +61,10 @@ void MarkerSet::traverse( osg::NodeVisitor& nv )
     }
     else if ( nv.getVisitorType()==osg::NodeVisitor::CULL_VISITOR )
     {
-	if ( _dirtyBoundAtNextCullStage )
+	if ( _waitForAutoTransformUpdate )
 	{
-	    _dirtyBoundAtNextCullStage = false;
+	    _waitForAutoTransformUpdate = false;
+	    setCullingActive(true);
 	    dirtyBound();
 	}
     }
@@ -144,7 +145,8 @@ bool MarkerSet::updateShapes()
 
     // In case of autoscale to screen, new AutoTransforms cannot compute
     // their bounding spheres till after their first cull traversal. 
-    _dirtyBoundAtNextCullStage = true;
+    _waitForAutoTransformUpdate = true;
+    setCullingActive(false);
     
     _nonShadingSwitch->setValueList(valuelist);
 

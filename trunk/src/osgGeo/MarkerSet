@@ -111,6 +111,7 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 	bool					_forceRedraw;
 	osg::BoundingBox			_bbox;
 	bool					_dirtyBoundAtNextCullStage;
+	bool					_waitForAutoTransformUpdate;
 };
 
 }
