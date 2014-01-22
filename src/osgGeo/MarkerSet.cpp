@@ -21,6 +21,7 @@ $Id$
 #include "osgGeo/MarkerSet"
 #include <osg/Switch>
 #include <osgGeo/ComputeBoundsVisitor>
+#include <osgUtil/CullVisitor>
 
 
 using namespace osgGeo;
@@ -44,7 +45,7 @@ MarkerSet::MarkerSet()
 }
 
 
- MarkerSet::~MarkerSet()
+MarkerSet::~MarkerSet()
 {
 }
 
@@ -61,8 +62,11 @@ void MarkerSet::traverse( osg::NodeVisitor& nv )
     }
     else if ( nv.getVisitorType()==osg::NodeVisitor::CULL_VISITOR )
     {
-	if ( _waitForAutoTransformUpdate )
+	const osg::Vec3 eyePoint = dynamic_cast<osgUtil::CullVisitor*>(&nv)->getEyePoint();
+
+	if ( _waitForAutoTransformUpdate || _prevEyePoint!=eyePoint )
 	{
+	    _prevEyePoint = eyePoint;
 	    _waitForAutoTransformUpdate = false;
 	    setCullingActive(true);
 	    dirtyBound();
@@ -91,8 +95,6 @@ bool MarkerSet::updateShapes()
     osg::Switch::ValueList valuelist = _nonShadingSwitch->getValueList();
     _nonShadingSwitch->removeChildren(0, _nonShadingSwitch->getNumChildren());
 
-    osg::BoundingBox bbox;
-    bbox.init();
     for (unsigned int idx=0;idx<_vertexArr->size();idx++)
     {
 	if( !_applySingleColor && _colorArr )
@@ -119,7 +121,6 @@ bool MarkerSet::updateShapes()
 	autotrans->setAutoScaleToScreen(true);
 	autotrans->setMinimumScale(0.0f);
 	autotrans->setMaximumScale(DBL_MAX);
-	bbox.expandBy(_vertexArr->at(idx));
 
 	if ( !_useScreenSize )
 	    autotrans->setScale( (double)1.0 );
@@ -150,12 +151,6 @@ bool MarkerSet::updateShapes()
     
     _nonShadingSwitch->setValueList(valuelist);
 
-    if ( _bbox._min != bbox._min || _bbox._max!= bbox._max )
-    {
-	_bbox = bbox;
-	dirtyBound();
-    }
-
     return true;
 }
 
@@ -179,15 +174,14 @@ void MarkerSet::turnAllMarkersOn(bool yn)
 
 osg::BoundingSphere MarkerSet::computeBound() const
 {
-    if ( _bbox.valid() )
-	return _bbox;
-
     osg::BoundingBox bbox;
+    bbox.init();
 
-    for ( unsigned int idx=0; idx<_vertexArr->size(); idx++ )
-	bbox.expandBy((*_vertexArr)[idx]);
+    for ( unsigned int idx=0; idx<_nonShadingSwitch->getNumChildren(); idx++ )
+	bbox.expandBy( _nonShadingSwitch->getChild(idx)->getBound() );
 
-    return bbox;
+    _bbox = bbox;
+    return _bbox;
 }
 
 
