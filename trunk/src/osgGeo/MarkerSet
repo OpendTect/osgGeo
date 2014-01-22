@@ -109,9 +109,10 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 	bool					_applySingleColor;
 	osgGeo::MarkerShape			_markerShape;
 	bool					_forceRedraw;
-	osg::BoundingBox			_bbox;
+	mutable osg::BoundingBox		_bbox;
 	bool					_dirtyBoundAtNextCullStage;
 	bool					_waitForAutoTransformUpdate;
+	osg::Vec3				_prevEyePoint;
 };
 
 }
