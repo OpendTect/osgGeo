@@ -283,7 +283,7 @@ void TexturePlaneNode::traverse( osg::NodeVisitor& nv )
 	    dynamic_cast<osgGeo::ComputeBoundsVisitor*>( &nv );
 	if ( cbv )
 	{
-	    cbv->applyBBox(_boundingGeometry->getBound());
+	    cbv->applyBoundingBox(_boundingGeometry->getBound());
 	}
 
     }

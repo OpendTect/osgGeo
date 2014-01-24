@@ -35,7 +35,7 @@ public:
     const std::vector<osg::Matrix>&  getMatrixStack() const
 				     { return _matrixStack; }
 
-    void applyBBox(const osg::BoundingBox&);
+    void applyBoundingBox(const osg::BoundingBox&);
 };
 
 
