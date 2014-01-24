@@ -114,7 +114,7 @@ void osgGeo::OneSideRenderNode::traverse(osg::NodeVisitor& nv)
 	osgGeo::ComputeBoundsVisitor* cbv =
 	    dynamic_cast<osgGeo::ComputeBoundsVisitor*>( &nv );
 	if ( cbv )
-	    cbv->applyBBox(_bbox);
+	    cbv->applyBoundingBox(_bbox);
 	else
 	    osg::Node::traverse( nv );
     }

@@ -78,7 +78,7 @@ void MarkerSet::traverse( osg::NodeVisitor& nv )
 	    dynamic_cast<osgGeo::ComputeBoundsVisitor*>( &nv );
 	if ( cbv )
 	{
-	    cbv->applyBBox(_bbox);
+	    cbv->applyBoundingBox(_bbox);
 	    return;
 	}
     }

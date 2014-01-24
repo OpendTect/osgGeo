@@ -29,7 +29,7 @@ namespace osgGeo
 {
 
 
-void ComputeBoundsVisitor::applyBBox(const osg::BoundingBox& bbox)
+void ComputeBoundsVisitor::applyBoundingBox(const osg::BoundingBox& bbox)
 {
     if ( !bbox.valid() )
 	return;
