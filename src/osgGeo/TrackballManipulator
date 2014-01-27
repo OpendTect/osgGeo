@@ -77,6 +77,7 @@ class OSGGEO_EXPORT TrackballManipulator : public osgGA::TrackballManipulator
         
 
         bool handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa);
+        bool handleMultiTouch(const osgGA::GUIEventAdapter&,osgGA::GUIActionAdapter&);
 
         bool handleMouseWheel( const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& us);
 
