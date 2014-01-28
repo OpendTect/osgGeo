@@ -1,8 +1,8 @@
 #include <osgGeo/ScalarBar>
 #include <osgText/Text>
 #include <osg/Geometry>
-#include <osg/Version>
-
+#include <osg/Material>
+#include <osg/PolygonOffset>
 #include <sstream>
 
 using namespace osgGeo;
@@ -134,8 +134,6 @@ void ScalarBar::createDrawables()
     }
     else
     {
-	// THIS IS WHERE I CHNAGED, THE ROTATION WAS AROUND Y AXIS WHICH WAS WRONG,
-	// IT SHOULD BE AROUND Z-AXIS, AS Z-AXIS IS NORMAL TO THE SCREEN. - RANOJAY
         matrix = osg::Matrix::rotate(osg::DegreesToRadians(90.0f),0.0f,0.0f,1.0f) * osg::Matrix::translate(_position);
     }
 
@@ -180,28 +178,21 @@ void ScalarBar::createDrawables()
         cs->push_back(c);
     }
 
-#if OSG_VERSION_LESS_THAN(3,2,0)
-    bar->setColorArray(cs.get());
-    bar->setColorBinding(osg::Geometry::BIND_PER_VERTEX);
-#else
     bar->setColorArray(cs.get(), osg::Array::BIND_PER_VERTEX);
-#endif
 
     // Normal
     osg::ref_ptr<osg::Vec3Array> ns(new osg::Vec3Array);
     ns->push_back(osg::Matrix::transform3x3(osg::Vec3(0.0f,0.0f,1.0f),matrix));
-
-#if OSG_VERSION_LESS_THAN(3,2,0)
-    bar->setNormalArray(ns.get());
-    bar->setNormalBinding(osg::Geometry::BIND_OVERALL);
-#else
     bar->setNormalArray(ns.get(), osg::Array::BIND_OVERALL);
-#endif
-    
+
     // The Quad strip that represents the bar
     bar->addPrimitiveSet(new osg::DrawArrays(GL_QUADS,0,vs->size()));
+    bar->getOrCreateStateSet()->setAttributeAndModes( new osg::PolygonOffset(1,1),
+                            osg::StateAttribute::OVERRIDE|osg::StateAttribute::ON );
 
     addDrawable(bar.get());
+
+#define CHARACTER_OFFSET_FACTOR (0.5f)
 
     // 2. Then the text labels
     // =======================
@@ -215,7 +206,11 @@ void ScalarBar::createDrawables()
     std::vector<osgText::Text*> texts(_numLabels);      // We'll need to collect pointers to these for later
     float labelIncr = (_numLabels>0) ? (_stc->getMax()-_stc->getMin())/(_numLabels-1) : 0.0f;
     float labelxIncr = (_numLabels>0) ? (_width)/(_numLabels-1) : 0.0f;
-    float labely = arOffset + characterSize*0.3f;
+    const float labelStickStartY = _orientation==HORIZONTAL ? arOffset : 0;
+    const float labelY = labelStickStartY +
+        (_orientation==HORIZONTAL ?  characterSize : -characterSize) * CHARACTER_OFFSET_FACTOR;
+
+
     for(i=0; i<_numLabels; ++i)
     {
         osgText::Text* text = new osgText::Text;
@@ -225,20 +220,16 @@ void ScalarBar::createDrawables()
         text->setCharacterSize(characterSize);
         text->setText(_sp->printScalar(_stc->getMin()+(i*labelIncr)));
 
-	// I CHANGED HERE TOO, TO MAKE THE TEXT POSITIONS BETTER - RANOJAY
-        text->setPosition(osg::Vec3((i*labelxIncr), (_orientation==HORIZONTAL) ? labely + labely/2 : -labely/2, 0.0f)*matrix);
-        text->setAlignment(osgText::Text::CENTER_BASE_LINE);
-	// THIS IS ALSO NOT NEEDED TO FIT IN MY REQUIREMENTS - RANOJAY
-        //text->setAxisAlignment( (_orientation==HORIZONTAL) ? osgText::Text::XY_PLANE :  /*osgText::Text::XZ_PLANE*/ osgText::Text::XY_PLANE );
-	text->setAlignment(osgText::Text::LEFT_BASE_LINE);
+        text->setPosition(osg::Vec3((i*labelxIncr), labelY, 0.0f)*matrix);
+        text->setAlignment( (_orientation==HORIZONTAL) ? osgText::Text::CENTER_BASE_LINE : osgText::Text::LEFT_CENTER);
+
         addDrawable(text);
 
         texts[i] = text;
     }
 
-
-    // 3. And finally the title
-    // ========================
+    // 3. The title
+    // ============
 
     if(_title != "")
     {
@@ -249,70 +240,58 @@ void ScalarBar::createDrawables()
         text->setCharacterSize(characterSize);
         text->setText(_title);
 
-        float titleY = (_numLabels>0) ? labely + characterSize : labely;
+        osg::Vec3 titlePos;
+        if ( _orientation==HORIZONTAL )
+        {
+            const float titleY = (_numLabels>0) ? labelY + characterSize : labelY;
+            titlePos = osg::Vec3((_width/2.0f), titleY, 0.0f);
+        }
+        else
+        {
+            titlePos = osg::Vec3( _width, arOffset/2, 0 );
+        }
 
         // Position the title at the middle of the bar above any labels.
-        text->setPosition(osg::Vec3((_width/2.0f), titleY, 0.0f)*matrix);
-        text->setAlignment(osgText::Text::CENTER_BASE_LINE);
-        text->setAxisAlignment( (_orientation==HORIZONTAL) ? osgText::Text::XY_PLANE :  osgText::Text::XZ_PLANE );
+        text->setPosition(titlePos*matrix);
+        text->setAlignment(
+            _orientation==HORIZONTAL ? osgText::Text::CENTER_BASE_LINE : osgText::Text::CENTER_BOTTOM);
 
         addDrawable(text);
     }
 
+    // 4. The rectangular border and sticks
+    // ====================================
 
-    // I ADDED THE REST OF THE CODE BELOW TO DRAW THE BOX AND THE TICKS - RANOJAY
+    osg::ref_ptr<osg::Vec3Array> annotVertices = new osg::Vec3Array;
 
-    // 4. The rectangular border
-    // ==========================
+    //Border
+    annotVertices->push_back( osg::Vec3(0.0f,0.0f,0.0f) * matrix  );
+    annotVertices->push_back( osg::Vec3(0.0f,arOffset,0.0f) * matrix  );
 
-    osg::ref_ptr<osg::Vec3Array> rectvertices = new osg::Vec3Array;
-   
-    rectvertices->push_back( osg::Vec3(0.0f,0.0f,0.0f) * matrix  );
-    rectvertices->push_back( osg::Vec3(0.0f,arOffset,0.0f) * matrix  );
-    rectvertices->push_back( osg::Vec3(_width,arOffset,0.0f) * matrix  );
-    rectvertices->push_back( osg::Vec3(_width,0.0f,0.0f) * matrix  );
+    annotVertices->push_back( osg::Vec3(0.0f,arOffset,0.0f) * matrix  );
+    annotVertices->push_back( osg::Vec3(_width,arOffset,0.0f) * matrix  );
 
-    osg::ref_ptr<osg::Geometry> rectangle = new osg::Geometry();
-    rectangle->addPrimitiveSet( new osg::DrawArrays(GL_LINE_LOOP,0,4) );
-    rectangle->setVertexArray( rectvertices );
-    osg::ref_ptr<osg::Vec4Array> rectcolor = new osg::Vec4Array;
-    rectcolor->push_back( _textProperties._color );
-        
-#if OSG_VERSION_LESS_THAN(3,2,0)
-    rectangle->setColorArray( rectcolor.get() );
-    rectangle->setColorBinding(osg::Geometry::BIND_OVERALL );
-#else
-    rectangle->setColorArray( rectcolor.get(), osg::Array::BIND_OVERALL );
-#endif
+    annotVertices->push_back( osg::Vec3(_width,arOffset,0.0f) * matrix  );
+    annotVertices->push_back( osg::Vec3(_width,0.0f,0.0f) * matrix  );
 
-    setDrawable( 0, rectangle.get() ); //swap the drawables to avoid overlapping.
-    addDrawable( bar );
+    annotVertices->push_back( osg::Vec3(_width,0.0f,0.0f) * matrix  );
+    annotVertices->push_back( osg::Vec3(0.0f,0.0f,0.0f) * matrix  );
 
-
-    // 5. The sticks
-    // ========================
-
-    osg::ref_ptr<osg::Vec3Array> stickvertices = new osg::Vec3Array;
-    osg::ref_ptr<osg::Vec4Array> stickcolor = new osg::Vec4Array;
-    stickcolor->push_back( _textProperties._color );
+    //Sticks
     for(i=0; i<_numLabels; ++i)
     {
-	osg::Vec3 p1(osg::Vec3((i*labelxIncr), 0.0f , 0.0f)*matrix);
-	osg::Vec3 p2(osg::Vec3((i*labelxIncr), (_orientation==HORIZONTAL) ? labely + labely/2 : -labely/2, 0.0f)*matrix);
-	stickvertices->push_back( p1 );
-	stickvertices->push_back( p2 );
+        const osg::Vec3 p1(osg::Vec3((i*labelxIncr), labelStickStartY, 0.0f)*matrix);
+        const osg::Vec3 p2(osg::Vec3((i*labelxIncr), labelY, 0.0f)*matrix);
+        annotVertices->push_back( p1 );
+        annotVertices->push_back( p2 );
     }
 
-    osg::ref_ptr<osg::Geometry> sticks = new osg::Geometry;
-    sticks->setVertexArray( stickvertices );
-        
-#if OSG_VERSION_LESS_THAN(3,2,0)
-    sticks->setColorArray( stickcolor.get() );
-    sticks->setColorBinding( osg::Geometry::BIND_OVERALL );
-#else
-    sticks->setColorArray( stickcolor.get(), osg::Array::BIND_OVERALL );
-#endif
+    osg::ref_ptr<osg::Geometry> annotationGeom = new osg::Geometry();
+    annotationGeom->addPrimitiveSet( new osg::DrawArrays(GL_LINES,0,annotVertices->size()) );
+    annotationGeom->setVertexArray( annotVertices.get() );
+    osg::ref_ptr<osg::Material> annotMaterial = new osg::Material;
+    annotMaterial->setDiffuse( osg::Material::FRONT, _textProperties._color );
+    annotationGeom->getOrCreateStateSet()->setAttribute( annotMaterial.get() );
 
-    sticks->addPrimitiveSet( new osg::DrawArrays(GL_LINES,0,stickvertices->size()) );
-    addDrawable( sticks );
+    addDrawable( annotationGeom.get() );
 }
