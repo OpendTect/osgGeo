@@ -68,8 +68,12 @@ void MarkerSet::traverse( osg::NodeVisitor& nv )
 	{
 	    _prevEyePoint = eyePoint;
 	    _waitForAutoTransformUpdate = false;
-	    setCullingActive(true);
 	    dirtyBound();
+	    if ( !_useScreenSize || _nonShadingSwitch->getNumChildren()!=1 )
+	    {
+		setCullingActive(true);
+		_nonShadingSwitch->setCullingActive(true);
+	    }
 	}
     }
     else
@@ -146,8 +150,12 @@ bool MarkerSet::updateShapes()
 
     // In case of autoscale to screen, new AutoTransforms cannot compute
     // their bounding spheres till after their first cull traversal. 
-    _waitForAutoTransformUpdate = true;
-    setCullingActive(false);
+    if ( _useScreenSize )
+    {
+	_waitForAutoTransformUpdate = true;
+	setCullingActive(false);
+	_nonShadingSwitch->setCullingActive(false);
+    }
     
     _nonShadingSwitch->setValueList(valuelist);
 
