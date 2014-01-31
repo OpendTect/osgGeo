@@ -260,7 +260,8 @@ void TexturePlaneNode::traverse( osg::NodeVisitor& nv )
 	if ( getStateSet() )
 	    cv->popStateSet();
 
-	cv->updateCalculatedNearFar(*cv->getModelViewMatrix(), _boundingGeometry->getBound() );
+	if ( _boundingGeometry->getBound().valid() )
+	    cv->updateCalculatedNearFar(*cv->getModelViewMatrix(), _boundingGeometry->getBound() );
     }
     else
     {
