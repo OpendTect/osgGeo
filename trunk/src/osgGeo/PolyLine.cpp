@@ -97,7 +97,8 @@ void PolyLineNode::traverse( osg::NodeVisitor& nv )
 	if ( getStateSet() )
 	    cv->popStateSet();
 
-	cv->updateCalculatedNearFar(*cv->getModelViewMatrix(), _geometry->getBound() );
+	if ( _geometry->getBound().valid() )
+	    cv->updateCalculatedNearFar(*cv->getModelViewMatrix(), _geometry->getBound() );
     }
     else
     {
