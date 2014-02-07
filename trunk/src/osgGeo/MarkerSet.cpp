@@ -33,7 +33,7 @@ MarkerSet::MarkerSet()
     , _vertexArr(new osg::Vec3Array)
     , _nonShadingSwitch(new osg::Switch)
     , _minScale(0.0f)
-    , _maxScale(25.5f)
+    , _maxScale(FLT_MAX)
     , _normalArr(new osg::Vec3Array)
     , _applySingleColor( false )
     , _forceRedraw( false )
@@ -253,17 +253,30 @@ const float MarkerSet::getMarkerHeightRatio()
 }
 
 
+void MarkerSet::setMarkerRotation(const osg::Quat& quat)
+{
+    _markerShape.setRotation( quat );
+    forceRedraw(true);
+}
+
+
+const osg::Quat& MarkerSet::getMarkerRotation() const
+{
+    return _markerShape.getRotation();
+}
+
+
 void MarkerSet::setDetail(float ratio)
 {
     _markerShape.setDetail(ratio);
     forceRedraw(true);
 }
 
+
 const float MarkerSet::getDetail()
 {
     return _markerShape.getDetail();
 }
-
 
 
 void MarkerSet::setMinScale(float minScale)
