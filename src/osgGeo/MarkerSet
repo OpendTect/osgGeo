@@ -31,10 +31,7 @@ $Id$
 
 namespace osg 
 { 
-  class Geometry; 
-  class Geode; 
-  class Shape;
-  class Array;
+    class Geometry; class Geode; class Shape; class Array; class Quat;
 }
 
 namespace osgGeo
@@ -74,6 +71,9 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 
 	void				setMarkerHeightRatio(float);
 	const float			getMarkerHeightRatio(); 
+	
+	void				setMarkerRotation(const osg::Quat&);
+	const osg::Quat&		getMarkerRotation() const;
 
 	void				setMinScale(float minscale);
 	float				getMinScale() const {return _minScale;}

@@ -25,6 +25,7 @@ $Id: MarkerShape 242 2013-04-26 11:26:59Z ding.zheng@dgbes.com $
 
 #include <osg/Geometry>
 #include <osg/ShapeDrawable>
+#include <osg/Quat>
 
 namespace osg { class TessellationHints; }
 
@@ -58,6 +59,9 @@ class OSGGEO_EXPORT MarkerShape
 	void			setCenter(const osg::Vec3f);
 	const osg::Vec3f	getCenter() { return _center; }
 
+	void			setRotation(const osg::Quat&);
+	const osg::Quat&	getRotation() const { return _rotation; }
+
 	osg::ref_ptr<osg::Drawable>		createShape();
 
     protected:
@@ -69,6 +73,7 @@ class OSGGEO_EXPORT MarkerShape
 	float			_size;
 	float			_heightRatio;
 	ShapeType   		_shapeType;
+	osg::Quat		_rotation;
 
     private:
 

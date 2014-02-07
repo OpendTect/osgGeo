@@ -25,7 +25,7 @@ using namespace osgGeo;
 
 MarkerShape::MarkerShape()
     : _hints(new osg::TessellationHints)
-    , _size(11)
+    , _size(1.0f)
     , _heightRatio(1.0f)
     , _shapeType(Box)
 {
@@ -81,32 +81,54 @@ void MarkerShape::setCenter(const osg::Vec3 center)
 }
 
 
+void MarkerShape::setRotation(const osg::Quat& quat)
+{
+    _rotation = quat;
+}
+
+
 osg::ref_ptr<osg::Drawable> MarkerShape::createShape()
 {
     osg::ref_ptr<osg::Drawable> drwB(0);
-    osg::ref_ptr<osg::ShapeDrawable> shapeDrwB (0);
+    osg::ref_ptr<osg::ShapeDrawable> shapeDrwB(0);
+
+    const float radius = 0.5 * _size;
+    const float height = _heightRatio * _size;
 
     switch (_shapeType)
     {
     case Box:
-	shapeDrwB = new osg::ShapeDrawable(new osg::Box(_center,_size,
-		    _size,_heightRatio*_size),_hints);
-	break;
+	{
+	    osg::Box* box = new osg::Box( _center, _size, _size, height );
+	    box->setRotation( _rotation );
+	    shapeDrwB = new osg::ShapeDrawable( box, _hints );
+	    break;
+	}
     case Cone:
-	shapeDrwB = new osg::ShapeDrawable(new osg::Cone(_center,_size,
-		    _heightRatio*_size),_hints);
-	break;
+	{
+	    osg::Cone* cone = new osg::Cone( _center, radius, height );
+	    cone->setRotation( _rotation );
+	    shapeDrwB = new osg::ShapeDrawable( cone,  _hints );
+	    break;
+	}
     case Sphere:
-	shapeDrwB = new osg::ShapeDrawable(new osg::Sphere(_center,_size),
-		    _hints);
-	break;
+	{
+	    osg::Sphere* sphere = new osg::Sphere( _center, radius );
+	    shapeDrwB = new osg::ShapeDrawable( sphere, _hints );
+	    break;
+	}
     case Cylinder:
-	shapeDrwB = new osg::ShapeDrawable(new osg::Cylinder(_center,_size,
-		    _heightRatio*_size),_hints);
-	break;
+	{
+	    osg::Cylinder* cyl = new osg::Cylinder( _center, radius, height );
+	    cyl->setRotation( _rotation );
+	    shapeDrwB = new osg::ShapeDrawable( cyl, _hints );
+	    break;
+	}
     case Cross:
-	drwB = createCrossDrawable();
-	break;
+	{
+	    drwB = createCrossDrawable();
+	    break;
+	}
     default:
 	return 0;
     }
@@ -126,13 +148,13 @@ osg::ref_ptr<osg::Drawable>  MarkerShape::createCrossDrawable()
     osg::ref_ptr<osg::Geometry> crossGeometry = new osg::Geometry;
     osg::ref_ptr<osg::Vec3Array> vertices = new osg::Vec3Array(6);
 
-    const float scale = _size/0.5;
-    const float x1 = _center[0] - scale;
-    const float x2 = _center[0] + scale;
-    const float y1 = _center[1] - scale;
-    const float y2 = _center[1] + scale;
-    const float z1 = _center[2] - scale;
-    const float z2 = _center[2] + scale;
+    const float radius = 0.5 * _size;
+    const float x1 = _center[0] - radius;
+    const float x2 = _center[0] + radius;
+    const float y1 = _center[1] - radius;
+    const float y2 = _center[1] + radius;
+    const float z1 = _center[2] - radius;
+    const float z2 = _center[2] + radius;
 
     (*vertices)[0] = osg::Vec3(0.0f,0.0f,z1);
     (*vertices)[1] = osg::Vec3(0.0f,0.0f,z2);
@@ -159,5 +181,4 @@ osg::ref_ptr<osg::Drawable>  MarkerShape::createCrossDrawable()
     crossGeometry->getOrCreateStateSet()->setAttributeAndModes(lineWidth);
 
     return crossGeometry;
-
 }
