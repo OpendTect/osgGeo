@@ -186,12 +186,12 @@ TexturePanelStripNode::TexturePanelStripNode( const TexturePanelStripNode& node,
 	else
 	    setTexture( node._texture );
     }
-    
-    setPath( *node._pathCoords );
-    setPath2TextureMapping( *node._pathTexOffsets );
 
     _boundingGeometry = new BoundingGeometry( *this );
     _boundingGeometry->update();
+    
+    setPath( *node._pathCoords );
+    setPath2TextureMapping( *node._pathTexOffsets );
 
     _textureCallbackHandler = new TextureCallbackHandler( *this );
 }
