@@ -264,7 +264,7 @@ osg::Matrix TrackballManipulator::getInverseMatrix(const osg::Vec3d& center,
 }
 
 
-bool TrackballManipulator::handleMultiTouch(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa)
+bool TrackballManipulator::handleMultiTouch(const osgGA::GUIEventAdapter&, osgGA::GUIActionAdapter&)
 {
     return false;
 }
