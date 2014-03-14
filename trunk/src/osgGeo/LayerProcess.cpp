@@ -138,6 +138,8 @@ LayerProcess::LayerProcess( LayeredTexture& layTex )
     , _colSeqPtr( 0 )
     , _newUndefColor( 1.0f, 1.0f, 1.0f, 1.0f )
     , _opacity( 1.0f )
+    , _colSeqTexSamplingStart( 0.0f )
+    , _colSeqTexSamplingStep( 0.0f )
 {}
 
 
@@ -145,9 +147,10 @@ const unsigned char* LayerProcess::getColorSequencePtr() const
 { return _colSeqPtr; }
 
 
-void LayerProcess::setColorSequenceTextureCoord( float coord )
+void LayerProcess::setColorSequenceTextureSampling( float start, float step )
 {
-    _colSeqTexCoord = coord;
+    _colSeqTexSamplingStart = start;
+    _colSeqTexSamplingStep = step;
     _layTex.updateSetupStateSet();
 }
 
@@ -529,12 +532,16 @@ protected:
 
 ColTabLayerProcess::ColTabLayerProcess( LayeredTexture& layTex )
     : LayerProcess( layTex )
-    , _id( -1 )
-    , _textureChannel( 0 )
     , _colorSequence( 0 )
 {
     _colSeqCallbackHandler = new ColSeqCallbackHandler( layTex );
     _colSeqCallbackHandler->ref();
+
+    for ( int idx=0; idx<3; idx++ )
+    {
+	_id[idx] = -1;
+	_textureChannel[idx] = 0;
+    }
 }
 
 
@@ -545,20 +552,30 @@ ColTabLayerProcess::~ColTabLayerProcess()
 }
 
 
-void ColTabLayerProcess::setDataLayerID( int id, int channel )
+void ColTabLayerProcess::setDataLayerID( int idx, int id, int channel )
 {
-    _id = id;
-    _textureChannel = channel>=0 && channel<4 ? channel : 0;
-    _layTex.updateSetupStateSet();
+    if ( idx>=0 && idx<3 )
+    {
+	_id[idx] = id;
+	_textureChannel[idx] = channel>=0 && channel<4 ? channel : 0;
+	_layTex.updateSetupStateSet();
+    }
 }
 
 
 int ColTabLayerProcess::getDataLayerID( int idx ) const
-{ return idx ? -1 : _id; } 
+{
+    if ( idx==2 && _id[1]>=0 && _id[0]>=0 )
+	return _id[2];
+    if ( idx==1 && _id[0]>=0 )
+	return _id[1];
+
+    return idx==0 ? _id[0] : -1;
+}
 
 
-int ColTabLayerProcess::getDataLayerTextureChannel() const
-{ return _textureChannel; }
+int ColTabLayerProcess::getDataLayerTextureChannel( int idx ) const
+{ return idx>=0 && idx<3 ? _textureChannel[idx] : -1; }
 
 
 void ColTabLayerProcess::checkForModifiedColorSequence()
@@ -600,17 +617,59 @@ const ColorSequence* ColTabLayerProcess::getColorSequence() const
 { return _colorSequence; }
 
 
+int ColTabLayerProcess::getColorSequenceUndefIdx() const
+{
+    const osg::Vec4f udfColor = _layTex.getDataLayerImageUndefColor( _id[0] );
+    const int udfIdx = round( udfColor[_textureChannel[0]]*255.0 );
+    return udfIdx>=0 && udfIdx<=255 ? udfIdx : -1;
+}
+
+
 void ColTabLayerProcess::getShaderCode( std::string& code, int stage ) const
 {
-    if ( !_layTex.isDataLayerOK(_id) )
-	return;
-
     int nrUdf = 0;
-    getHeaderCode( code, nrUdf, _id, 0, _textureChannel );
-    
+
+    int nrChannels = 0;
+    for ( int idx=0; idx<3; idx++ )
+    {
+	if ( !_layTex.isDataLayerOK(_id[idx]) )
+	    break;
+
+	getHeaderCode( code, nrUdf, _id[idx], idx, _textureChannel[idx] );
+	code += "\n";
+	nrChannels++;
+    }
+
+    if ( !nrChannels ) return;
+
     char line[100];
-    snprintf( line, 100, "\n    texcrd = vec2( 0.996093*col[0]+0.001953, %.6f );\n", _colSeqTexCoord );
+    if ( nrChannels>1 )
+    {
+	const int unit = _layTex.getDataLayerTextureUnit( _id[0] );
+	snprintf( line, 100, "    texcrd *= texsize%d;\n", unit );
+	code += line;
+
+	code += "    float mip = log2( max(1.0,max(length(dFdx(texcrd)),length(dFdy(texcrd)))) );\n";
+
+	code += "    float stddev = sqrt( max(0.0, col[1]";
+	code += nrChannels>2 ? "+col[2]/255.0" : "";
+	code += "-col[0]*col[0]) );\n";
+
+	code += "    stddev *= 255.0 * clamp( mip, 0.0, 1.0 );\n";
+	/* Upper bound of clamp interval tunes transition smoothness
+	   between magnification and minification filtered areas */
+	code += "    float scale = stddev>0.5 ? log2(stddev)+2.0 : stddev*2.0;\n";
+    }
+
+    code += "\n    texcrd = vec2( 0.996093*col[0]+0.001953, ";
+    if ( nrChannels>1 )
+    {
+	 snprintf( line, 100, "%.6f*scale+", _colSeqTexSamplingStep );
+	 code += line;
+    }
+    snprintf( line, 100, "%.6f );\n", _colSeqTexSamplingStart );
     code += line;
+
     code += "    col = texture2D( texture0, texcrd );\n"
 	    "\n";
 
@@ -620,7 +679,7 @@ void ColTabLayerProcess::getShaderCode( std::string& code, int stage ) const
 
 TransparencyType ColTabLayerProcess::getTransparencyType( bool imageOnly ) const
 {
-    if ( !_colorSequence || !_layTex.isDataLayerOK(_id) )
+    if ( !_colorSequence || !_layTex.isDataLayerOK(_id[0]) )
 	return FullyTransparent;
 
     TransparencyType tt = _colorSequence->getTransparencyType();
@@ -629,7 +688,7 @@ TransparencyType ColTabLayerProcess::getTransparencyType( bool imageOnly ) const
     if ( imageOnly )
 	return tt;
 
-    const int udfId = _layTex.getDataLayerUndefLayerID(_id);
+    const int udfId = _layTex.getDataLayerUndefLayerID(_id[0]);
     if ( _layTex.isDataLayerOK(udfId) )
 	tt = addOpacity( tt, _newUndefColor[3] );
 
@@ -639,13 +698,13 @@ TransparencyType ColTabLayerProcess::getTransparencyType( bool imageOnly ) const
 
 void ColTabLayerProcess::doProcess( osg::Vec4f& fragColor, float stackUdf, const osg::Vec2f& globalCoord )
 {
-    if ( !_colorSequence || !_layTex.isDataLayerOK(_id) )
+    if ( !_colorSequence || !_layTex.isDataLayerOK(_id[0]) )
 	return;
 
     osg::Vec4f col;
     float udf = 0.0f;
 
-    processHeader( col, udf, stackUdf, globalCoord, _id, 0, _textureChannel );
+    processHeader( col, udf, stackUdf, globalCoord, _id[0], 0, _textureChannel[0] );
 
     const int val = (int) floor( 255.0f*col[0] + 0.5 );
     const int offset = val<=0 ? 0 : (val>=255 ? 1020 : 4*val);
@@ -667,6 +726,7 @@ RGBALayerProcess::RGBALayerProcess( LayeredTexture& layTex )
     for ( int idx=0; idx<4; idx++ )
     {
 	_id[idx] = -1;
+	_textureChannel[idx] = 0;
 	_isOn[idx] = true;
     }
 

@@ -39,6 +39,11 @@ $Id$
      #define USE_IMAGE_STRIDE
 #endif
 
+#if defined _MSC_VER && __cplusplus < 201103L
+# define snprintf( a, n, ... ) _snprintf_s( a, n, _TRUNCATE, __VA_ARGS__ )
+#endif
+
+
 namespace osgGeo
 {
 
@@ -194,6 +199,57 @@ static TransparencyType getImageTransparencyType( const osg::Image* image, int t
 }
 
 
+static int encodeBaseChannelPower( osg::Image& image, int nrPowerChannels )
+{
+    if ( nrPowerChannels<1 )
+	return 0;
+
+    const int pixelSizeInBytes  = image.getPixelSizeInBits()/8;
+
+    int maxPowerChannels = pixelSizeInBytes>2 ? 2 : pixelSizeInBytes-1;
+    if ( image.getDataType()!=GL_UNSIGNED_BYTE && image.getDataType()!=GL_BYTE )
+	maxPowerChannels = 0;
+
+    if ( nrPowerChannels>maxPowerChannels )
+	nrPowerChannels = maxPowerChannels;
+
+    if ( nrPowerChannels<1 )
+    {
+	std::cerr << "Unsupported image format to encode base channel power" << std::endl;
+	return 0;
+    }
+
+    unsigned char lut1[256];
+    unsigned char lut2[256];
+
+    for ( int idx=0; idx<256; idx++ )
+    {
+	const float val = idx*idx/255.0f;
+	if ( nrPowerChannels==2 )
+	{
+	    lut1[idx] = (unsigned char) floor(val);
+	    lut2[idx] = (unsigned char) round( (val-lut1[idx])*255.0f );
+	}
+	else
+	    lut1[idx] = (unsigned char) round(val);
+    }
+
+    unsigned char* ptr = image.data();
+    const unsigned char* endPtr = ptr + image.getImageSizeInBytes();
+
+    while ( ptr < endPtr )
+    {
+	*(ptr+1) = lut1[*ptr];
+	if ( nrPowerChannels==2 )
+	    *(ptr+2) = lut2[*ptr];
+
+	ptr += pixelSizeInBytes;
+    }
+
+    return nrPowerChannels;
+}
+
+
 //============================================================================
 
 
@@ -207,6 +263,7 @@ struct LayeredTextureData : public osg::Referenced
 			    , _imageSource( 0 )
 			    , _imageScale( 1.0f, 1.0f )
 			    , _freezeDisplay( false )
+			    , _nrPowerChannels( 0 )
 			    , _textureUnit( -1 )
 			    , _filterType(Linear)
 			    , _borderColor( 1.0f, 1.0f, 1.0f, 1.0f )
@@ -234,14 +291,15 @@ struct LayeredTextureData : public osg::Referenced
     const int					_id;
     osg::Vec2f					_origin;
     osg::Vec2f					_scale;
-    osg::ref_ptr<const osg::Image>		_image;
-    osg::ref_ptr<const osg::Image>		_imageSource;
+    osg::ref_ptr<osg::Image>			_image;
+    osg::ref_ptr<osg::Image>			_imageSource;
     Vec2i					_imageSourceSize;
     const unsigned char*			_imageSourceData;
     osg::Vec2f					_imageScale;
     int						_imageModifiedCount;
     bool					_imageModifiedFlag;
     bool					_freezeDisplay;
+    bool					_nrPowerChannels;
     int						_textureUnit;
     FilterType					_filterType;
 
@@ -724,7 +782,7 @@ void LayeredTexture::setDataLayerScale( int id, const osg::Vec2f& scale )
 }
 
 
-void LayeredTexture::setDataLayerImage( int id, const osg::Image* image, bool freezewhile0 )
+void LayeredTexture::setDataLayerImage( int id, osg::Image* image, bool freezewhile0, int nrPowerChannels )
 {
     const int idx = getDataLayerIndex( id );
     if ( idx==-1 )
@@ -744,6 +802,8 @@ void LayeredTexture::setDataLayerImage( int id, const osg::Image* image, bool fr
 	    std::cerr << "Data layer image cannot be set before allocation" << std::endl;
 	    return;
 	}
+
+	layer._nrPowerChannels = encodeBaseChannelPower(*image,nrPowerChannels);
 
 	Vec2i newImageSize( image->s(), image->t() );
 
@@ -797,6 +857,7 @@ void LayeredTexture::setDataLayerImage( int id, const osg::Image* image, bool fr
     {
 	layer._image = 0; 
 	layer._imageSource = 0;
+	layer._nrPowerChannels = 0;
 	layer.adaptColors();
 	setUpdateVar( _tilingInfo->_needsUpdate, true );
     }
@@ -1636,6 +1697,8 @@ osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, co
 	texture->setWrap( osg::Texture::WRAP_S, xWrapMode );
 	texture->setWrap( osg::Texture::WRAP_T, yWrapMode );
 
+	texture->setMaxAnisotropy( 8.0 );	// tuneable
+
 	osg::Texture::FilterMode filterMode = layer->_filterType==Nearest ? osg::Texture::NEAREST : osg::Texture::LINEAR;
 	texture->setFilter( osg::Texture::MAG_FILTER, filterMode );
 
@@ -1645,6 +1708,10 @@ osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, co
 	texture->setBorderColor( layer->_borderColor );
 
 	stateset->setTextureAttributeAndModes( layer->_textureUnit, texture.get() );
+	char texSizeName[20];
+	snprintf( texSizeName, 20, "texsize%d", layer->_textureUnit );
+	const osg::Vec2 texSize( tileSize.x(), tileSize.y() );
+	stateset->addUniform( new osg::Uniform(texSizeName,texSize) );
     }
 
     return stateset.release();
@@ -1706,7 +1773,7 @@ void LayeredTexture::checkForModifiedImages()
 	    const int modifiedCount = (*it)->_imageSource->getModifiedCount();
 	    if ( modifiedCount!=(*it)->_imageModifiedCount )
 	    {
-		setDataLayerImage( (*it)->_id, (*it)->_imageSource );
+		setDataLayerImage( (*it)->_id, (*it)->_imageSource, false, (*it)->_nrPowerChannels );
 		(*it)->_imageModifiedFlag = true;
 		setUpdateVar( _updateSetupStateSet, true );
 	    }
@@ -1802,7 +1869,7 @@ void LayeredTexture::buildShaders()
     char samplerName[20];
     for ( it=activeUnits.begin(); it!=activeUnits.end(); it++ )
     {
-	sprintf( samplerName, "texture%d", *it );
+	snprintf( samplerName, 20, "texture%d", *it );
 	_setupStateSet->addUniform( new osg::Uniform(samplerName, *it) );
     }
 
@@ -1936,25 +2003,73 @@ int LayeredTexture::getProcessInfo( std::vector<int>& layerIDs, int& nrUsedLayer
 
 void LayeredTexture::createColSeqTexture()
 {
-    osg::ref_ptr<osg::Image> colSeqImage = new osg::Image();
     const int nrProc = nrProcesses();
-    const int texSize = powerOf2Ceil( nrProc );
-    colSeqImage->allocateImage( 256, texSize, 1, GL_RGBA, GL_UNSIGNED_BYTE );
+    const int nrScales = 10;	// stddev = 0, 0.5, 1, 2, 4, 8, 16, 32, 64, 128
+    const int nrRows = powerOf2Ceil( nrProc*nrScales );
 
+    osg::ref_ptr<osg::Image> colSeqImage = new osg::Image();
+    colSeqImage->allocateImage( 256, nrRows, 1, GL_RGBA, GL_UNSIGNED_BYTE );
     const int rowSize = colSeqImage->getRowSizeInBytes();
-    std::vector<LayerProcess*>::const_iterator it = _processes.begin();
-    for ( int idx=0; _isOn && idx<nrProc; idx++, it++ )
-    {
-	const unsigned char* ptr = (*it)->getColorSequencePtr();
-	if ( ptr )
-	    memcpy( colSeqImage->data(0,idx), ptr, rowSize );
 
-	(*it)->setColorSequenceTextureCoord( (idx+0.5)/texSize );
+    std::vector<LayerProcess*>::const_iterator it = _processes.begin();
+    for ( int proc=0; _isOn && proc<nrProc; proc++, it++ )
+    {
+	const int row = proc*nrScales;
+	(*it)->setColorSequenceTextureSampling( (row+0.5)/nrRows, 1.0/nrRows );
+
+	const unsigned char* colSeqPtr = (*it)->getColorSequencePtr();
+	if ( !colSeqPtr )
+	    continue;
+
+	unsigned char* ptr = colSeqImage->data( 0, row );
+	memcpy( ptr, colSeqPtr, rowSize );
+	ptr += rowSize;
+
+	// Exclude undef color from smoothing when at far end of color sequence
+	const int udfIdx = (*it)->getColorSequenceUndefIdx();
+	const int start = udfIdx==0 ? 1 : 0;
+	const int stop = udfIdx==255 ? 254 : 255;
+
+	// Use uniform smoothing kernel to create color scale space recursively
+	int stepout = 0;
+	for ( int scale=1; scale<nrScales; scale++ )
+	{
+	    stepout = scale>2 ? stepout*2 : 1;
+
+	    for ( int pivot=0; pivot<256; pivot++ )
+	    {
+		const int idx1 = pivot-stepout<start ? start : pivot-stepout;
+		const int offset1 = 4*(idx1-pivot) - rowSize;
+
+		const int idx2 = pivot+stepout>stop ? stop : pivot+stepout;
+		const int offset2 = 4*(idx2-pivot) - rowSize;
+		
+		for ( int channel=0; channel<4; channel++ )
+		{
+		    int val = *(ptr-rowSize);
+
+		    if ( pivot>=start && pivot<=stop )
+		    {
+			const int sum = *(ptr+offset1) + *(ptr+offset2);
+			val = scale>1 ? sum : val+sum/2;
+
+			// Alternate truncation to preserve signal strength
+			val = scale%2 ? (val+1)/2 : val/2;
+		    }
+
+		    (*ptr++) = (unsigned char) val;
+		}
+	    }
+	}
     }
+
     osg::ref_ptr<osg::Texture2D> texture = new osg::Texture2D( colSeqImage );
-    texture->setFilter( osg::Texture::MIN_FILTER, osg::Texture::NEAREST );
-    texture->setFilter( osg::Texture::MAG_FILTER, osg::Texture::NEAREST );
+    texture->setFilter( osg::Texture::MIN_FILTER, osg::Texture::LINEAR );
+    texture->setFilter( osg::Texture::MAG_FILTER, osg::Texture::LINEAR );
     _setupStateSet->setTextureAttributeAndModes( 0, texture.get() ); 
+
+    const osg::Vec2 texSize( 256, nrRows );
+    _setupStateSet->addUniform( new osg::Uniform("texsize0",texSize) );
 }
 
 
@@ -2041,7 +2156,7 @@ void LayeredTexture::getVertexShaderCode( std::string& code, const std::vector<i
     std::vector<int>::const_iterator it = activeUnits.begin();
     for ( ; it!=activeUnits.end(); it++ )
     {
-	sprintf( line, "    gl_TexCoord[%d] = gl_TextureMatrix[%d] * gl_MultiTexCoord%d;\n", *it, *it, *it );
+	snprintf( line, 100, "    gl_TexCoord[%d] = gl_TextureMatrix[%d] * gl_MultiTexCoord%d;\n", *it, *it, *it );
 	code += line;
     }
 
@@ -2058,7 +2173,9 @@ void LayeredTexture::getFragmentShaderCode( std::string& code, const std::vector
     std::vector<int>::const_iterator iit = activeUnits.begin();
     for ( ; iit!=activeUnits.end(); iit++ )
     {
-	sprintf( line, "uniform sampler2D texture%d;\n", *iit );
+	snprintf( line, 100, "uniform sampler2D texture%d;\n", *iit );
+	code += line;
+	snprintf( line, 100, "uniform vec2 texsize%d;\n", *iit );
 	code += line;
     }
 
@@ -2097,7 +2214,7 @@ void LayeredTexture::getFragmentShaderCode( std::string& code, const std::vector
 
     if ( !stage )
     {
-	sprintf( line, "    gl_FragColor = vec4(1.0,1.0,1.0,%.6f);\n", minOpacity );
+	snprintf( line, 100, "    gl_FragColor = vec4(1.0,1.0,1.0,%.6f);\n", minOpacity );
 	code += line;
     }
 
@@ -2112,16 +2229,16 @@ void LayeredTexture::getFragmentShaderCode( std::string& code, const std::vector
     if ( stackUdf )
     {
 	const int udfUnit = getDataLayerTextureUnit( _stackUndefLayerId );
-	sprintf( line, "    vec2 texcrd = gl_TexCoord[%d].st;\n", udfUnit );
+	snprintf( line, 100, "    vec2 texcrd = gl_TexCoord[%d].st;\n", udfUnit );
 	code += line;
-	sprintf( line, "    float udf = texture2D( texture%d, texcrd )[%d];\n", udfUnit, _stackUndefChannel );
+	snprintf( line, 100, "    float udf = texture2D( texture%d, texcrd )[%d];\n", udfUnit, _stackUndefChannel );
 	code += line;
 	code += "\n"
 		"    if ( udf < 1.0 )\n"
 		"        process( udf );\n"
 		"\n";
 
-	sprintf( line, "    vec4 udfcol = vec4(%.6f,%.6f,%.6f,%.6f);\n", _stackUndefColor[0], _stackUndefColor[1], _stackUndefColor[2], _stackUndefColor[3] );
+	snprintf( line, 100, "    vec4 udfcol = vec4(%.6f,%.6f,%.6f,%.6f);\n", _stackUndefColor[0], _stackUndefColor[1], _stackUndefColor[2], _stackUndefColor[3] );
 	code += line;
 
 	code += "\n"

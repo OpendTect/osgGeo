@@ -91,8 +91,9 @@ public:
 
     virtual void		checkForModifiedColorSequence()		{};
     const unsigned char*	getColorSequencePtr() const;
-    void			setColorSequenceTextureCoord(float);
-
+    virtual int			getColorSequenceUndefIdx() const { return -1; }
+    void			setColorSequenceTextureSampling(float start,
+								float step);
     void			setOpacity(float opacity);
     float			getOpacity() const;
 
@@ -107,7 +108,8 @@ public:
 protected:
     LayeredTexture&		_layTex;
     const unsigned char*	_colSeqPtr;
-    float			_colSeqTexCoord;
+    float			_colSeqTexSamplingStart;
+    float			_colSeqTexSamplingStep;
     osg::Vec4f			_newUndefColor;
     float			_opacity;
 
@@ -137,13 +139,23 @@ public:
 				ColTabLayerProcess(LayeredTexture&);
 				~ColTabLayerProcess();
 
-    void			setDataLayerID(int id, int channel=0);
+    void			setDataLayerID(int idx, int id, int channel=0);
+				/*! idx=0: color index
+				    idx=1: low-precision squared color index,
+				    idx=2: 255-times more precise addition
+					   to preceding squared color index. */
+
+				/*! Optional squared color index channels will
+				    improve mipmapped coltab mapping quality
+				    of the shader (c[0]^2 = c[1]+c[2]/255). */
+
     int				getDataLayerID(int idx=0) const;
-    int				getDataLayerTextureChannel() const;
+    int				getDataLayerTextureChannel(int idx) const;
 
     void			checkForModifiedColorSequence();
     void			setColorSequence(ColorSequence*);
     const ColorSequence*	getColorSequence() const;
+    int				getColorSequenceUndefIdx() const;
 
     bool			needsColorSequence() const    { return true; }
 
@@ -154,8 +166,8 @@ public:
     void			doProcess(osg::Vec4f& fragColor,float stackUdf,
 					  const osg::Vec2f& globalCoord);
 protected:
-    int				_id; 
-    int				_textureChannel;
+    int				_id[3]; 
+    int				_textureChannel[3];
     ColorSequence*		_colorSequence;
     int				_colSeqModifiedCount;
 
@@ -169,10 +181,10 @@ public:
 				RGBALayerProcess(LayeredTexture&);
 
     void			setDataLayerID(int idx, int id, int channel=0);
-				//int idx=0 red
-				//    idx=1 green
-				//    idx=2 blue
-				//    idx=3 alpha
+				/*! idx=0: red
+				    idx=1: green
+				    idx=2: blue
+				    idx=3: alpha */
     int				getDataLayerID(int idx) const;
     int				getDataLayerTextureChannel(int idx) const;
 
