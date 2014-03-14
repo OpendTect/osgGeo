@@ -620,7 +620,7 @@ const ColorSequence* ColTabLayerProcess::getColorSequence() const
 int ColTabLayerProcess::getColorSequenceUndefIdx() const
 {
     const osg::Vec4f udfColor = _layTex.getDataLayerImageUndefColor( _id[0] );
-    const int udfIdx = round( udfColor[_textureChannel[0]]*255.0 );
+    const int udfIdx = (int) floor( 0.5 + udfColor[_textureChannel[0]]*255.0 );
     return udfIdx>=0 && udfIdx<=255 ? udfIdx : -1;
 }
 

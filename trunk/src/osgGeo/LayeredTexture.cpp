@@ -227,11 +227,11 @@ static int encodeBaseChannelPower( osg::Image& image, int nrPowerChannels )
 	const float val = idx*idx/255.0f;
 	if ( nrPowerChannels==2 )
 	{
-	    lut1[idx] = (unsigned char) floor(val);
-	    lut2[idx] = (unsigned char) round( (val-lut1[idx])*255.0f );
+	    lut1[idx] = (unsigned char) floor( val );
+	    lut2[idx] = (unsigned char) floor( 0.5 + (val-lut1[idx])*255.0f );
 	}
 	else
-	    lut1[idx] = (unsigned char) round(val);
+	    lut1[idx] = (unsigned char) floor( 0.5 + val );
     }
 
     unsigned char* ptr = image.data();
