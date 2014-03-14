@@ -77,8 +77,9 @@ public:
     osg::Vec2f		textureEnvelopeSize() const;
     osg::Vec2f		imageEnvelopeSize() const;
 
-    void		setDataLayerImage(int id,const osg::Image*,
-					  bool freezewhile0=true);
+    void		setDataLayerImage(int id,osg::Image*,
+					  bool freezewhile0=true,
+					  int nrPowerChannels=0);
 			/*!Preferred image formats: GL_LUMINANCE, GL_ALPHA,
 			   GL_LUMINANCE_ALPHA, GL_RGB, GL_RGBA, GL_BGR, GL_BGRA
 			   Preferred data types: GL_UNSIGNED_BYTE, GL_BYTE.
