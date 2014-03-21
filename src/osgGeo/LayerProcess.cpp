@@ -649,16 +649,16 @@ void ColTabLayerProcess::getShaderCode( std::string& code, int stage ) const
 	snprintf( line, 100, "    texcrd *= texsize%d;\n", unit );
 	code += line;
 
-	code += "    float mip = log2( max(1.0,max(length(dFdx(texcrd)),length(dFdy(texcrd)))) );\n";
+	code += "    mip = log2( max(1.0, max(length(dFdx(texcrd)),length(dFdy(texcrd)))) );\n";
 
-	code += "    float stddev = sqrt( max(0.0, col[1]";
+	code += "    stddev = sqrt( max(0.0, col[1]";
 	code += nrChannels>2 ? "+col[2]/255.0" : "";
 	code += "-col[0]*col[0]) );\n";
 
 	code += "    stddev *= 255.0 * clamp( mip, 0.0, 1.0 );\n";
 	/* Upper bound of clamp interval tunes transition smoothness
 	   between magnification and minification filtered areas */
-	code += "    float scale = stddev>0.5 ? log2(stddev)+2.0 : stddev*2.0;\n";
+	code += "    scale = stddev>0.5 ? log2(stddev)+2.0 : stddev*2.0;\n";
     }
 
     code += "\n    texcrd = vec2( 0.996093*col[0]+0.001953, ";

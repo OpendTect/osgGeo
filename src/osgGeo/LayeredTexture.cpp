@@ -548,6 +548,7 @@ LayeredTexture::LayeredTexture()
     : _updateSetupStateSet( false )
     , _maxTextureCopySize( 32*32 )
     , _textureSizePolicy( PowerOf2 )
+    , _anisotropicPower( -1 )
     , _seamPower( 0, 0 )
     , _externalTexelSizeRatio( 1.0 )
     , _tilingInfo( new TilingInfo )
@@ -577,6 +578,7 @@ LayeredTexture::LayeredTexture( const LayeredTexture& lt,
     , _setupStateSet( 0 )
     , _maxTextureCopySize( lt._maxTextureCopySize )
     , _textureSizePolicy( lt._textureSizePolicy )
+    , _anisotropicPower( lt._anisotropicPower )
     , _seamPower( lt._seamPower )
     , _externalTexelSizeRatio( lt._externalTexelSizeRatio )
     , _tilingInfo( new TilingInfo(*lt._tilingInfo) )
@@ -1324,6 +1326,51 @@ void LayeredTexture::reInitTiling( float texelSizeRatio )
 }
 
 
+void LayeredTexture::setAnisotropicPower( int power )
+{
+    if ( power<0 )
+	power = -1;
+
+    if ( power!=_anisotropicPower )
+    {
+	_anisotropicPower = power;
+	setUpdateVar( _tilingInfo->_retilingNeeded, true );
+    }
+}
+
+
+float LayeredTexture::getAnisotropicPower() const
+{ return _anisotropicPower; }
+
+
+float LayeredTexture::getMaxAnisotropy( int layerIdx ) const
+{
+    if ( _anisotropicPower<0 )
+	return 1.0;
+
+    float ratio = 1.0f;
+    if ( _externalTexelSizeRatio  )
+	ratio = fabs( _externalTexelSizeRatio );
+
+    if ( layerIdx>=0 && layerIdx<nrDataLayers() )
+    {
+	LayeredTextureData* layer = _dataLayers[layerIdx];
+	ratio *= layer->_scale[0] / layer->_scale[1];
+    }
+
+    if ( ratio<1.0f )
+	ratio = 1.0f/ratio;
+    
+    float maxAnisotropy = powerOf2Ceil( (int) floor(ratio+0.5) );
+
+    int power = _anisotropicPower;
+    while ( (--power)>=0 )
+	maxAnisotropy *= 2.0;
+
+    return maxAnisotropy;
+}
+
+
 void LayeredTexture::setSeamPower( int power, int dim )
 {
     if ( dim!=1 )
@@ -1697,7 +1744,7 @@ osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, co
 	texture->setWrap( osg::Texture::WRAP_S, xWrapMode );
 	texture->setWrap( osg::Texture::WRAP_T, yWrapMode );
 
-	texture->setMaxAnisotropy( 8.0 );	// tuneable
+	texture->setMaxAnisotropy( getMaxAnisotropy(idx) );
 
 	osg::Texture::FilterMode filterMode = layer->_filterType==Nearest ? osg::Texture::NEAREST : osg::Texture::LINEAR;
 	texture->setFilter( osg::Texture::MAG_FILTER, filterMode );
@@ -2186,7 +2233,7 @@ void LayeredTexture::getFragmentShaderCode( std::string& code, const std::vector
     code += "{\n"
 	    "    vec4 col, udfcol;\n"
 	    "    vec2 texcrd;\n"
-	    "    float a, b, udf, oldudf, orgcol3;\n"
+	    "    float a, b, udf, oldudf, orgcol3, mip, stddev, scale;\n"
 	    "\n";
 
     int stage = 0;
