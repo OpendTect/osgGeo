@@ -91,7 +91,10 @@ class TexEventHandler : public osgGA::GUIEventHandler
 
 	if ( ea.getKey()==osgGA::GUIEventAdapter::KEY_BackSpace )
 	{
-	    root->toggleShaders();
+	    osgGeo::LayeredTexture* tex = root->getLayeredTexture();
+	    if ( tex )
+		tex->allowShaders( !tex->areShadersAllowed() );
+
 	    return true;
 	}
 
@@ -114,6 +117,19 @@ class TexEventHandler : public osgGA::GUIEventHandler
 	    osgGeo::LayeredTexture* tex = root->getLayeredTexture();
 	    if ( tex )
 		tex->turnOn( !tex->isOn() );
+
+	    return true;
+	}
+
+	if ( ea.getKey()==osgGA::GUIEventAdapter::KEY_Delete )
+	{
+	    osgGeo::LayeredTexture* tex = root->getLayeredTexture();
+	    if ( tex )
+	    {
+		float power = tex->getAnisotropicPower();
+		power = power>4 ? -1 : power+1;
+		tex->setAnisotropicPower( power );
+	    }
 
 	    return true;
 	}
@@ -171,12 +187,28 @@ void addColTabProcess( osgGeo::LayeredTexture& laytex, int id, float opac, const
     if ( seqNr%2 )
 	colSeq = transparencyColorSequence();
 
+    int nrPowerChannels = 0;
+    if ( channel>3 )
+    {
+	nrPowerChannels = channel-3;
+	channel = 0;
+    }
+
     osg::ref_ptr<osgGeo::ColTabLayerProcess> process = new osgGeo::ColTabLayerProcess(laytex);
-    process->setDataLayerID( id, channel );
+
+    for ( int idx=0; idx<=nrPowerChannels; idx++ )
+	process->setDataLayerID( idx, id, channel+idx );
+
     process->setColorSequence( colSeq );
     process->setOpacity( opac );
     process->setNewUndefColor( udfCol );
     laytex.addProcess( process );
+
+    if ( nrPowerChannels )
+    {
+	osg::Image* img = const_cast<osg::Image*>(laytex.getDataLayerImage(id));
+	laytex.setDataLayerImage( id, img, true, nrPowerChannels );
+    }
 }
 
 
@@ -276,7 +308,7 @@ int main( int argc, char** argv )
     usage->addCommandLineOption( "--origin <x0> <y0>", "Layer origin" );
     usage->addCommandLineOption( "--scale <dx> <dy>", "Layer scale" );
     usage->addCommandLineOption( "--opacity <frac> ", "Layer opacity [0.0,1.0]" );
-    usage->addCommandLineOption( "--colormap <n> <channel>", "Color map <n>  from channel [0,3]" );
+    usage->addCommandLineOption( "--colormap <n> <channel>", "Color map <n>  from (power) channel [0,5]" );
     usage->addCommandLineOption( "--rgbamap <r> <g> <b> <a>", "RGBA map from channels [-1=void,3]" );
     usage->addCommandLineOption( "--filter <n>", "Filter type [0,1]" );
     usage->addCommandLineOption( "--compositefilter <n>", "Filter type [0,1]" );
@@ -294,6 +326,7 @@ int main( int argc, char** argv )
     usage->addKeyboardMouseBinding( "BackSpace key", "Toggle shaders" );
     usage->addKeyboardMouseBinding( "Return key", "Dump to specified file" );
     usage->addKeyboardMouseBinding( "Tab key", "Turn texture on/off" );
+    usage->addKeyboardMouseBinding( "Delete key", "Toggle anisotropic power" );
 
     if ( args.read("--help") || args.read("--usage") )
     {
@@ -503,8 +536,8 @@ int main( int argc, char** argv )
 
 	if ( args.read(pos, "--colormap", seqNr, channel) )
 	{
-	    if ( channel<0 || channel>3 )
-		args.reportError( "Channel not in [0,3]" );
+	    if ( channel<0 || channel>5 )
+		args.reportError( "Channel not in [0,5]" );
 
 	    r = g = b = a = -2;
 	    const int nrProc = laytex->nrProcesses();
@@ -602,7 +635,7 @@ int main( int argc, char** argv )
     root->setLayeredTexture( laytex );
 
     if ( compositeFilterNr >= 0 )
-	root->toggleShaders();
+	laytex->allowShaders( false );
 
     root->setTextureShift( shift );
     root->setTextureGrowth( growth );

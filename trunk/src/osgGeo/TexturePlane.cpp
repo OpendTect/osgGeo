@@ -609,11 +609,4 @@ const osg::Vec2& TexturePlaneNode::getTextureGrowth() const
 { return _textureGrowth; }
 
 
-void TexturePlaneNode::toggleShaders()
-{
-    if ( _texture )
-	_texture->allowShaders( !_texture->areShadersAllowed() );
-}
-
-
 } //namespace osgGeo

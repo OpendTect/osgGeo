@@ -153,8 +153,6 @@ public:
 			}
     int			getDisperseFactor() const
 			{ return _disperseFactor; }
-
-    void		toggleShaders();
 };
 
 
