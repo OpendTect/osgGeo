@@ -95,7 +95,9 @@ public:
 			/*!Beware that non-proportional scaling may result
 			   in blurry textures when these are being mipmapped,
 			   because OpenGL works with a maximum scale factor
-			   over all dimensions instead of one for each. */
+			   over all dimensions instead of one for each.
+			   Calling setAnisotropicPower(0) on modern hardware
+			   solve this at the cost of speed and memory usage. */
     const osg::Vec2f&	getDataLayerScale(int id) const;
 
     void		setDataLayerFilterType(int id,FilterType);
@@ -188,6 +190,16 @@ public:
     osg::StateSet*	getSetupStateSet();
     void		updateSetupStateSet();
 
+    void		setAnisotropicPower(int power);
+			/*!Default power=-1 will disable anisotropic filtering.
+			   If supported by hardware, power=0 already corrects
+			   mipmap filtering at perpendicular viewing angles of
+			   inherently non-square texels. Each extra power step
+			   also corrects for square texels that just display
+			   non-square at small viewing angles, up to a ratio
+			   2^(power) between the displayed texel dimensions. */
+    float		getAnisotropicPower() const;
+
     void		setSeamPower(int power,int dim=-1);
 			/*!Default power 0 adds a one-texel seam to both tile
 			   side. Each extra power step doubles its width. At
@@ -244,6 +256,7 @@ protected:
     void		updateTextureInfoIfNeeded() const;
     void		updateTilingInfoIfNeeded() const;
     int			getSeamWidth(int layerIdx,int dim) const;
+    float		getMaxAnisotropy(int layerIdx) const;
     int			getTileOverlapUpperBound(int dim) const;
     TextureSizePolicy	usedTextureSizePolicy() const;
     bool		isDisplayFrozen() const;
@@ -296,6 +309,7 @@ protected:
 
     TextureSizePolicy			_textureSizePolicy;
     unsigned int			_maxTextureCopySize;
+    float				_anisotropicPower;
     Vec2i				_seamPower;
     float				_externalTexelSizeRatio;
 
