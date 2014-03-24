@@ -354,19 +354,19 @@ osg::BoundingSphere PlaneWellLog::computeBound() const
 
     for( unsigned int idx=0; idx<_logPath->size(); idx++ )
     {
-	float radius = 0.0f;
+	float rad = 0.0f;
 	if ( idx < _coordLinedFactors->size() )
-	    radius = 
-	    osg::maximum<float>( radius, fabs((*_coordLinedFactors)[idx]));
+	    rad = 
+	    osg::maximum<float>( rad, fabs((*_coordLinedFactors)[idx]));
 	if ( 2*idx < _coordLinedTriFactors->size() )
-	    radius = 
-	    osg::maximum<float>( radius, fabs((*_coordLinedTriFactors)[2*idx]));
+	    rad = 
+	    osg::maximum<float>( rad, fabs((*_coordLinedTriFactors)[2*idx]));
 	if ( 2*idx+1 < _coordLinedTriFactors->size() )
-	    radius = 
-	    osg::maximum<float>( radius, fabs((*_coordLinedTriFactors)[2*idx+1]));
+	    rad = 
+	    osg::maximum<float>( rad, fabs((*_coordLinedTriFactors)[2*idx+1]));
 
-	radius = radius*_worldWidth + fabs(getRepeatStep())*(_repeatNumber-1);
-	logSphere.expandBy(osg::BoundingSphere(_logPath->at(idx),radius));
+	rad = rad*_worldWidth + fabs(getRepeatStep())*(_repeatNumber-1);
+	logSphere.expandBy(osg::BoundingSphere(_logPath->at(idx),rad));
     }
 
     return logSphere;
