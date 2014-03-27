@@ -46,7 +46,7 @@ PlaneWellLog::PlaneWellLog()
 ,_isFilled(false)
 ,_triGeometryWidth(.0)
 ,_isFullFilled(false)
-,_worldWidth(FLT_MAX)
+,_worldWidth(.0)
 
 {
     buildLineGeometry();
@@ -244,18 +244,13 @@ void PlaneWellLog::traverse(osg::NodeVisitor& nv)
 	osgUtil::CullVisitor* cv = dynamic_cast<osgUtil::CullVisitor*>(&nv);
 	const osg::Vec3 projdir = getPrjDirection(cv);
 	const osg::Vec3 normal = calcNormal(projdir);
-	const float newWorldWidth = calcWorldWidth(cv);
 	
 	if ( _forceCoordReCalculation || eyeChanged(projdir) || 
-	    newWorldWidth!=_worldWidth )
+	    _screenSizeChanged )
 	{
-	    calcCoordinates(normal, newWorldWidth); 
+	    _worldWidth = calcWorldWidth(cv);
+	    calcCoordinates(normal, _worldWidth); 
 	    _preProjDir = projdir;
-	}
-
-	if ( newWorldWidth != _worldWidth )
-	{
-	    _worldWidth = newWorldWidth;
 	    dirtyBound();
 	}
 
