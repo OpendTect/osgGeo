@@ -47,11 +47,12 @@ set ( LIB_PUBLIC_HEADERS
     TexturePlane
     TexturePanelStrip
     ThumbWheel
+    TiledOffScreenRenderer
     TrackballManipulator
     TubeWellLog
     Vec2i
     VolumeTechniques
-    WellLog )
+    WellLog) 
 
 add_library( ${LIB_NAME} SHARED
     ${LIB_PUBLIC_HEADERS}
@@ -77,10 +78,11 @@ add_library( ${LIB_NAME} SHARED
     TexturePlane.cpp
     TexturePanelStrip.cpp
     ThumbWheel.cpp
+    TiledOffScreenRenderer.cpp
     TrackballManipulator.cpp 
     TubeWellLog.cpp
     VolumeTechniques.cpp
-    WellLog.cpp )
+    WellLog.cpp) 
 target_link_libraries(
     ${LIB_NAME}
     ${OSGGEO_OSG_LIBRARY}
@@ -91,7 +93,8 @@ target_link_libraries(
     ${OSGGEO_OSGMANIPULATOR_LIBRARY}
     ${OSGGEO_OSGDB_LIBRARY}
     ${OSGGEO_OSGTEXT_LIBRARY}
-    ${OSGGEO_OSGSIM_LIBRARY})
+    ${OSGGEO_OSGSIM_LIBRARY}
+    ${OSGGEO_OSGVIEWER_LIBRARY})
 
 install(FILES
     ${LIB_PUBLIC_HEADERS}
