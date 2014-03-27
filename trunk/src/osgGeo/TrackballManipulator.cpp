@@ -22,6 +22,7 @@ $Id$
 #include <osgUtil/LineSegmentIntersector>
 #include <osgGeo/ComputeBoundsVisitor>
 #include <osg/Timer>
+#include <osg/Version>
 
 #define mAllTraversals (0xFFFFFFFF)
 
@@ -54,7 +55,7 @@ void ComputeBoundsVisitor::applyBoundingBox(const osg::BoundingBox& bbox)
 
 
 TrackballManipulator::TrackballManipulator(int flags)
-    : osgGA::TrackballManipulator(flags)
+    : osgGA::MultiTouchTrackballManipulator(flags)
     , _dragEnabled(true)
     , _boundTraversalMask(mAllTraversals)
     , _viewallMargin(0.2f)
@@ -62,18 +63,21 @@ TrackballManipulator::TrackballManipulator(int flags)
     , _projectionSwitched(false)
     , _perspectiveProjection(true)
     , _fovy(45.0f)
+    , _touchZoomCenter(0,0)
+    , _touchEventView(0)
 {}
 
 
 TrackballManipulator::TrackballManipulator(const TrackballManipulator& tm, const osg::CopyOp& copyOp)
-    : osgGA::TrackballManipulator(tm, copyOp)
+    : osgGA::MultiTouchTrackballManipulator(tm, copyOp)
     , osg::Object(tm, copyOp)	// needs explicit init in copy constructor because of [-Wextra] warning
     , _dragEnabled(tm._dragEnabled)
     , _boundTraversalMask(tm._boundTraversalMask)
     , _viewallMargin(tm._viewallMargin)
     , _viewAllInitalFactor(tm._viewAllInitalFactor)
-{
-}
+    , _touchZoomCenter(0,0)
+    , _touchEventView(0)
+{}
 
 
 TrackballManipulator::~TrackballManipulator()
@@ -152,7 +156,6 @@ void TrackballManipulator::updateCamera(osg::Camera& camera)
 
 
 #define MAX(x,y) ((x)>(y)?(x) : (y))
-
 
 bool TrackballManipulator::computeViewAllParams(osg::View* view, const osg::Quat& rotation,
                                                 osg::Vec3d& center, double& distance) const
@@ -264,36 +267,41 @@ osg::Matrix TrackballManipulator::getInverseMatrix(const osg::Vec3d& center,
 }
 
 
-bool TrackballManipulator::handleMultiTouch(const osgGA::GUIEventAdapter&, osgGA::GUIActionAdapter&)
-{
-    return false;
-}
-
-
 bool TrackballManipulator::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa)
 {
     if ( ea.getEventType()==osgGA::GUIEventAdapter::FRAME )
     {
-        return osgGA::TrackballManipulator::handle(ea, aa);
+        return osgGA::MultiTouchTrackballManipulator::handle(ea, aa);
     }
-
-    if ( ea.isMultiTouchEvent() )
-        return handleMultiTouch( ea, aa );
-    
-    if ( !_dragEnabled && ea.getEventType()==osgGA::GUIEventAdapter::DRAG )
-	return false;
 
     osg::Vec3d oldEyePos, oldCenterPos, oldUpDir;
     getTransformation(oldEyePos, oldCenterPos, oldUpDir);
     const double oldDist = _distance;
 
-    const bool res = osgGA::TrackballManipulator::handle(ea, aa);
+    bool res(false);
+
+    if ( ea.isMultiTouchEvent() )
+    {
+	_touchEventView = aa.asView();
+#if OSG_VERSION_LESS_THAN(3,3,0)
+	res = handleTouch( ea, aa );
+#else   
+	res = osgGA::MultiTouchTrackballManipulator::handle(ea, aa);
+#endif
+    }
+    else
+    {
+	_touchEventView = 0;
+	if ( !_dragEnabled && ea.getEventType()==osgGA::GUIEventAdapter::DRAG )
+	    return false;
+	res = osgGA::MultiTouchTrackballManipulator::handle(ea, aa);
+    }
 
     if ( _cb )
     {
         float horAngle = 0;
         float vertAngle = 0;
-        if ( ea.getEventType()==osgGA::GUIEventAdapter::DRAG )
+        if ( ea.getEventType()==osgGA::GUIEventAdapter::DRAG || ea.isMultiTouchEvent() )
         {
             osg::Vec3 oldViewDir = oldEyePos-oldCenterPos;
             oldViewDir.normalize();
@@ -318,7 +326,6 @@ bool TrackballManipulator::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIAc
                 vertAngle = rotationAngle * (vertAxis*rotationAxis);
             }
 	}
-
         TrackballEventNodeVisitor nv(horAngle, vertAngle,(_distance-oldDist)/oldDist);
         (*_cb)( 0, &nv );
     }
@@ -344,34 +351,111 @@ TrackballEventNodeVisitor::~TrackballEventNodeVisitor()
 
 bool TrackballManipulator::handleMouseWheel(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& us)
 {
+    bool res = false;
     const osgGA::GUIEventAdapter::ScrollingMotion sm = ea.getScrollingMotion();
 
     if( ((sm == osgGA::GUIEventAdapter::SCROLL_DOWN && _wheelZoomFactor > 0.)) ||
        ((sm == osgGA::GUIEventAdapter::SCROLL_UP   && _wheelZoomFactor < 0.)) )
     {
-        return handleMouseWheelZoomIn(ea, us);
+        res = handleMouseWheelZoomIn(ea, us);
     }
 
     if( ((sm == osgGA::GUIEventAdapter::SCROLL_UP && _wheelZoomFactor > 0.)) ||
        ((sm == osgGA::GUIEventAdapter::SCROLL_DOWN   && _wheelZoomFactor < 0.)))
     {
-        return handleMouseWheelZoomOut(ea, us);
+         res = handleMouseWheelZoomOut(ea, us);
     }
 
-    return mDefaultHandling;
+    return res ? true : mDefaultHandling;
+}
+
+
+bool TrackballManipulator::handleMultiTouchDrag(osgGA::GUIEventAdapter::TouchData* now, 
+    osgGA::GUIEventAdapter::TouchData* last, const double eventTimeDelta)
+    // this function should be inherited from its parent's virtual function:handleMultiTouchDrag().
+{
+    if ( !handleAsOsgGeoMultiTouchDrag(now, last, eventTimeDelta) )
+    {
+	#if OSG_VERSION_LESS_THAN(3,3,0)
+	    return handleAsNormalDrag(now,last);
+	#endif
+	osgGA::MultiTouchTrackballManipulator::handleMultiTouchDrag(now, last, eventTimeDelta);
+    }
+    return true;
 }
     
 
 bool TrackballManipulator::handleMouseWheelZoomOut(const osgGA::GUIEventAdapter& ea,
                                                     osgGA::GUIActionAdapter& us)
 {
+    return zoomOut(us.asView(),_wheelZoomFactor);
+}
 
-    if ( !_node.get() )
-        return mDefaultHandling;
 
+bool TrackballManipulator::handleMouseWheelZoomIn(const osgGA::GUIEventAdapter& ea,
+                                                   osgGA::GUIActionAdapter& us)
+{
+    osg::Vec3d intersectionPos;
+    const osg::Vec2d zoomcenter(ea.getX(), ea.getY());
+    if ( !getZoomCenterIntersectionPoint(us.asView(),zoomcenter,intersectionPos) )
+        return false;
+
+    return zoomIn(intersectionPos,_wheelZoomFactor);
+}
+
+
+bool TrackballManipulator::zoomIn(const osg::Vec3d& intersectionPos, float zoomFactor) 
+{
+    //General idea is that we move center point towards the eye, and the eye-point towards
+    //the intersection point.
+    //If we are close we will move the center of rotation further away though to avoid getting stuck
     osg::Vec3d oldEyePos, oldCenterPos, oldUpDir;
     getTransformation(oldEyePos, oldCenterPos, oldUpDir);
 
+    osg::Vec3d movementDir = intersectionPos-oldEyePos;
+    const double oldDistance = movementDir.length();
+    if ( oldDistance<1.0 )
+	return false;
+    zoomFactor = 0.1;
+    movementDir /= oldDistance;
+
+    double minDist = _minimumDistance;
+    if( getRelativeFlag(_minimumDistanceFlagIndex ))
+	minDist *= _modelSize;
+
+    double movementDist = zoomFactor * oldDistance;
+    if (oldDistance-movementDist<minDist)
+    {
+	movementDist = zoomFactor*minDist;
+    }
+
+    const osg::Vec3d movement = movementDir*movementDist;
+    const osg::Vec3d newEyePos = oldEyePos + movement;
+    osg::Vec3d newCenterDir = oldCenterPos - oldEyePos;
+    const double centerDist = newCenterDir.length();
+
+    newCenterDir /= centerDist;
+
+    double centerMovementDist = centerDist * zoomFactor;
+    if ( centerDist-centerMovementDist<minDist )
+    {
+	centerMovementDist = zoomFactor*minDist;
+    }
+
+    const osg::Vec3d newCenterPos = newEyePos + newCenterDir * (centerDist-centerMovementDist);
+    setTransformation(newEyePos, newCenterPos, oldUpDir);
+
+    return true;
+}
+
+
+bool TrackballManipulator::zoomOut(osg::View* view,float zoomFactor) 
+{
+  if ( !_node.get() || !view )
+        return false;
+
+    osg::Vec3d oldEyePos, oldCenterPos, oldUpDir;
+    getTransformation(oldEyePos, oldCenterPos, oldUpDir);
 
     /*General idea is that if we are close, we move the eyepoint towards the
       viewAll eye-point, and move the center towards the viewAll-center.
@@ -381,18 +465,17 @@ bool TrackballManipulator::handleMouseWheelZoomOut(const osgGA::GUIEventAdapter&
     osg::Vec3d viewAllCenter;
     double viewAllDistance;
 
-
-    if ( !computeViewAllParams( us.asView(), _rotation, viewAllCenter, viewAllDistance) )
-        return mDefaultHandling;
+    if ( !computeViewAllParams( view, _rotation, viewAllCenter, viewAllDistance) )
+        return false;
 
     const double currentDistFromIdealCenter = (oldEyePos-viewAllCenter).length();
     if ( currentDistFromIdealCenter>viewAllDistance)
-        return mDefaultHandling;
+        return false;
 
     osg::Vec3d viewDir = oldEyePos - oldCenterPos;
     const double viewDirLength = viewDir.length();
     if ( viewDirLength<1.0 )
-        return mDefaultHandling;
+        return false;
 
     viewDir /= viewDirLength;
 
@@ -401,11 +484,11 @@ bool TrackballManipulator::handleMouseWheelZoomOut(const osgGA::GUIEventAdapter&
     const osg::Vec3d eyePath = viewAllPos - oldEyePos;
     const double eyePathLength = eyePath.length();
     if ( eyePathLength<1 )
-        return mDefaultHandling;
+        return false;
     
     const osg::Vec3d eyePathDir = eyePath / eyePathLength;
 
-    double eyeMovementLength = _distance * _wheelZoomFactor;
+    double eyeMovementLength = _distance * zoomFactor;
     if ( eyeMovementLength> eyePathLength )
         eyeMovementLength = eyePathLength;
 
@@ -429,56 +512,76 @@ bool TrackballManipulator::handleMouseWheelZoomOut(const osgGA::GUIEventAdapter&
 }
 
 
-bool TrackballManipulator::handleMouseWheelZoomIn(const osgGA::GUIEventAdapter& ea,
-                                                   osgGA::GUIActionAdapter& us)
+bool TrackballManipulator::getZoomCenterIntersectionPoint(osg::View* view, const osg::Vec2d& zoomcenter,osg::Vec3d& intersection) const
 {
-    osg::Vec3d intersectionPos;
-    if ( !getIntersectionPoint(ea,us,intersectionPos) )
+    if ( !view )
+	return false;
+
+    osg::Camera *camera = view->getCamera();
+    if( !camera )
+	return false;
+
+    // perform intersection computation
+    osg::ref_ptr< osgUtil::LineSegmentIntersector > picker =
+	new osgUtil::LineSegmentIntersector(osgUtil::Intersector::WINDOW, zoomcenter.x(), zoomcenter.y());
+    osgUtil::IntersectionVisitor iv( picker.get());
+    iv.setTraversalMask( _intersectTraversalMask );
+    camera->accept( iv );
+
+    // return on no intersections
+    if( !picker->containsIntersections() )
+	return false;
+
+    // get all intersections
+    osgUtil::LineSegmentIntersector::Intersections& intersections = picker->getIntersections();
+
+    // new center
+    intersection = (*intersections.begin()).getWorldIntersectPoint();
+
+
+    return true;
+}
+
+
+bool TrackballManipulator::handleAsOsgGeoMultiTouchDrag(const osgGA::GUIEventAdapter::TouchData* now, 
+    const osgGA::GUIEventAdapter::TouchData* last, const double eventTimeDelta) 
+{
+    const osg::Vec2 pt_1_now(now->get(0).x,now->get(0).y);
+    const osg::Vec2 pt_2_now(now->get(1).x,now->get(1).y);
+    const osg::Vec2 pt_1_last(last->get(0).x,last->get(0).y);
+    const osg::Vec2 pt_2_last(last->get(1).x,last->get(1).y);
+
+    if ( last->get(0).phase == osgGA::GUIEventAdapter::TOUCH_BEGAN )
     {
-        return mDefaultHandling;
+	_touchZoomCenter = (pt_1_last + pt_2_last)/2;
     }
 
-    //General idea is that we move centerpoint towards the eye, and the eye-point towards
-    //the intersection point.
-    //If we are close we will move the center of rotation further away though to avoid getting stuck
-
-    osg::Vec3d oldEyePos, oldCenterPos, oldUpDir;
-    getTransformation(oldEyePos, oldCenterPos, oldUpDir);
-
-    osg::Vec3d movementDir = intersectionPos-oldEyePos;
-    const double oldDistance = movementDir.length();
-    if ( oldDistance<1.0 )
+    if ( last->get(0).phase == osgGA::GUIEventAdapter::TOUCH_ENDED )
     {
-        return mDefaultHandling;
+	_touchZoomCenter.x() = 0;
+	_touchZoomCenter.y() = 0;
     }
 
-    movementDir /= oldDistance;
 
-    double minDist = _minimumDistance;
-    if( getRelativeFlag(_minimumDistanceFlagIndex ))
-        minDist *= _modelSize;
+    const float gap_now((pt_1_now - pt_2_now).length());
+    const float gap_last((pt_1_last - pt_2_last).length());
 
-    double movementDist = _wheelZoomFactor * oldDistance;
-    if (oldDistance-movementDist<minDist)
+    const float zoomFactor = (gap_now - gap_last)/gap_last;
+
+    if ( fabs(zoomFactor) > 0.02f && _touchZoomCenter.length() !=0 )
     {
-        movementDist = _wheelZoomFactor*minDist;
+	if ( zoomFactor> 0 ) 
+	{
+	    osg::Vec3d intersectionPos;
+	    if ( !getZoomCenterIntersectionPoint(_touchEventView,_touchZoomCenter,intersectionPos) )
+		return false;
+	    return zoomIn(intersectionPos,zoomFactor);
+	}
+	else			  
+	{
+	    return zoomOut(_touchEventView, fabs(zoomFactor));
+	}
     }
-
-    const osg::Vec3d movement = movementDir*movementDist;
-    const osg::Vec3d newEyePos = oldEyePos + movement;
-    osg::Vec3d newCenterDir = oldCenterPos - oldEyePos;
-    const double centerDist = newCenterDir.length();
-
-    newCenterDir /= centerDist;
-
-    double centerMovementDist = centerDist * _wheelZoomFactor;
-    if ( centerDist-centerMovementDist<minDist )
-    {
-        centerMovementDist = _wheelZoomFactor*minDist;
-    }
-
-    osg::Vec3d newCenterPos = newEyePos + newCenterDir * (centerDist-centerMovementDist);
-    setTransformation(newEyePos, newCenterPos, oldUpDir);
 
     return true;
 }
@@ -491,7 +594,7 @@ void TrackballManipulator::animateTo(const osg::Vec3d& newCenter,
 {
     if ( animate && getAnimationTime() )
     {
-        TrackballAnimationData* ad = dynamic_cast<TrackballAnimationData*>( _animationData.get() );
+        TrackballAnimationData* ad = dynamic_cast<TrackballAnimationData*>(_animationData.get());
         if ( ad )
         {
             ad->start(newCenter-_center, newRotation-_rotation,
@@ -527,7 +630,6 @@ void TrackballManipulator::viewAll(osg::View* view, const osg::Vec3d& dir, const
 }
 
 
-
 void TrackballManipulator::viewAll(osg::View* view, bool animate)
 {
     osg::Vec3d newCenter;
@@ -537,41 +639,6 @@ void TrackballManipulator::viewAll(osg::View* view, bool animate)
 
     animateTo(newCenter, _rotation, newDistance, animate);
 }
-
-
-bool TrackballManipulator::getIntersectionPoint(const osgGA::GUIEventAdapter& ea,
-                                                 osgGA::GUIActionAdapter& us,
-                                                 osg::Vec3d& intersection) const
-{
-    osg::View* view = us.asView();
-    if( !view )
-        return false;
-
-    osg::Camera *camera = view->getCamera();
-    if( !camera )
-        return false;
-
-    // perform intersection computation
-    osg::ref_ptr< osgUtil::LineSegmentIntersector > picker =
-    	new osgUtil::LineSegmentIntersector( osgUtil::Intersector::WINDOW, ea.getX(), ea.getY() );
-    osgUtil::IntersectionVisitor iv( picker.get() );
-    iv.setTraversalMask( _intersectTraversalMask );
-    camera->accept( iv );
-
-    // return on no intersections
-    if( !picker->containsIntersections() )
-        return false;
-
-    // get all intersections
-    osgUtil::LineSegmentIntersector::Intersections& intersections = picker->getIntersections();
-
-    // new center
-    intersection = (*intersections.begin()).getWorldIntersectPoint();
-
-
-    return true;
-}
-
 
 
 void TrackballManipulator::TrackballAnimationData::start( const osg::Vec3d& centerMovement,
@@ -623,5 +690,91 @@ void TrackballManipulator::removeMovementCallback(osg::NodeCallback* nc)
 
 
 }
+
+
+#if OSG_VERSION_LESS_THAN(3,3,0)
+
+bool TrackballManipulator::handleTouch(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa)
+{
+    switch(ea.getEventType())
+    {
+
+    case osgGA::GUIEventAdapter::PUSH:
+    case osgGA::GUIEventAdapter::DRAG:
+    case osgGA::GUIEventAdapter::RELEASE:
+	if ( ea.isMultiTouchEvent() )
+	{
+	    double eventTimeDelta = 1/60.0; //_ga_t0->getTime() - _ga_t1->getTime();
+	    if( eventTimeDelta < 0. )
+	    {
+		OSG_WARN << "Manipulator warning: eventTimeDelta = " << eventTimeDelta << std::endl;
+		eventTimeDelta = 0.;
+	    }
+
+	    osgGA::GUIEventAdapter::TouchData* data = ea.getTouchData();
+
+	    // three touches or two taps for home position
+	    if ( (data->getNumTouchPoints() == 3) || ((data->getNumTouchPoints() == 1) && (data->get(0).tapCount >= 2)) )
+	    {
+		flushMouseEventStack();
+		_thrown = false;
+		home(ea,aa);
+	    }
+
+	    else if ( data->getNumTouchPoints() >= 2 )
+	    {
+		if ( (_lastTouchData.valid()) && (_lastTouchData->getNumTouchPoints() >= 2) )
+		{
+		    handleMultiTouchDrag(data, _lastTouchData.get(), eventTimeDelta);
+		}
+	    }
+
+	    _lastTouchData = data;
+
+	    // check if all touches ended
+	    unsigned int num_touches_ended(0);
+	    for( osgGA::GUIEventAdapter::TouchData::iterator i = data->begin(); i != data->end(); ++i )
+	    {
+		if ( (*i).phase == osgGA::GUIEventAdapter::TOUCH_ENDED )
+		    num_touches_ended++;
+	    }
+
+	    if( num_touches_ended == data->getNumTouchPoints() )
+	    {
+		_lastTouchData = NULL;
+	    }
+
+	}
+	break;
+    default:
+	break;
+    }
+
+    return osgGA::MultiTouchTrackballManipulator::handle(ea, aa);
+}
+
+
+bool TrackballManipulator::handleAsNormalDrag(osgGA::GUIEventAdapter::TouchData* now,osgGA::GUIEventAdapter::TouchData* last)
+{
+    const osg::Vec2 pt_1_now(now->get(0).x,now->get(0).y);
+    const osg::Vec2 pt_2_now(now->get(1).x,now->get(1).y);
+    const osg::Vec2 pt_1_last(last->get(0).x,last->get(0).y);
+    const osg::Vec2 pt_2_last(last->get(1).x,last->get(1).y);
+
+    const float gap_now((pt_1_now - pt_2_now).length());
+    const float gap_last((pt_1_last - pt_2_last).length());
+
+    const float relativeChange = (gap_last - gap_now)/gap_last;
+
+    // zoom gesture
+    if (fabs(relativeChange) > 0.02f)
+	zoomModel(relativeChange , true);
+
+    return true;
+}
+
+#endif
+
+
 
 } // end namespace
