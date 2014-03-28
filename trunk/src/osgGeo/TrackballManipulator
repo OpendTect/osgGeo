@@ -67,14 +67,13 @@ class OSGGEO_EXPORT TrackballManipulator : public osgGA::MultiTouchTrackballMani
 	const bool   isCameraPerspective() const{ return _perspectiveProjection; }
 
     protected:
-
-	bool handleMultiTouchDrag(osgGA::GUIEventAdapter::TouchData* now, osgGA::GUIEventAdapter::TouchData* last, const double eventTimeDelta);
+	void handleMultiTouchDrag(const osgGA::GUIEventAdapter::TouchData* now,
+				  const osgGA::GUIEventAdapter::TouchData* last,				  const double eventTimeDelta);
 	
     private:
 
     #if OSG_VERSION_LESS_THAN(3,3,0)
 	bool handleTouch( const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa);
-	bool handleAsNormalDrag(osgGA::GUIEventAdapter::TouchData* now,osgGA::GUIEventAdapter::TouchData* last);
     #endif
         static osg::Matrix getInverseMatrix(const osg::Vec3d& center,
         				    const osg::Quat& rotation,
@@ -94,7 +93,6 @@ class OSGGEO_EXPORT TrackballManipulator : public osgGA::MultiTouchTrackballMani
 
         osg::Matrixd computePerspectiveProjectionFromOrtho(const osg::Camera& camera) const;
 
-	bool handleAsOsgGeoMultiTouchDrag(const osgGA::GUIEventAdapter::TouchData* now, const osgGA::GUIEventAdapter::TouchData* last, const double eventTimeDelta);
 	bool getZoomCenterIntersectionPoint(osg::View* view, const osg::Vec2d& zoomcenter,osg::Vec3d& intersection) const;
 	bool zoomIn(const osg::Vec3d& intersectionPos, float zoomFactor) ;
 	bool zoomOut(osg::View*,float zoomFactor) ;
