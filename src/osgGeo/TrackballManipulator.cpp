@@ -370,21 +370,6 @@ bool TrackballManipulator::handleMouseWheel(const osgGA::GUIEventAdapter& ea, os
 }
 
 
-bool TrackballManipulator::handleMultiTouchDrag(osgGA::GUIEventAdapter::TouchData* now, 
-    osgGA::GUIEventAdapter::TouchData* last, const double eventTimeDelta)
-    // this function should be inherited from its parent's virtual function:handleMultiTouchDrag().
-{
-    if ( !handleAsOsgGeoMultiTouchDrag(now, last, eventTimeDelta) )
-    {
-	#if OSG_VERSION_LESS_THAN(3,3,0)
-	    return handleAsNormalDrag(now,last);
-	#endif
-	osgGA::MultiTouchTrackballManipulator::handleMultiTouchDrag(now, last, eventTimeDelta);
-    }
-    return true;
-}
-    
-
 bool TrackballManipulator::handleMouseWheelZoomOut(const osgGA::GUIEventAdapter& ea,
                                                     osgGA::GUIActionAdapter& us)
 {
@@ -543,7 +528,7 @@ bool TrackballManipulator::getZoomCenterIntersectionPoint(osg::View* view, const
 }
 
 
-bool TrackballManipulator::handleAsOsgGeoMultiTouchDrag(const osgGA::GUIEventAdapter::TouchData* now, 
+void TrackballManipulator::handleMultiTouchDrag(const osgGA::GUIEventAdapter::TouchData* now, 
     const osgGA::GUIEventAdapter::TouchData* last, const double eventTimeDelta) 
 {
     const osg::Vec2 pt_1_now(now->get(0).x,now->get(0).y);
@@ -566,24 +551,29 @@ bool TrackballManipulator::handleAsOsgGeoMultiTouchDrag(const osgGA::GUIEventAda
     const float gap_now((pt_1_now - pt_2_now).length());
     const float gap_last((pt_1_last - pt_2_last).length());
 
-    const float zoomFactor = (gap_now - gap_last)/gap_last;
+    const float zoomFactor = (gap_last - gap_now)/gap_last;
 
+    bool success = false;
     if ( fabs(zoomFactor) > 0.02f && _touchZoomCenter.length() !=0 )
     {
-	if ( zoomFactor> 0 ) 
+	if ( zoomFactor< 0 ) 
 	{
 	    osg::Vec3d intersectionPos;
-	    if ( !getZoomCenterIntersectionPoint(_touchEventView,_touchZoomCenter,intersectionPos) )
-		return false;
-	    return zoomIn(intersectionPos,zoomFactor);
+	    if ( getZoomCenterIntersectionPoint(_touchEventView,
+					_touchZoomCenter,intersectionPos) )
+		success = zoomIn(intersectionPos, fabs(zoomFactor) );
 	}
 	else			  
 	{
-	    return zoomOut(_touchEventView, fabs(zoomFactor));
+	    success = zoomOut(_touchEventView, fabs(zoomFactor) );
 	}
     }
 
-    return true;
+    if ( success )
+	return;
+
+    if (fabs(zoomFactor) > 0.02f)
+	zoomModel(zoomFactor , true);
 }
 
 
@@ -694,7 +684,8 @@ void TrackballManipulator::removeMovementCallback(osg::NodeCallback* nc)
 
 #if OSG_VERSION_LESS_THAN(3,3,0)
 
-bool TrackballManipulator::handleTouch(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa)
+bool TrackballManipulator::handleTouch(const osgGA::GUIEventAdapter& ea,
+				       osgGA::GUIActionAdapter& aa)
 {
     switch(ea.getEventType())
     {
@@ -753,25 +744,6 @@ bool TrackballManipulator::handleTouch(const osgGA::GUIEventAdapter& ea, osgGA::
     return osgGA::MultiTouchTrackballManipulator::handle(ea, aa);
 }
 
-
-bool TrackballManipulator::handleAsNormalDrag(osgGA::GUIEventAdapter::TouchData* now,osgGA::GUIEventAdapter::TouchData* last)
-{
-    const osg::Vec2 pt_1_now(now->get(0).x,now->get(0).y);
-    const osg::Vec2 pt_2_now(now->get(1).x,now->get(1).y);
-    const osg::Vec2 pt_1_last(last->get(0).x,last->get(0).y);
-    const osg::Vec2 pt_2_last(last->get(1).x,last->get(1).y);
-
-    const float gap_now((pt_1_now - pt_2_now).length());
-    const float gap_last((pt_1_last - pt_2_last).length());
-
-    const float relativeChange = (gap_last - gap_now)/gap_last;
-
-    // zoom gesture
-    if (fabs(relativeChange) > 0.02f)
-	zoomModel(relativeChange , true);
-
-    return true;
-}
 
 #endif
 
