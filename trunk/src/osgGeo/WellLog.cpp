@@ -28,7 +28,8 @@ $Id$
 
 
 #define mMAX 1e30
-using namespace osgGeo;
+namespace osgGeo
+{
 
 
 WellLog::WellLog()
@@ -56,6 +57,35 @@ WellLog::WellLog()
     _preProjDir.set( 0, 0, 0 );
     _nonShadingGroup->addChild( _geode );
 }
+
+#define COPY_ARRAY( tp, var ) \
+    var ( (cop.getCopyFlags() & osg::CopyOp::DEEP_COPY_ARRAYS) \
+        ? new tp(*wl.var.get() ) \
+        : const_cast<tp*>(wl.var.get()) )
+
+WellLog::WellLog( const WellLog& wl, const osg::CopyOp& cop )
+    : Node( wl, cop )
+    , COPY_ARRAY( osg::Vec3Array, _logPath )
+    , COPY_ARRAY( osg::Vec4Array, _colorTable )
+    , COPY_ARRAY( osg::FloatArray, _shapeLog )
+    , COPY_ARRAY( osg::FloatArray, _fillLog )
+    , COPY_ARRAY( osg::FloatArray, _fillLogDepths )
+    , _resizeWhenZooming( wl._resizeWhenZooming )
+    , _fillRevScale( wl._fillRevScale )
+    , _revScale( wl._revScale )
+    , _constantSizeFactor( wl._constantSizeFactor )
+    , _minShapeValue( wl._minShapeValue )
+    , _minFillValue( wl._minFillValue )
+    , _maxShapeValue( wl._maxShapeValue )
+    , _maxFillValue( wl._maxFillValue )
+    , _geode( new osg::Geode )
+    , _forceCoordReCalculation ( true )
+    , _nonShadingGroup( new osg::Group )
+    , _screenSizeChanged( false )
+    , _colorTableChanged( false )
+    , _forceReBuild( false )
+{}
+
 
 
 WellLog::~WellLog()
@@ -330,3 +360,55 @@ int WellLog::getClosestIndex(const osg::FloatArray& arr, float val)
 
     return -1;
 }
+
+}// Namespace
+
+#include <osgDB/ObjectWrapper>
+#include <osgDB/Registry>
+#include <osgDB/Serializer>
+
+
+REGISTER_OBJECT_WRAPPER( WellLog_Wrapper,
+                        0,
+                        osgGeo::WellLog,
+                        "osg::Object osg::Node osgGeo::WellLog")
+{
+    ADD_OBJECT_SERIALIZER( Path, osg::Vec3Array, NULL );
+
+    ADD_OBJECT_SERIALIZER( ShapeLog, osg::FloatArray, NULL );
+    ADD_FLOAT_SERIALIZER( MaxShapeValue, -mMAX );
+    ADD_FLOAT_SERIALIZER( MinShapeValue, mMAX );
+
+    ADD_OBJECT_SERIALIZER( FillLogValues, osg::FloatArray, NULL );
+    ADD_FLOAT_SERIALIZER( MaxFillValue, -mMAX );
+    ADD_FLOAT_SERIALIZER( MinFillValue, mMAX );
+
+    ADD_OBJECT_SERIALIZER(FillLogColorTab, osg::Vec4Array, NULL );
+
+    ADD_BOOL_SERIALIZER(ShowLog, true );
+
+    ADD_FLOAT_SERIALIZER( ScreenWidth, 5 );
+
+    ADD_BOOL_SERIALIZER( RevScale, false );
+    ADD_BOOL_SERIALIZER( FillRevScale, false );
+    ADD_BOOL_SERIALIZER( LogConstantSize, false );
+    ADD_FLOAT_SERIALIZER( LogConstantSizeFactor, 0);
+
+    BEGIN_ENUM_SERIALIZER( DisplaySide, Right );
+    	ADD_ENUM_VALUE( Left );
+    	ADD_ENUM_VALUE( Right );
+    END_ENUM_SERIALIZER();
+
+    ADD_UINT_SERIALIZER(RepeatNumber, 0);
+    ADD_FLOAT_SERIALIZER(RepeatGap, 1 );
+
+    ADD_BOOL_SERIALIZER( FullFilled, true);
+    ADD_BOOL_SERIALIZER( SeisLogStyle, false );
+
+    ADD_BOOL_SERIALIZER( LogFill, true );
+    ADD_FLOAT_SERIALIZER( LineWidth, 1 );
+
+    ADD_VEC4_SERIALIZER( LineColor, osg::Vec4(1,0,0,0) );
+    ADD_INT_SERIALIZER(Resolution, 1);
+}
+

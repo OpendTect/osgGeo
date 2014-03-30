@@ -48,30 +48,36 @@ namespace osgGeo
 class OSGGEO_EXPORT TubeWellLog : public osgGeo::WellLog
 {
 public:
-					TubeWellLog();
+        			TubeWellLog();
+                                TubeWellLog(const TubeWellLog&,
+                                        const osg::CopyOp& op = osg::CopyOp::DEEP_COPY_ALL);
+                                META_Node(osgGeo,TubeWellLog);
 
-    enum RenderMode { RenderBackSide=-1, RenderBothSides, RenderFrontSide };
-    void				setResolution(int);
-    int					getResolution() {return _resolution;}
-    void				setRenderMode(RenderMode mode);
+    enum RenderMode 		{ RenderBackSide=-1, RenderBothSides, RenderFrontSide };
 
-    virtual void			setDisplaySide(DisplaySide) {};
-    virtual DisplaySide			getDisplaySide(){return Left;};
-    virtual void			setRepeatNumber(unsigned int) {};
-    virtual unsigned int		getRepeatNumber() {return 0;};
-    virtual void			setRepeatGap (float) {};
-    virtual float			getRepeatGap() {return .0f;};
-    virtual void			setFullFilled(bool){};
-    virtual bool			getFullFilled(){return false;};
-    virtual void			setSeisLogStyle(bool){};
-    virtual bool 			getSeisLogStyle() const{return false;};
-    virtual void			setLogFill(bool){};
-    virtual void			setLineWidth( float ){};
-    virtual float			getLineWidth() const { return 0; };
-    virtual void			setLineColor( osg::Vec4d ){};
-    virtual osg::Vec4d			getLineColor() const 
-						{return osg::Vec4d(0,0,0,0);};
-    virtual void			clearLog();
+    void			setRenderMode(RenderMode mode);
+    RenderMode			getRenderMode() const;
+
+    void			setResolution(int);
+    int				getResolution() const {return _resolution;}
+
+    virtual void		setDisplaySide(DisplaySide) {};
+    virtual DisplaySide		getDisplaySide() const {return Left;};
+    virtual void		setRepeatNumber(unsigned int) {};
+    virtual unsigned int	getRepeatNumber() const {return 0;};
+    virtual void		setRepeatGap (float) {};
+    virtual float		getRepeatGap() const {return .0f;};
+    virtual void		setFullFilled(bool){};
+    virtual bool		getFullFilled() const {return false;};
+    virtual void		setSeisLogStyle(bool){};
+    virtual bool 		getSeisLogStyle() const{return false;};
+    virtual void		setLogFill(bool){};
+    bool			getLogFill() const { return false; }
+    virtual void		setLineWidth( float ){};
+    virtual float		getLineWidth() const { return 0; };
+    virtual void		setLineColor( const osg::Vec4& ){};
+    virtual const osg::Vec4&	getLineColor() const;
+    virtual void		clearLog();
 
 
 protected:
@@ -80,10 +86,6 @@ protected:
     virtual float			getShapeFactor(float val, float minval, 
 							float maxval) const;
     					~TubeWellLog();
-
-    enum				{LOGLINE_ONLY,SEISMIC_ONLY,
-						LOGFILL_ONLY,LOGLNFL_BOTH};
-
 private:
     void			calcTubeShape(float);
     void			updateTubeLogColor();

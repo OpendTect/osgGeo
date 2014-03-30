@@ -49,30 +49,35 @@ namespace osgGeo
 class OSGGEO_EXPORT PlaneWellLog : public osgGeo::WellLog
 {
 public:
-				PlaneWellLog();
-    void			setDisplaySide(DisplaySide);
-    DisplaySide			getDisplaySide() { return _dispSide; }
-    void			setRepeatNumber( unsigned int );
-    unsigned int		getRepeatNumber() { return _repeatNumber; }
-    void			setRepeatGap (float);
-    float			getRepeatGap() { return _repeatGap; }
-    void			setFullFilled(bool);
-    bool			getFullFilled() { return _isFullFilled; }
+			PlaneWellLog();
+                        PlaneWellLog(const PlaneWellLog&,
+                                     const osg::CopyOp& op = osg::CopyOp::DEEP_COPY_ALL);
+                        META_Node(osgGeo,PlaneWellLog);
 
-    void			setSeisLogStyle(bool);
-    bool 			getSeisLogStyle() const { return _seisStyle; }
+    void		setDisplaySide(DisplaySide);
+    DisplaySide		getDisplaySide() const { return _dispSide; }
+    void		setRepeatNumber( unsigned int );
+    unsigned int	getRepeatNumber() const { return _repeatNumber; }
+    void		setRepeatGap (float);
+    float		getRepeatGap() const { return _repeatGap; }
+    void		setFullFilled(bool);
+    bool		getFullFilled() const { return _isFullFilled; }
 
-    void			setLogFill(bool);
+    void		setSeisLogStyle(bool);
+    bool 		getSeisLogStyle() const { return _seisStyle; }
 
-    void			setLineWidth(float);
-    float			getLineWidth() const;
+    void		setLogFill(bool);
+    bool		getLogFill() const { return _isFilled; }
 
-    void			setLineColor(osg::Vec4d);
-    osg::Vec4d			getLineColor() const;
-    void			setResolution(int){};
-    int				getResolution(){ return 0; };
+    void		setLineWidth(float);
+    float		getLineWidth() const;
 
-    virtual void		clearLog();
+    void		setLineColor(const osg::Vec4&);
+    const osg::Vec4&	getLineColor() const;
+    void		setResolution(int){};
+    int			getResolution() const { return 0; };
+
+    virtual void	clearLog();
 
 
 protected:
@@ -82,7 +87,7 @@ protected:
                                            float maxval) const;
 				 ~PlaneWellLog();
 
-    enum			{LOGLINE_ONLY,SEISMIC_ONLY,
+    enum RenderMode		{LOGLINE_ONLY,SEISMIC_ONLY,
 				 LOGFILL_ONLY,LOGLNFL_BOTH};
 
 private:
@@ -94,7 +99,7 @@ private:
     void			clearCoords();
     void			buildLineGeometry();
     void			buildTriangleGeometry();
-    unsigned int		getLogItem();
+    RenderMode			getLogItem() const;
     float			getRepeatStep() const;
     	
     osg::ref_ptr<osg::DrawArrays>	_linePrimitiveSet;
