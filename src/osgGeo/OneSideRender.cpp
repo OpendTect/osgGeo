@@ -23,11 +23,11 @@ $Id$
 #include <osgGeo/ComputeBoundsVisitor>
 #include <osgUtil/CullVisitor>
 
-osgGeo::OneSideRenderNode::OneSideRenderNode()
+osgGeo::OneSideRender::OneSideRender()
 {}
 
 
-osgGeo::OneSideRenderNode::OneSideRenderNode(const OneSideRenderNode& b,
+osgGeo::OneSideRender::OneSideRender(const OneSideRender& b,
 					      const osg::CopyOp& op)
     : osg::Node( b, op )
 {
@@ -42,13 +42,13 @@ osgGeo::OneSideRenderNode::OneSideRenderNode(const OneSideRenderNode& b,
 }
 
 
-bool osgGeo::OneSideRenderNode::addDrawable(osg::Drawable* gset)
+bool osgGeo::OneSideRender::addDrawable(osg::Drawable* gset)
 {
     return addDrawable(gset, Line3(osg::Vec3(0,0,0), osg::Vec3(0,0,1)));
 }
 
 
-bool osgGeo::OneSideRenderNode::addDrawable( osg::Drawable* gset,
+bool osgGeo::OneSideRender::addDrawable( osg::Drawable* gset,
 					     const Line3& line )
 {
     _drawables.push_back( gset );
@@ -60,7 +60,7 @@ bool osgGeo::OneSideRenderNode::addDrawable( osg::Drawable* gset,
 }
 
 
-bool osgGeo::OneSideRenderNode::removeDrawable(osg::Drawable* gset)
+bool osgGeo::OneSideRender::removeDrawable(osg::Drawable* gset)
 {
     DrawableList::iterator drawable = std::find(
 	_drawables.begin(), _drawables.end(), gset);
@@ -75,7 +75,7 @@ bool osgGeo::OneSideRenderNode::removeDrawable(osg::Drawable* gset)
     return true;
 }
 
-void osgGeo::OneSideRenderNode::traverse(osg::NodeVisitor& nv)
+void osgGeo::OneSideRender::traverse(osg::NodeVisitor& nv)
 {
     if ( nv.getVisitorType()==osg::NodeVisitor::CULL_VISITOR )
     {
@@ -121,14 +121,14 @@ void osgGeo::OneSideRenderNode::traverse(osg::NodeVisitor& nv)
 }
 
 
-void osgGeo::OneSideRenderNode::setLine(unsigned int idx,const Line3& line)
+void osgGeo::OneSideRender::setLine(unsigned int idx,const Line3& line)
 {
     if ( idx<_lines.size() )
 	_lines[idx] = line;
 }
 
 
-osg::BoundingSphere osgGeo::OneSideRenderNode::computeBound() const
+osg::BoundingSphere osgGeo::OneSideRender::computeBound() const
 {
    if ( _bbox.valid() )
     return _bbox;
@@ -140,3 +140,62 @@ osg::BoundingSphere osgGeo::OneSideRenderNode::computeBound() const
 
    return bbox;
 }
+
+
+#include <osgDB/ObjectWrapper>
+#include <osgDB/Registry>
+#include <osgDB/Serializer>
+
+static bool checkDrawables( const osgGeo::OneSideRender& node )
+{
+    return node.getNumDrawables()>0;
+}
+
+
+static bool writeDrawables( osgDB::OutputStream& os, const osgGeo::OneSideRender& node )
+{
+    unsigned int size = node.getNumDrawables();
+    os << size << os.BEGIN_BRACKET << std::endl;
+    for ( unsigned int i=0; i<size; ++i )
+    {
+        os << os.PROPERTY("Line") << node.getLine(i) << std::endl;
+        os.writeObject( node.getDrawable(i) );
+    }
+
+    os << os.END_BRACKET << std::endl;
+    return true;
+}
+
+
+static bool readDrawables( osgDB::InputStream& is, osgGeo::OneSideRender& node )
+{
+    unsigned int size = 0; is >> size >> is.BEGIN_BRACKET;
+    for ( unsigned int i=0; i<size; ++i )
+    {
+        osgGeo::Line3 line;
+        is >> is.PROPERTY("Line") >> line;
+
+        osg::Drawable* drawable = dynamic_cast<osg::Drawable*>( is.readObject() );
+        if ( drawable )
+        {
+            node.addDrawable( drawable, line );
+        }
+    }
+
+    is >> is.END_BRACKET;
+    
+    return true;
+}
+
+
+REGISTER_OBJECT_WRAPPER( OneSideRender_Wrapper,
+                        new osgGeo::OneSideRender,
+                        osgGeo::OneSideRender,
+                        "osg::Object osg::Node osgGeo::OneSideRender")
+{
+    ADD_USER_SERIALIZER( Drawables );  // _drawables & _lines
+}
+
+
+
+
