@@ -49,14 +49,18 @@ class OSGGEO_EXPORT WellLog : public osg::Node
 {
 public:
 				WellLog();
+                                WellLog(const WellLog&,
+                                	const osg::CopyOp& op = osg::CopyOp::DEEP_COPY_ALL);
 
     void			setPath(osg::Vec3Array*);
     osg::Vec3Array*		getPath(){return _logPath;}
+    const osg::Vec3Array*	getPath() const { return _logPath; }
 
     void			setShapeLog(osg::FloatArray*);
 				/*!<Linked with path. Start is assumed to be
 				    start of path.*/
     osg::FloatArray*		getShapeLog() {return _shapeLog;}
+    const osg::FloatArray*	getShapeLog() const {return _shapeLog;}
     void			setMaxShapeValue(float);
     float			getMaxShapeValue() const {return _maxShapeValue;}
 
@@ -66,6 +70,7 @@ public:
 				/*!<Linked with path. Start is assumed to be
 				    start of path. */
     osg::FloatArray*		getFillLogValues() {return _fillLog;}
+    const osg::FloatArray*	getFillLogValues() const {return _fillLog;}
     void			setFillLogDepths(osg::FloatArray*);
     osg::FloatArray*		getFillLogDepths() {return _fillLogDepths;}
 
@@ -76,7 +81,8 @@ public:
     float			getMinFillValue() const {return _minFillValue;}
 
     void			setFillLogColorTab(osg::Vec4Array*);
-    osg::Vec4Array*		getFillLogColotTab() {return _colorTable;}
+    osg::Vec4Array*		getFillLogColorTab() {return _colorTable;}
+    const osg::Vec4Array*	getFillLogColorTab() const {return _colorTable;}
 
     void			setShowLog(bool);
     bool			getShowLog() const {return _showLog;}
@@ -85,8 +91,10 @@ public:
     float			getScreenWidth() const {return _screenWidth;}
 	
     void			setRevScale(bool yn);
+    bool			getRevScale() const { return _revScale; }
 
     void			setFillRevScale(bool yn);
+    bool			getFillRevScale() const { return _fillRevScale; }
 
     void 			setLogConstantSize(bool);
     bool 			getLogConstantSize() const 
@@ -101,22 +109,23 @@ public:
 
     enum			DisplaySide {Left, Right};
     virtual void		setDisplaySide(DisplaySide) = 0;
-    virtual DisplaySide		getDisplaySide()=0;
+    virtual DisplaySide		getDisplaySide() const =0;
     virtual void		setRepeatNumber(unsigned int) = 0; 
-    virtual unsigned int	getRepeatNumber() = 0;
+    virtual unsigned int	getRepeatNumber() const = 0;
     virtual void		setRepeatGap(float) = 0;
-    virtual float		getRepeatGap() = 0;
+    virtual float		getRepeatGap() const = 0;
     virtual void		setFullFilled(bool) = 0;
-    virtual bool		getFullFilled() = 0;
+    virtual bool		getFullFilled() const = 0;
     virtual void		setSeisLogStyle(bool) = 0;
     virtual bool 		getSeisLogStyle()const = 0;
     virtual void		setLogFill(bool) = 0;
+    virtual bool		getLogFill() const = 0;
     virtual void		setLineWidth(float) = 0;
     virtual float		getLineWidth()const = 0;
-    virtual void		setLineColor(osg::Vec4d) = 0;
-    virtual osg::Vec4d		getLineColor() const = 0;
+    virtual void		setLineColor(const osg::Vec4&) = 0;
+    virtual const osg::Vec4&	getLineColor() const = 0;
     virtual void		setResolution(int) = 0;
-    virtual int			getResolution() = 0;
+    virtual int			getResolution() const = 0;
 
     virtual void		clearLog();
 
@@ -133,31 +142,31 @@ protected:
     float			calcWorldWidth(const osgUtil::CullVisitor* cv);
     osg::Vec3			getPrjDirection(const osgUtil::CullVisitor* cv) const;
     int				getClosestIndex(const osg::FloatArray& arr, float value);
-    osg::ref_ptr<osg::Geode>	_geode;
-    osg::ref_ptr<osg::Group>	_nonShadingGroup;
-    osg::ref_ptr<osg::Vec4Array>_colorTable;
-    osg::ref_ptr<osg::Vec3Array>_logPath;	
-    osg::FloatArray*		_shapeLog;	                                
-    osg::FloatArray*		_fillLog;
-    osg::FloatArray*		_fillLogDepths;	
-    std::vector<int>		_outFillIndex;
-    bool                    _showLog;
-    bool                    _resizeWhenZooming;
-    bool                    _colorTableChanged;
-    bool                    _screenSizeChanged;
-    bool                    _forceCoordReCalculation;
-    bool                    _forceReBuild;
-    bool                    _revScale;
-    bool                    _fillRevScale;
-    float                   _maxShapeValue;
-    float                   _minShapeValue;
-    float                   _screenWidth;
-    float                   _maxFillValue;
-    float                   _minFillValue;
-    float                   _constantSizeFactor;
-    osg::Vec2               _screenSize;
-    osg::Vec3               _preProjDir; 
-    osg::BoundingBox        _bbox;
+    osg::ref_ptr<osg::Geode>		_geode;
+    osg::ref_ptr<osg::Group>		_nonShadingGroup;
+    osg::ref_ptr<osg::Vec4Array>	_colorTable;
+    osg::ref_ptr<osg::Vec3Array>	_logPath;
+    osg::ref_ptr<osg::FloatArray>	_shapeLog;
+    osg::ref_ptr<osg::FloatArray>	_fillLog;
+    osg::ref_ptr<osg::FloatArray>	_fillLogDepths;
+    std::vector<int>			_outFillIndex;
+    bool                 		_showLog;
+    bool                    		_resizeWhenZooming;
+    bool                    		_colorTableChanged;
+    bool                    		_screenSizeChanged;
+    bool                    		_forceCoordReCalculation;
+    bool                    		_forceReBuild;
+    bool                    		_revScale;
+    bool                    		_fillRevScale;
+    float                   		_maxShapeValue;
+    float                   		_minShapeValue;
+    float                   		_screenWidth;
+    float                   		_maxFillValue;
+    float                   		_minFillValue;
+    float                   		_constantSizeFactor;
+    osg::Vec2               		_screenSize;
+    osg::Vec3               		_preProjDir;
+    osg::BoundingBox        		_bbox;
 
 private:
     osg::Vec2			worldToScreen(const osg::Vec3& worldPosition,

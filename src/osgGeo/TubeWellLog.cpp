@@ -37,18 +37,29 @@ using namespace osgGeo;
 
 
 TubeWellLog::TubeWellLog()
-    :WellLog()
-,_logTubeShapePoints(new osg::Vec3Array)
-,_logTubeCircleNormals(new osg::Vec3Array)
-,_logTubeVerts (new osg::Vec3Array)
-,_logColors(new osg::Vec4Array)
-,_logPathVerts(new osg::Vec3Array)
-,_resolution(INIRESOLUTION)
+    : WellLog()
+    , _logTubeShapePoints(new osg::Vec3Array)
+    , _logTubeCircleNormals(new osg::Vec3Array)
+    , _logTubeVerts (new osg::Vec3Array)
+    , _logColors(new osg::Vec4Array)
+    , _logPathVerts(new osg::Vec3Array)
+    , _resolution(INIRESOLUTION)
 {
     buildTubeGeometry();
     buildCenterLineGeometry();
     _bbox.init();
 }
+
+
+TubeWellLog::TubeWellLog( const TubeWellLog& twl, const osg::CopyOp& cop )
+    : WellLog( twl, cop )
+    ,_logTubeShapePoints(new osg::Vec3Array)
+    ,_logTubeCircleNormals(new osg::Vec3Array)
+    ,_logTubeVerts (new osg::Vec3Array)
+    ,_logColors(new osg::Vec4Array)
+    ,_logPathVerts(new osg::Vec3Array)
+    , _resolution( twl._resolution )
+{}
 
 
 TubeWellLog::~TubeWellLog()
@@ -138,9 +149,27 @@ void TubeWellLog::setRenderMode( RenderMode mode )
 	return;
 
     osg::ref_ptr<osg::CullFace> cullface = new osg::CullFace;
-    cullface->setMode( mode>=RenderFrontSide ? osg::CullFace::FRONT
+    cullface->setMode( mode>=RenderFrontSide
+        ? osg::CullFace::FRONT
 	: osg::CullFace::BACK );
     stateset->setAttributeAndModes( cullface, osg::StateAttribute::ON );
+}
+
+
+TubeWellLog::RenderMode TubeWellLog::getRenderMode() const
+{
+    const osg::StateSet* stateset = getStateSet();
+    const osg::LightModel* lightmodel = stateset
+        ? dynamic_cast<const osg::LightModel*>(stateset->getAttribute(osg::StateAttribute::LIGHTMODEL))
+        : 0;
+
+    const osg::CullFace* cullface =
+    	dynamic_cast<const osg::CullFace*>(stateset->getAttribute(osg::StateAttribute::CULLFACE));
+
+    if ( !stateset || !lightmodel || lightmodel->getTwoSided() || !cullface )
+        return RenderBothSides;
+
+    return cullface->getMode()==osg::CullFace::FRONT ? RenderFrontSide : RenderBackSide;
 }
 
 
@@ -279,6 +308,13 @@ osg::BoundingSphere TubeWellLog::computeBound() const
 }
 
 
+const osg::Vec4& TubeWellLog::getLineColor() const
+{
+    static osg::Vec4 res;
+    return res;
+}
+
+
 void TubeWellLog::setResolution(int resolution)
 {
     _resolution = resolution; 
@@ -407,3 +443,20 @@ void TubeWellLog::clearVerts()
 {
     _logTubeVerts->clear();
 }
+
+#include <osgDB/ObjectWrapper>
+#include <osgDB/Registry>
+#include <osgDB/Serializer>
+
+REGISTER_OBJECT_WRAPPER( TubeWellLog_Wrapper,
+                        new TubeWellLog,
+                        osgGeo::TubeWellLog,
+                        "osg::Object osg::Node osgGeo::WellLog osgGeo::TubeWellLog")
+{
+    BEGIN_ENUM_SERIALIZER( RenderMode, RenderBackSide );
+        ADD_ENUM_VALUE( RenderBackSide );
+        ADD_ENUM_VALUE( RenderBothSides );
+        ADD_ENUM_VALUE( RenderFrontSide );
+    END_ENUM_SERIALIZER();
+}
+

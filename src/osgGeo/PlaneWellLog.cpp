@@ -29,29 +29,51 @@ $Id$
 
 #define mMAX 1e30
 
-using namespace osgGeo;
+namespace osgGeo
+{
 
 
 PlaneWellLog::PlaneWellLog()
-    :WellLog()
-,_coordLinedFactors(new osg::FloatArray)
-,_coordLinedTriFactors(new osg::FloatArray)
-,_logLinedPoints(new osg::Vec3Array)
-,_logLinedTriPoints (new osg::Vec3Array)
-,_logColors(new osg::Vec4Array)
-,_dispSide(Left)
-,_repeatNumber(1)
-,_repeatGap(100.0f)
-,_seisStyle(false)
-,_isFilled(false)
-,_triGeometryWidth(.0)
-,_isFullFilled(false)
-,_worldWidth(.0)
-
+    : WellLog()
+    ,_coordLinedFactors(new osg::FloatArray)
+    ,_coordLinedTriFactors(new osg::FloatArray)
+    ,_logLinedPoints(new osg::Vec3Array)
+    ,_logLinedTriPoints (new osg::Vec3Array)
+    ,_logColors(new osg::Vec4Array)
+    ,_dispSide(Left)
+    ,_repeatNumber(1)
+    ,_repeatGap(100.0f)
+    ,_seisStyle(false)
+    ,_isFilled(false)
+    ,_triGeometryWidth(.0)
+    ,_isFullFilled(false)
+    ,_worldWidth(.0)
 {
     buildLineGeometry();
     buildTriangleGeometry();
 }
+
+
+PlaneWellLog::PlaneWellLog( const PlaneWellLog& pwl, const osg::CopyOp& cop )
+    : WellLog( pwl, cop )
+    ,_coordLinedFactors(new osg::FloatArray)
+    ,_coordLinedTriFactors(new osg::FloatArray)
+    ,_logLinedPoints(new osg::Vec3Array)
+    ,_logLinedTriPoints (new osg::Vec3Array)
+    ,_logColors(new osg::Vec4Array)
+    ,_dispSide(Left)
+    ,_repeatNumber(1)
+    ,_repeatGap(100.0f)
+    ,_seisStyle(false)
+    ,_isFilled(false)
+    ,_triGeometryWidth(.0)
+    ,_isFullFilled(false)
+    ,_worldWidth(.0)
+{
+    buildLineGeometry();
+    buildTriangleGeometry();
+}
+
 
 
 PlaneWellLog::~PlaneWellLog()
@@ -148,14 +170,14 @@ void PlaneWellLog::setLineWidth(float lineWidth)
 }
 
 
-void PlaneWellLog::setLineColor(osg::Vec4d lineColor)
+void PlaneWellLog::setLineColor( const osg::Vec4& lineColor)
 {
     (*_lineColor)[0] = lineColor;
     _lineColor->dirty();
 }
 
 
-osg::Vec4d PlaneWellLog::getLineColor() const 
+const osg::Vec4& PlaneWellLog::getLineColor() const
 {
     return _lineColor->at(0);
 }
@@ -323,12 +345,13 @@ void PlaneWellLog::traverse(osg::NodeVisitor& nv)
 }
 
 
-unsigned int PlaneWellLog::getLogItem()
+PlaneWellLog::RenderMode PlaneWellLog::getLogItem() const
 {
     if ( _seisStyle )
 	return SEISMIC_ONLY;
     if ( !_isFilled)
 	return LOGLINE_ONLY;
+
     return LOGLNFL_BOTH;
 }
 
@@ -588,3 +611,15 @@ void PlaneWellLog::updateFilledLogColor()
     _colorTableChanged = false;
 
 }
+
+} //namespace
+
+#include <osgDB/ObjectWrapper>
+#include <osgDB/Registry>
+#include <osgDB/Serializer>
+
+REGISTER_OBJECT_WRAPPER( PlaneWellLog_Wrapper,
+                        new osgGeo::PlaneWellLog,
+                        osgGeo::PlaneWellLog,
+                        "osg::Object osg::Node osgGeo::WellLog osgGeo::PlaneWellLog")
+{}
