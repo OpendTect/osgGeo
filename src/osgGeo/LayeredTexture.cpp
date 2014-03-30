@@ -2614,3 +2614,15 @@ const osg::Image* LayeredTexture::getCompositeTextureImage()
 
 
 } //namespace
+
+#include <osgDB/ObjectWrapper>
+#include <osgDB/Registry>
+#include <osgDB/Serializer>
+
+REGISTER_OBJECT_WRAPPER( LayeredTexture_Wrapper,
+                        new osgGeo::LayeredTexture,
+                        osgGeo::LayeredTexture,
+                        "osg::Object osgGeo::LayeredTexture")
+{
+}
+
