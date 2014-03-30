@@ -25,6 +25,7 @@ $Id$
 #include <osgGeo/Common>
 
 namespace osg { class Plane; }
+namespace osgDB { class InputStream; class OutputStream; }
 
 namespace osgGeo
 {
@@ -32,6 +33,7 @@ namespace osgGeo
 class OSGGEO_EXPORT Line3
 {
 public:
+                Line3() {}
 		Line3(const osg::Vec3& pos,const osg::Vec3& dir)
 		    : _pos( pos ), _dir( dir ) {}
 		Line3(const Line3& l) : _pos(l._pos), _dir(l._dir) {}
@@ -45,6 +47,10 @@ public:
     osg::Vec3	_pos;
     osg::Vec3	_dir;
 };
+
+
+OSGGEO_EXPORT osgDB::InputStream& operator>>(osgDB::InputStream&,Line3&);
+OSGGEO_EXPORT osgDB::OutputStream& operator<<(osgDB::OutputStream&,const Line3&);
 
 } // osgGeo
 
