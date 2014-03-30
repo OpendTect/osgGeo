@@ -23,6 +23,8 @@ $Id$
 
 #include <osgGeo/Line3>
 #include <osg/Plane>
+#include <osgDB/InputStream>
+#include <osgDB/OutputStream>
 
 #define mDefEpsD		(1e-10)
 #define mIsZero(x,eps)		( (x) < (eps) && (x) > (-eps) )
@@ -58,5 +60,18 @@ osg::Vec3 Line3::getInterSectionPoint( const osg::Plane& plane ) const
     intersectWith( plane, intercept );
     return getPositionOnLine( intercept );
 }
+
+
+osgDB::InputStream& operator>>( osgDB::InputStream& is, Line3& line )
+{
+    return is >> line._pos >> line._dir;
+}
+
+
+osgDB::OutputStream& operator<<( osgDB::OutputStream& os, const Line3& line )
+{
+    return os << line._pos << line._dir;
+}
+
 
 } // osgGeo
