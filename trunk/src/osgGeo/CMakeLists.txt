@@ -21,7 +21,8 @@ set( LIB_NAME osgGeo )
 
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/Config.cmake
-    ${CMAKE_CURRENT_SOURCE_DIR}/Config)
+    ${CMAKE_CURRENT_BINARY_DIR}/Config )
+
 
 set ( LIB_PUBLIC_HEADERS 
     AutoTransform
@@ -53,6 +54,17 @@ set ( LIB_PUBLIC_HEADERS
     Vec2i
     VolumeTechniques
     WellLog) 
+
+if ( NOT ( ${CMAKE_CURRENT_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_BINARY_DIR} ) )
+    foreach ( HEADER ${LIB_PUBLIC_HEADERS} )
+	if ( NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/${HEADER} )
+	    configure_file(
+		    ${CMAKE_CURRENT_SOURCE_DIR}/${HEADER}
+		    ${CMAKE_CURRENT_BINARY_DIR}/${HEADER} )
+	endif()
+    endforeach()
+
+endif()
 
 add_library( ${LIB_NAME} SHARED
     ${LIB_PUBLIC_HEADERS}
