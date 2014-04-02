@@ -254,7 +254,7 @@ osg::Texture2D* ThumbWheel::getSharedTexture()
 void ThumbWheel::setBorderColor( const osg::Vec4& col )
 {
     _outlineMaterial->setDiffuse( osg::Material::FRONT,
-                                  osg::Vec4(col[0],col[1],col[2], 1));
+                                  osg::Vec4(col[0],col[1],col[2],col[3]) );
 }
 
 
@@ -415,8 +415,6 @@ bool ThumbWheel::updateAnimation( float progress )
     }
 
     _wheelMaterial->setAlpha( osg::Material::FRONT, opacity );
-    _outlineMaterial->setAlpha( osg::Material::FRONT, 1-opacity );
-
     return do_cont;
 }
 
