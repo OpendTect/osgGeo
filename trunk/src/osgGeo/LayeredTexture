@@ -36,7 +36,8 @@ $Id$
 namespace osgGeo
 {
 
-enum FilterType { Nearest, Linear };
+enum FilterType		{ Nearest, Linear };
+enum ImageDataOrder	{ STR, SRT, TRS, TSR, RST, RTS };
 
 
 struct LayeredTextureData;
@@ -87,6 +88,8 @@ public:
 			   yields a smooth transition on screen. */
 
     const osg::Image*	getDataLayerImage(int id) const;
+			/*!Returned with permuted dimensional sizes if
+			   image data order is set other than default STR. */
 
     void		setDataLayerOrigin(int id,const osg::Vec2f&);
     const osg::Vec2f&	getDataLayerOrigin(int id) const;
@@ -126,6 +129,12 @@ public:
 			   color value in the image channel(s) (default). */
 
     const osg::Vec4f&	getDataLayerImageUndefColor(int id) const;
+
+    void		setDataLayerImageOrder(int id,ImageDataOrder);
+    ImageDataOrder	getDataLayerImageOrder(int id) const;
+
+    void		setDataLayerSliceNr(int id,int nr);
+    int			getDataLayerSliceNr(int id) const;
 
     void		setStackUndefLayerID(int id);
     int			getStackUndefLayerID() const;

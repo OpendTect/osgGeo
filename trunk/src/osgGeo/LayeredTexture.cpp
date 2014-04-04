@@ -235,7 +235,7 @@ static int encodeBaseChannelPower( osg::Image& image, int nrPowerChannels )
     }
 
     unsigned char* ptr = image.data();
-    const unsigned char* endPtr = ptr + image.getImageSizeInBytes();
+    const unsigned char* endPtr = ptr + image.getTotalSizeInBytes();
 
     while ( ptr < endPtr )
     {
@@ -247,6 +247,61 @@ static int encodeBaseChannelPower( osg::Image& image, int nrPowerChannels )
     }
 
     return nrPowerChannels;
+}
+
+
+static void copyImageTile( const osg::Image& srcImage, osg::Image& tileImage, const Vec2i& tileOrigin, const Vec2i& tileSize, int sliceNr=0, ImageDataOrder dataOrder=osgGeo::STR )
+{
+    const int xSize = tileSize.x();
+    const int ySize = tileSize.y();
+
+    tileImage.allocateImage( xSize, ySize, 1, srcImage.getPixelFormat(), srcImage.getDataType(), srcImage.getPacking() );
+
+    const int pixelSize = srcImage.getPixelSizeInBits()/8;
+    int xStep = pixelSize; int yStep = pixelSize; int zStep = pixelSize;
+
+    if ( dataOrder==osgGeo::STR )
+    {
+	yStep *= srcImage.s(); zStep *= srcImage.s()*srcImage.t();
+    }
+    else if ( dataOrder==osgGeo::SRT )
+    {
+	zStep *= srcImage.s(); yStep *= srcImage.s()*srcImage.r();
+    }
+    else if ( dataOrder==osgGeo::TRS )
+    {
+	xStep *= srcImage.r(); yStep *= srcImage.r()*srcImage.s();
+    }
+    else if ( dataOrder==osgGeo::TSR )
+    {
+	xStep *= srcImage.t(); zStep *= srcImage.t()*srcImage.s();
+    }
+    else if ( dataOrder==osgGeo::RST )
+    {
+	zStep *= srcImage.t(); xStep *= srcImage.t()*srcImage.r();
+    }
+    else if ( dataOrder==osgGeo::RTS )
+    {
+	yStep *= srcImage.r(); xStep *= srcImage.r()*srcImage.t();
+    }
+
+    unsigned char* tilePtr = tileImage.data();
+    const unsigned char* imagePtr = srcImage.data();
+    imagePtr += tileOrigin.x()*xStep + tileOrigin.y()*yStep + sliceNr*zStep;
+    yStep -= xSize * xStep;
+    xStep -= pixelSize;
+
+    for ( int yCount=0; yCount<ySize; yCount++ )
+    {
+	for ( int xCount=0; xCount<xSize; xCount++ )
+	{
+	    for ( int pCount=0; pCount<pixelSize; pCount++ )
+		*tilePtr++ = *imagePtr++;
+
+	    imagePtr += xStep;
+	}
+	imagePtr += yStep;
+    }
 }
 
 
@@ -262,6 +317,8 @@ struct LayeredTextureData : public osg::Referenced
 			    , _image( 0 )
 			    , _imageSource( 0 )
 			    , _imageScale( 1.0f, 1.0f )
+			    , _imageDataOrder( STR )
+			    , _sliceNr( 0 )
 			    , _freezeDisplay( false )
 			    , _nrPowerChannels( 0 )
 			    , _textureUnit( -1 )
@@ -287,6 +344,8 @@ struct LayeredTextureData : public osg::Referenced
     void		adaptColors();
     void		cleanUp();
     void		updateTileImagesIfNeeded() const;
+    bool		hasRescaledImage() const;
+    void		rescaleImage(int sNew,int tNew,bool inPlace=false);
 
     const int					_id;
     osg::Vec2f					_origin;
@@ -298,6 +357,8 @@ struct LayeredTextureData : public osg::Referenced
     osg::Vec2f					_imageScale;
     int						_imageModifiedCount;
     bool					_imageModifiedFlag;
+    ImageDataOrder				_imageDataOrder;
+    int						_sliceNr;
     bool					_freezeDisplay;
     bool					_nrPowerChannels;
     int						_textureUnit;
@@ -333,6 +394,8 @@ LayeredTextureData* LayeredTextureData::clone() const
     res->_freezeDisplay = _freezeDisplay;
     res->_imageModifiedCount = _imageModifiedCount;
     res->_imageScale = _imageScale; 
+    res->_imageDataOrder = _imageDataOrder; 
+    res->_sliceNr = _sliceNr; 
     res->_imageSource = _imageSource.get();
 
     if ( _image.get()==_imageSource.get() )
@@ -409,33 +472,47 @@ void LayeredTextureData::adaptColors()
 }
 
 
-#define GET_COLOR( color, image, s, t ) \
+
+#define GET_PIXEL_INDEX( idx, image, x, y, z, order ) \
+    const int idx = order==STR ? x+(y+z*image->t())*image->s() : \
+		    order==SRT ? x+(z+y*image->r())*image->s() : \
+		    order==TRS ? z+(x+y*image->s())*image->r() : \
+		    order==TSR ? y+(x+z*image->s())*image->t() : \
+		    order==RST ? y+(z+x*image->r())*image->t() : \
+		  /*order==RTS*/ z+(y+x*image->t())*image->r();
+
+#define GET_COLOR( color, image, x, y, z, order ) \
 \
     osg::Vec4f color = _borderColor; \
-    if ( s>=0 && s<image->s() && t>=0 && t<image->t() ) \
-	color = image->getColor( s, t ); \
-    else if ( _borderColor[0]>=0.0f ) \
-	color = _borderColor; \
-    else \
+    if ( x>=0 && x<image->s() && y>=0 && y<image->t() ) \
     { \
-	const int sClamp = s<=0 ? 0 : ( s>=image->s() ? image->s()-1 : s ); \
-	const int tClamp = t<=0 ? 0 : ( t>=image->t() ? image->t()-1 : t ); \
-	color = image->getColor( sClamp, tClamp ); \
+	GET_PIXEL_INDEX( pixelIdx, image, x, y, z, order ); \
+	color = image->getColor( pixelIdx ); \
+    } \
+    else if ( _borderColor[0]<0.0f ) \
+    { \
+	const int xClamp = x<=0 ? 0 : ( x>=image->s() ? image->s()-1 : x ); \
+	const int yClamp = y<=0 ? 0 : ( y>=image->t() ? image->t()-1 : y ); \
+	GET_PIXEL_INDEX( pixelIdx, image, xClamp, yClamp, z, order ); \
+	color = image->getColor( pixelIdx ); \
     }
 
 osg::Vec4f LayeredTextureData::getTextureVec( const osg::Vec2f& globalCoord ) const
 {
-    if ( !_image.get() || !_image->s() || !_image->t() )
+    if ( !_image.get() || !_image->s() || !_image->t() || !_image->r() )
 	return _borderColor;
 
     osg::Vec2f local = getLayerCoord( globalCoord );
     if ( _filterType!=Nearest )
 	local -= osg::Vec2f( 0.5, 0.5 );
 
+    const ImageDataOrder dataOrder = hasRescaledImage() ? STR : _imageDataOrder;
+    const int r = _sliceNr>=_image->r() ? _image->r()-1 : _sliceNr;
+
     int s = (int) floor( local.x() );
     int t = (int) floor( local.y() );
 
-    GET_COLOR( col00, _image, s, t );
+    GET_COLOR( col00, _image, s, t, r, dataOrder );
 
     if ( _filterType==Nearest )
 	return col00;
@@ -449,21 +526,21 @@ osg::Vec4f LayeredTextureData::getTextureVec( const osg::Vec2f& globalCoord ) co
 	    return col00;
 
 	s++;
-	GET_COLOR( col10, _image, s, t );
+	GET_COLOR( col10, _image, s, t, r, dataOrder );
 	return col00*(1.0f-sFrac) + col10*sFrac;
     }
 
     t++;
-    GET_COLOR( col01, _image, s, t );
+    GET_COLOR( col01, _image, s, t, r, dataOrder );
     col00 = col00*(1.0f-tFrac) + col01*tFrac;
 
     if ( !sFrac )
 	return col00;
 
     s++;
-    GET_COLOR( col11, _image, s, t );
+    GET_COLOR( col11, _image, s, t, r, dataOrder );
     t--;
-    GET_COLOR( col10, _image, s, t );
+    GET_COLOR( col10, _image, s, t, r, dataOrder );
 
     col10 = col10*(1.0f-tFrac) + col11*tFrac;
     return  col00*(1.0f-sFrac) + col10*sFrac;
@@ -490,6 +567,37 @@ void LayeredTextureData::updateTileImagesIfNeeded() const
 
 	_dirtyTileImages = false;
     }
+}
+
+
+bool LayeredTextureData::hasRescaledImage() const 
+{ return _image && _image!=_imageSource; }
+
+
+void LayeredTextureData::rescaleImage( int sNew, int tNew, bool inPlace )
+{
+    if ( sNew<1 || tNew<1 || !_imageSource )
+	return;
+
+    const int sliceNr = _sliceNr>=_imageSource->r() ? _imageSource->r()-1 : _sliceNr;
+    osg::ref_ptr<osg::Image> imageToScale = new osg::Image();
+
+    if ( _imageDataOrder==STR  )
+    {
+	imageToScale->setImage( _imageSource->s(), _imageSource->t(), 1, _imageSource->getInternalTextureFormat(), _imageSource->getPixelFormat(), _imageSource->getDataType(), _imageSource->data(0,0,sliceNr), osg::Image::NO_DELETE, _imageSource->getPacking() );
+    }
+    else
+    {
+	copyImageTile( *_imageSource, *imageToScale, Vec2i(0,0), Vec2i(_imageSource->s(),_imageSource->t()), sliceNr, _imageDataOrder ); 
+    }
+
+    // scaleImage(.) can only deal with 2D images without stride
+    imageToScale->scaleImage( sNew, tNew, 1 ); 
+
+    if ( inPlace && _image && sNew==_image->s() && tNew==_image->t() )
+	_image->copySubImage( 0, 0, 0, imageToScale ); 
+    else
+	_image = imageToScale;
 }
 
 
@@ -784,6 +892,50 @@ void LayeredTexture::setDataLayerScale( int id, const osg::Vec2f& scale )
 }
 
 
+static void permuteDimensions( osg::Image* image, ImageDataOrder dataOrder )
+{
+    if ( !image || dataOrder==STR )
+	return;
+
+    int sNew, tNew, rNew;
+
+    if ( dataOrder==SRT )
+    {
+	sNew = image->s(); tNew = image->r(); rNew = image->t();
+    }
+    else if ( dataOrder==TRS )
+    {
+	sNew = image->t(); tNew = image->r(); rNew = image->s();
+    }
+    else if ( dataOrder==TSR )
+    {
+	sNew = image->t(); tNew = image->s(); rNew = image->r();
+    }
+    else if ( dataOrder==RST )
+    {
+	sNew = image->r(); tNew = image->s(); rNew = image->t();
+    }
+    else if ( dataOrder==RTS )
+    {
+	sNew = image->r(); tNew = image->t(); rNew = image->s();
+    }
+
+    image->setImage( sNew, tNew, rNew, image->getInternalTextureFormat(), image->getPixelFormat(), image->getDataType(), image->data(), image->getAllocationMode(), image->getPacking(), image->getRowLength() );
+}
+
+
+static void permuteDimensionsBack( osg::Image* image, ImageDataOrder dataOrder )
+{
+    if ( dataOrder==TRS )
+	dataOrder = RST;
+    else if ( dataOrder==RST )
+	dataOrder = TRS;
+
+    permuteDimensions( image, dataOrder );
+
+}
+
+
 void LayeredTexture::setDataLayerImage( int id, osg::Image* image, bool freezewhile0, int nrPowerChannels )
 {
     const int idx = getDataLayerIndex( id );
@@ -799,14 +951,16 @@ void LayeredTexture::setDataLayerImage( int id, osg::Image* image, bool freezewh
     {
 	setUpdateVar( layer._freezeDisplay, false );
 
-	if ( !image->s() || !image->t() || !image->getPixelFormat() )
+	if ( !image->getTotalSizeInBytes() || !image->getPixelFormat() )
 	{
 	    std::cerr << "Data layer image cannot be set before allocation" << std::endl;
 	    return;
 	}
 
-	layer._nrPowerChannels = encodeBaseChannelPower(*image,nrPowerChannels);
+	if ( nrPowerChannels>=0 )	// -1 = no need to update power channels
+	    layer._nrPowerChannels = encodeBaseChannelPower(*image,nrPowerChannels);
 
+	permuteDimensions( image, layer._imageDataOrder );
 	Vec2i newImageSize( image->s(), image->t() );
 
 #ifdef USE_IMAGE_STRIDE
@@ -815,23 +969,20 @@ void LayeredTexture::setDataLayerImage( int id, osg::Image* image, bool freezewh
 	const bool retile = true;
 #endif
 
+	layer._imageSource = image;
+	layer._imageSourceData = image->data();
+	layer._imageSourceSize = newImageSize;
+
 	const int s = powerOf2Ceil( image->s() );
 	const int t = powerOf2Ceil( image->t() );
 
-	bool scaleImage = s>image->s() || t>image->t();
+	bool rescaleImage = s>image->s() || t>image->t();
 	if ( image->s()>=8 && image->t()>=8 && s*t>int(_maxTextureCopySize) )
-	    scaleImage = false;
+	    rescaleImage = false;
 
-	if ( scaleImage && _textureSizePolicy!=AnySize && id!=_compositeLayerId )
+	if ( rescaleImage && _textureSizePolicy!=AnySize && id!=_compositeLayerId )
 	{
-	    osg::Image* imageCopy = new osg::Image( *image );
-	    imageCopy->scaleImage( s, t, image->r() );
-
-	    if ( !retile )
-		const_cast<osg::Image*>(layer._image.get())->copySubImage( 0, 0, 0, imageCopy ); 
-	    else
-		layer._image = imageCopy;
-
+	    layer.rescaleImage( s, t, !retile );
 	    layer._imageScale.x() = float(image->s()) / float(s);
 	    layer._imageScale.y() = float(image->t()) / float(t);
 	}
@@ -841,9 +992,6 @@ void LayeredTexture::setDataLayerImage( int id, osg::Image* image, bool freezewh
 	    layer._imageScale = osg::Vec2f( 1.0f, 1.0f );
 	}
 
-	layer._imageSource = image;
-	layer._imageSourceData = image->data();
-	layer._imageSourceSize = newImageSize;
 	layer._imageModifiedCount = image->getModifiedCount();
 	layer.clearTransparencyType();
 
@@ -958,6 +1106,42 @@ void LayeredTexture::setDataLayerTextureUnit( int id, int unit )
 }
 
 
+void LayeredTexture::setDataLayerImageOrder( int id, ImageDataOrder dataOrder )
+{
+    const int idx = getDataLayerIndex( id );
+    if ( idx==-1 )
+	return;
+
+    LayeredTextureData* layer = _dataLayers[idx];
+
+    if ( layer->_imageDataOrder!=dataOrder )
+    {
+	permuteDimensionsBack( layer->_imageSource, layer->_imageDataOrder );
+	layer->_imageDataOrder = dataOrder;
+	setDataLayerImage( id, layer->_imageSource, false, -1 );
+    }
+}
+
+
+void LayeredTexture::setDataLayerSliceNr( int id, int nr )
+{
+    if ( nr<0 ) nr=0;
+
+    const int idx = getDataLayerIndex( id );
+    if ( idx!=-1 && _dataLayers[idx]->_sliceNr!=nr )
+    {
+	_dataLayers[idx]->_sliceNr = nr;
+	if ( _dataLayers[idx]->hasRescaledImage() )
+	{
+	    osg::Image* image = _dataLayers[idx]->_image;
+	    _dataLayers[idx]->rescaleImage( image->s(), image->t() );
+	}
+	if ( _dataLayers[idx]->_textureUnit>=0 )
+	    setUpdateVar( _tilingInfo->_retilingNeeded, true );
+    }
+}
+
+
 void LayeredTexture::setStackUndefLayerID( int id )
 {
     raiseUndefChannelRefCount( false );
@@ -1018,6 +1202,8 @@ GET_PROP( UndefChannel, int, _undefChannel, -1 )
 GET_PROP( UndefLayerID, int, _undefLayerId, -1 )
 GET_PROP( BorderColor, const osg::Vec4f&, _borderColor, osg::Vec4f(1.0f,1.0f,1.0f,1.0f) )
 GET_PROP( ImageUndefColor, const osg::Vec4f&, _undefColor, osg::Vec4f(-1.0f,-1.0f,-1.0f,-1.0f) )
+GET_PROP( SliceNr, int, _sliceNr, -1 )
+GET_PROP( ImageOrder, ImageDataOrder, _imageDataOrder, STR )
 
 
 TransparencyType LayeredTexture::getDataLayerTransparencyType( int id, int channel ) const
@@ -1525,61 +1711,6 @@ osg::Vec2 LayeredTexture::tilingPlanResolution() const
 }
 
 
-static void boundedCopy( unsigned char* dest, const unsigned char* src, int len, const unsigned char* lowPtr, const unsigned char* highPtr )
-{
-    if ( src>=highPtr || src+len<=lowPtr )
-    {
-	std::cerr << "Unsafe memcpy" << std::endl;
-	return;
-    }
-
-    if ( src < lowPtr )
-    {
-	std::cerr << "Unsafe memcpy" << std::endl;
-	len -= lowPtr - src;
-	src = lowPtr;
-    }
-    if ( src+len > highPtr )
-    {
-	std::cerr << "Unsafe memcpy" << std::endl;
-	len = highPtr - src;
-    }
-
-    memcpy( dest, src, len );
-}
-
-
-static void copyImageWithStride( const unsigned char* srcImage, unsigned char* tileImage, int nrRows, int rowSize, int offset, int stride, int pixelSize, const unsigned char* srcEnd )
-{
-    int rowLen = rowSize*pixelSize;
-    const unsigned char* srcPtr = srcImage+offset;
-
-    if ( !stride )
-    {
-	boundedCopy( tileImage, srcPtr, rowLen*nrRows, srcImage, srcEnd);
-	return;
-    }
-
-    const int srcInc = (rowSize+stride)*pixelSize;
-    for ( int idx=0; idx<nrRows; idx++, srcPtr+=srcInc, tileImage+=rowLen )
-	boundedCopy( tileImage, srcPtr, rowLen, srcImage, srcEnd );
-}
-
-
-static void copyImageTile( const osg::Image& srcImage, osg::Image& tileImage, const Vec2i& tileOrigin, const Vec2i& tileSize )
-{
-    tileImage.allocateImage( tileSize.x(), tileSize.y(), srcImage.r(), srcImage.getPixelFormat(), srcImage.getDataType(), srcImage.getPacking() );
-
-    const int pixelSize = srcImage.getPixelSizeInBits()/8;
-    int offset = tileOrigin.y()*srcImage.s()+tileOrigin.x();
-    offset *= pixelSize;
-    const int stride = srcImage.s()-tileSize.x();
-    const unsigned char* sourceEnd = srcImage.data() + srcImage.s()*srcImage.t()*srcImage.r()*pixelSize;  
-
-    copyImageWithStride( srcImage.data(), tileImage.data(), tileSize.y(), tileSize.x(), offset, stride, pixelSize, sourceEnd );
-}
-
-
 osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, const osg::Vec2f& opposite, std::vector<LayeredTexture::TextureCoordData>& tcData ) const
 {
     tcData.clear();
@@ -1603,11 +1734,11 @@ osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, co
 	const osg::Vec2f localOrigin = layer->getLayerCoord( globalOrigin );
 	const osg::Vec2f localOpposite = layer->getLayerCoord( globalOpposite );
 
-	const osg::Image* srcImage = layer->_image;
-	if ( !srcImage || !srcImage->s() || !srcImage->t() )
+	osg::Image* image = layer->_image;
+	if ( !image || !image->s() || !image->t() )
 	    continue;
 
-	const Vec2i imageSize( srcImage->s(), srcImage->t() );
+	const Vec2i imageSize( image->s(), image->t() );
 	Vec2i hasBorderArea, tileOrigin, tileSize;
 
 	bool overflowErrorMsg = false;
@@ -1703,14 +1834,31 @@ osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, co
 	    }
 	}
 
+	int sliceNr = layer->_sliceNr;
+	if ( sliceNr>=image->r() )
+	    sliceNr = image->r()-1;
+
+	ImageDataOrder dataOrder( STR );
+	if ( !layer->hasRescaledImage() ) 
+	    dataOrder = layer->_imageDataOrder;
+
 	osg::ref_ptr<osg::Image> tileImage = new osg::Image;
 
 #ifdef USE_IMAGE_STRIDE
-	if ( !resizeHint ) // OpenGL crashes when resizing image with stride
+	// OpenGL crashes when resizing image with stride
+	if ( (dataOrder==STR || dataOrder==SRT) && !resizeHint )
 	{
-	    osg::ref_ptr<osg::Image> si = const_cast<osg::Image*>(srcImage);
-	    tileImage->setUserData( si.get() );
-	    tileImage->setImage( tileSize.x(), tileSize.y(), si->r(), si->getInternalTextureFormat(), si->getPixelFormat(), si->getDataType(), si->data(tileOrigin.x(),tileOrigin.y()), osg::Image::NO_DELETE, si->getPacking(), si->s() ); 
+	    unsigned char* dataOrigin = image->data(tileOrigin.x(),tileOrigin.y(),sliceNr);
+	    int rowLength = image->s();
+
+	    if ( dataOrder==SRT )
+	    {
+		dataOrigin = image->data(tileOrigin.x(),tileOrigin.y(),sliceNr);
+		rowLength *= image->t();
+	    }
+
+	    tileImage->setUserData( image );
+	    tileImage->setImage( tileSize.x(), tileSize.y(), 1, image->getInternalTextureFormat(), image->getPixelFormat(), image->getDataType(), dataOrigin, osg::Image::NO_DELETE, image->getPacking(), rowLength ); 
 
 	    tileImage->ref();
 	    const_cast<LayeredTexture*>(this)->_lock.writeLock();
@@ -1719,7 +1867,7 @@ osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, co
 	}
 	else
 #endif
-	    copyImageTile( *srcImage, *tileImage, tileOrigin, tileSize );
+	    copyImageTile( *image, *tileImage, tileOrigin, tileSize, sliceNr, dataOrder );
 
 	osg::Texture::WrapMode xWrapMode = osg::Texture::CLAMP_TO_EDGE;
 	if ( layer->_borderColor[0]>=0.0f && hasBorderArea.x() )
