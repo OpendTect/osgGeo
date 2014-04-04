@@ -897,7 +897,7 @@ static void permuteDimensions( osg::Image* image, ImageDataOrder dataOrder )
     if ( !image || dataOrder==STR )
 	return;
 
-    int sNew, tNew, rNew;
+    int sNew=0, tNew=0, rNew=0;
 
     if ( dataOrder==SRT )
     {
