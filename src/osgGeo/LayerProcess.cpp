@@ -629,18 +629,17 @@ void ColTabLayerProcess::getShaderCode( std::string& code, int stage ) const
 {
     int nrUdf = 0;
 
-    int nrChannels = 0;
-    for ( int idx=0; idx<3; idx++ )
-    {
-	if ( !_layTex.isDataLayerOK(_id[idx]) )
-	    break;
-
-	getHeaderCode( code, nrUdf, _id[idx], idx, _textureChannel[idx] );
-	code += "\n";
+    int nrChannels=0;
+    while ( _layTex.isDataLayerOK(getDataLayerID(nrChannels)) )
 	nrChannels++;
-    }
 
     if ( !nrChannels ) return;
+
+    for ( int idx=nrChannels-1; idx>=0; idx-- )
+    {
+	getHeaderCode( code, nrUdf, _id[idx], idx, _textureChannel[idx] );
+	code += "\n";
+    }
 
     char line[100];
     if ( nrChannels>1 )
