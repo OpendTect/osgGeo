@@ -45,11 +45,14 @@ protected:
 					osg::Object*,
 					osg::NodeVisitor*)
     {
-	return _polysel->handleEvent(ea);
+	const bool ret = _polysel->handleEvent(ea);
+	ea.setHandled( ret );
+	return ret;
     }
 
     bool handle(const osgGA::GUIEventAdapter &ea,osgGA::GUIActionAdapter& aa)
     {
+	ea.setHandled( true );
 	return osgGA::GUIEventHandler::handle(ea,aa);
     }
 
@@ -172,10 +175,30 @@ bool PolygonSelection::checkInteractionObjectIntersection(
 }
 
 
+bool PolygonSelection::isCameraChanged()
+{
+    bool isChanged = false;
+    const osg::Vec3 newPos = _masterCamera->getViewMatrix().getTrans();
+    if ( newPos != _cameraPos )
+    {
+	_cameraPos = newPos;
+	isChanged = true;
+    }
+
+    return isChanged;
+}
+
+
 bool PolygonSelection::handleEvent(const osgGA::GUIEventAdapter& ea)
 {
     if (!_ison || _shapeType==Off)
 	return false;
+
+    if ( isCameraChanged() )
+    {
+	clear();
+	return false;
+    }
 
     const osg::Vec3 mousepos(ea.getX(),ea.getY(),_zcoord);
 
