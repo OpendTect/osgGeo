@@ -19,6 +19,8 @@
 
 set( LIB_NAME osgGeo )
 
+include_directories( ${CMAKE_BINARY_DIR}/src )
+
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/Config.cmake
     ${CMAKE_CURRENT_BINARY_DIR}/Config )
