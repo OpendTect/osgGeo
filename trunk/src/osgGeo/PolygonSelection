@@ -38,35 +38,49 @@ class OSGGEO_EXPORT PolygonSelection : public osg::Node
 {
 public:
 			    PolygonSelection();
-    void		    accept(osg::NodeVisitor&);
+
     void		    setEventHandlerCamera(osg::Camera*);
     void		    setHUDCamera(osg::Camera*);
+    
+    osg::Vec2		    projectPointToScreen(osg::Vec3) const;
     const osg::Vec3Array*   getCoords() const { return _coords; }
+
     enum ShapeType	    { Off, Polygon, Rectangle };
     ShapeType		    getShapeType() const  { return _shapeType; }
     void		    setShapeType(ShapeType st);
+
     void		    setColor(const osg::Vec4& col);
+    
     void		    addCallBack(osg::NodeCallback *nc);
     void		    removeCallBack(osg::NodeCallback *nc);
-    float		    getZCoord() const { return _zcoord; }
+
     void		    setZCoord(float);
-    osg::Vec2		    projectPointToScreen(osg::Vec3) const;
+    float		    getZCoord() const { return _zcoord; }
+    
     void		    clear();
+    void		    accept(osg::NodeVisitor&);
 
 protected:
 
     friend class	    PolygonSelectionEventHandler;
+
     osg::BoundingSphere	    computeBound() const;
+
     void		    setLatestMousePoints(const osg::Vec3&);
     bool		    checkInteractionObjectIntersection(const osg::Vec3&) const;
+    bool		    isCameraChanged();
+
     bool		    handleEvent(const osgGA::GUIEventAdapter&);
+    
 			    ~PolygonSelection();
     
+
     PolygonSelectionEventHandler*	_eventHandler;
     osg::ref_ptr<osg::NodeCallback>	_callback;
     osg::ref_ptr<osg::Geode>		_geode;
     osg::Geometry*			_lineGeometry;
     osg::Camera*			_masterCamera;
+    osg::Vec3				_cameraPos;
     osg::Camera*			_hudCamera;
     osg::DrawArrays*                    _coordsList;
     ShapeType				_shapeType;
