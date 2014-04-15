@@ -45,6 +45,7 @@ public:
 			~TiledOffScreenRenderer();
 
     void		setOutputSize(int width, int height);
+    void		setOutputBackgroundTransparency(unsigned char transparency);
     bool		createOutput();
 
     const osg::Image*	getOutput() const;
@@ -68,10 +69,13 @@ protected:
 	    void setCameraOrientation( const osg::Matrixd& view, const osg::Matrixd& proj );
 	    void frame( const osg::FrameStamp* fs, osg::Node* node );
 	    osg::ref_ptr<osg::Image> getFinalImage(){ return _finalImage; }
+	    void setBackgroundTransparency(unsigned char transparency){_transparency = transparency;}
+
     
 	protected:
 	    void bindCameraToImage( osg::Camera* camera, int row, int col );
 	    void recordImages();
+	    void setImageRowBgTransparency(int row,osg::Image* image, const osg::Image* depthImage);
     
 	    bool _isRunning;
 	    bool _isFinishing;
@@ -80,12 +84,14 @@ protected:
 	    osg::Vec2 _tileSize;
 	    osg::Vec2 _finalImageSize;
 	    unsigned int _lastBindingFrame;
+	    unsigned char   _transparency;
     
 	    osg::Matrixd _currentViewMatrix;
 	    osg::Matrixd _currentProjectionMatrix;
 	    osg::ref_ptr<osg::Camera> _camera;
 	    osg::ref_ptr<osg::Image> _finalImage;
 	    TileImages _images;
+	    TileImages _depthImages;
 	};
 
 
@@ -100,6 +106,7 @@ protected:
     osg::ref_ptr<osg::Camera>			    _orientationCamera;
     osg::ref_ptr<osg::Switch>			    _cameraSwitch;
     osg::ref_ptr<OffscreenTileImageCollector>	    _imageCollector;
+    unsigned char				    _transparency;
 
     void			    createImageCollectorCamera();
     void			    setupImageCollector();
