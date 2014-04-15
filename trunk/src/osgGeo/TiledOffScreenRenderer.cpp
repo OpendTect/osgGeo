@@ -28,6 +28,8 @@ $Id: TiledOffScreenRenderer.cpp 346 2014-02-07 09:31:17Z ding.zheng@dgbes.com $
 
 using namespace osgGeo;
 
+static unsigned char NOTRANSPARENCY = 255; 
+
 TiledOffScreenRenderer::TiledOffScreenRenderer(osgViewer::View* view,
 					       osgViewer::CompositeViewer* viewer)
     :_view(view)
@@ -37,6 +39,7 @@ TiledOffScreenRenderer::TiledOffScreenRenderer(osgViewer::View* view,
     ,_width(0)
     ,_height(0)
     ,_collectorCamera(0)
+    ,_transparency(NOTRANSPARENCY)
     ,_orientationCamera(view->getCamera())
     ,_cameraSwitch(dynamic_cast<osg::Switch*>(view->getSceneData()))
 {
@@ -111,6 +114,7 @@ void TiledOffScreenRenderer::setupImageCollector()
     osg::ref_ptr<osg::Image> finalImage = new osg::Image;
     finalImage->allocateImage(_width, _height , 1, GL_RGBA, GL_UNSIGNED_BYTE);
     _imageCollector->setFinalImage(finalImage.get());
+    _imageCollector->setBackgroundTransparency(_transparency);
 }
 
 
@@ -161,6 +165,12 @@ const osg::Image* TiledOffScreenRenderer::getOutput() const
 }
 
 
+void TiledOffScreenRenderer::setOutputBackgroundTransparency(unsigned char transparency)
+{
+    _transparency = transparency;
+}
+
+
 TiledOffScreenRenderer::OffscreenTileImageCollector::OffscreenTileImageCollector()
     :_isRunning(true)
     ,_isFinishing(false)
@@ -169,8 +179,10 @@ TiledOffScreenRenderer::OffscreenTileImageCollector::OffscreenTileImageCollector
     ,_currentColumn(0)
     ,_camera(0)
     ,_finalImage(0)
+    ,_transparency(NOTRANSPARENCY)
 {
 }
+
 
 void TiledOffScreenRenderer::OffscreenTileImageCollector::setCameraOrientation(
     const osg::Matrixd& view, const osg::Matrixd& proj)
@@ -233,11 +245,7 @@ void TiledOffScreenRenderer::OffscreenTileImageCollector::frame(
 void TiledOffScreenRenderer::OffscreenTileImageCollector::bindCameraToImage(
     osg::Camera* camera, int row, int col )
 {
-    std::stringstream stream;
-    stream << "image_" << row << "_" << col;
-
     osg::ref_ptr<osg::Image> image = new osg::Image;
-    image->setName(stream.str());
     image->allocateImage((int)_tileSize.x(), (int)_tileSize.y(), 1, GL_RGBA, GL_UNSIGNED_BYTE);
     _images[TilePosition(row,col)] = image.get();
 
@@ -254,20 +262,39 @@ void TiledOffScreenRenderer::OffscreenTileImageCollector::bindCameraToImage(
     camera->setRenderingCache( NULL );  
     camera->detach(osg::Camera::COLOR_BUFFER);
     camera->attach(osg::Camera::COLOR_BUFFER, image.get(), 0, 0);
+
+    if ( _transparency != NOTRANSPARENCY )
+    {
+	osg::ref_ptr<osg::Image> depthImage = new osg::Image;
+	depthImage->allocateImage((int)_tileSize.x(), (int)_tileSize.y(), 1, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE);
+	_depthImages[TilePosition(row,col)] = depthImage.get();
+	camera->detach(osg::Camera::DEPTH_BUFFER);
+	camera->attach(osg::Camera::DEPTH_BUFFER, depthImage.get(), 0, 0);
+    }
+    
 }
 
 
 void TiledOffScreenRenderer::OffscreenTileImageCollector::recordImages()
 {
+    TileImages::iterator depthItr = _depthImages.begin();
+
+    const bool changeTransparency = _transparency != NOTRANSPARENCY;
     for ( TileImages::iterator itr=_images.begin(); itr!=_images.end(); ++itr )
     {
 	osg::Image* image = (itr->second).get();
+
 	if ( _finalImage.valid() )
 	{
-	    // FIXME: A stupid way to combine tile images to final result. Any better ideas?
 	    unsigned int row = itr->first.first, col = itr->first.second;
 	    for ( int t=0; t<image->t(); ++t )
 	    {
+		if ( changeTransparency )
+		{
+		    const osg::Image* depthImage = (depthItr->second).get();
+		    setImageRowBgTransparency(t,image,depthImage);
+		}
+
 		unsigned char* source = image->data(0, t);
 		unsigned char* target = _finalImage->data( 
 		    col*(int)_tileSize.x(), t + row*(int)_tileSize.y());
@@ -275,7 +302,39 @@ void TiledOffScreenRenderer::OffscreenTileImageCollector::recordImages()
 	    }
 	}
 
+	if ( changeTransparency )
+	    ++depthItr;
     }
 
     _images.clear();
+
+    if ( changeTransparency )
+        _depthImages.clear();
+
 }
+
+
+void TiledOffScreenRenderer::OffscreenTileImageCollector
+    ::setImageRowBgTransparency(int row,osg::Image* image, const osg::Image* depthImage)
+{
+    unsigned char BACKGROUNDDEPTH = 255;
+
+    if ( !image || !depthImage )
+	return;
+    
+    for ( int s=0; s<image->s();++s)
+    {
+	const int imageOffset = (row * image->s() + s) * 4;
+	const int depthImageOffset = row * depthImage->s() + s;
+	unsigned char * imageData = image->data() + imageOffset;
+	unsigned char const* depthImageData = depthImage->data() + depthImageOffset;
+
+	if ( imageData && depthImageData )
+	{
+	    if ( *depthImageData == BACKGROUNDDEPTH )
+		imageData[3] = _transparency;
+	}
+	
+    }
+}
+
