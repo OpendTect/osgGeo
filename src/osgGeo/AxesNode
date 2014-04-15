@@ -57,6 +57,7 @@ protected:
     bool		updateGeometry();
     bool		needsUpdate() const;
     osg::BoundingSphere	computeBound() const;  
+    bool		computeTransform(osg::Matrix&) const;
        
     float			_radius;
     float			_length;
@@ -65,7 +66,7 @@ protected:
     osg::Vec4			_annotColor;
     bool			_needsUpdate;
     osg::Group*			_root;
-    osg::ref_ptr<osg::Camera>		_mastercamera;
+    osg::ref_ptr<osg::Camera>		_masterCamera;
     osg::ref_ptr<osg::MatrixTransform>	_transform;
 };
 

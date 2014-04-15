@@ -222,6 +222,7 @@ void ScalarBar::createDrawables()
 
         text->setPosition(osg::Vec3((i*labelxIncr), labelY, 0.0f)*matrix);
         text->setAlignment( (_orientation==HORIZONTAL) ? osgText::Text::CENTER_BASE_LINE : osgText::Text::LEFT_CENTER);
+	text->setCharacterSizeMode( osgText::TextBase::SCREEN_COORDS );
 
         addDrawable(text);
 
