@@ -290,9 +290,15 @@ void PlaneWellLog::traverse(osg::NodeVisitor& nv)
 	    osg::Matrix RMV = repeatTransform * (*modelViewMatrix);
 	    osg::ref_ptr<osg::RefMatrix> rfMx = new osg::RefMatrix(RMV);
 
-	    const osg::BoundingBox bb = _triangleGeometry->getBound();
-	    bbox.expandBy( bb );
-	    const float depth = cv->getDistanceFromEyePoint(bb.center(),false);
+	    const osg::BoundingBox bbtri = _triangleGeometry->getBound() ;
+	    const osg::BoundingBox bbline = _lineGeometry->getBound();
+	    bbox.expandBy( bbtri );
+	    bbox.expandBy( bbline );
+
+	    if ( bbox.radius() == 0 )
+		return;
+
+	    const float depth = cv->getDistanceFromEyePoint(bbox.center(),false);
 	    cv->addDrawableAndDepth( _lineGeometry, rfMx, depth );
 	    cv->addDrawableAndDepth( _triangleGeometry, rfMx, depth );
 	}
