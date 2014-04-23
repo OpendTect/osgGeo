@@ -52,10 +52,15 @@ WellLog::WellLog()
     ,_maxFillValue( -mMAX )
     ,_geode( new osg::Geode )
     ,_forceCoordReCalculation ( true )
+    ,_lineColor( new osg::Vec4Array )
+    ,_lineWidth( new osg::LineWidth )
 {
     setNumChildrenRequiringUpdateTraversal( 1 );
     _preProjDir.set( 0, 0, 0 );
     _nonShadingGroup->addChild( _geode );
+    _lineColor->push_back(osg::Vec4d(0, 0, 0, 0 ));
+    _lineWidth->setWidth(1.0);
+
 }
 
 #define COPY_ARRAY( tp, var ) \
@@ -218,6 +223,31 @@ void WellLog::clearLog()
     _maxShapeValue = -mMAX ;
     _maxFillValue  = -mMAX;
 
+}
+
+
+void WellLog::setLineColor( const osg::Vec4& lineColor)
+{
+    (*_lineColor)[0] = lineColor;
+    _lineColor->dirty();
+}
+
+
+const osg::Vec4& WellLog::getLineColor() const
+{
+    return _lineColor->at(0);
+}
+
+
+void WellLog::setLineWidth(float lineWidth)
+{
+    _lineWidth->setWidth( lineWidth );
+}
+
+
+float WellLog::getLineWidth() const
+{
+    return _lineWidth->getWidth();
 }
 
 

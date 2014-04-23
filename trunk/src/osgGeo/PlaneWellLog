@@ -34,7 +34,6 @@ namespace osg
     class Shape;
     class Array;
     class FrameStamp;
-    class LineWidth;
 }
 
 namespace osgUtil
@@ -69,11 +68,6 @@ public:
     void		setLogFill(bool);
     bool		getLogFill() const { return _isFilled; }
 
-    void		setLineWidth(float);
-    float		getLineWidth() const;
-
-    void		setLineColor(const osg::Vec4&);
-    const osg::Vec4&	getLineColor() const;
     void		setResolution(int){};
     int			getResolution() const { return 0; };
 
@@ -113,9 +107,6 @@ private:
     osg::ref_ptr<osg::FloatArray>	_coordLinedFactors;
     osg::ref_ptr<osg::FloatArray>	_coordLinedTriFactors;
     osg::ref_ptr<osg::Vec4Array>	_logColors;
-
-    osg::ref_ptr<osg::Vec4Array>	_lineColor;
-    osg::ref_ptr<osg::LineWidth>	_lineWidth;
 
     unsigned int    _repeatNumber;
     float	    _repeatGap;

@@ -164,39 +164,11 @@ float PlaneWellLog::getShapeFactor(float val, float minval, float maxval )const
 }
 
 
-void PlaneWellLog::setLineWidth(float lineWidth)
-{
-    _lineWidth->setWidth( lineWidth );
-}
-
-
-void PlaneWellLog::setLineColor( const osg::Vec4& lineColor)
-{
-    (*_lineColor)[0] = lineColor;
-    _lineColor->dirty();
-}
-
-
-const osg::Vec4& PlaneWellLog::getLineColor() const
-{
-    return _lineColor->at(0);
-}
-
-
-float PlaneWellLog::getLineWidth() const
-{
-    return _lineWidth->getWidth();
-}
-
-
 void PlaneWellLog::buildLineGeometry()
 {
     _lineGeometry = new osg::Geometry();
     _geode->addDrawable(_lineGeometry);
     _lineGeometry->setVertexArray(_logLinedPoints.get());
-
-    _lineColor =  new osg::Vec4Array;
-    _lineColor->push_back(osg::Vec4d(0, 0, 0, 0 ));
     _lineGeometry->setColorArray(_lineColor.get());
     _lineGeometry->setColorBinding(osg::Geometry::BIND_OVERALL);
     osg::ref_ptr<osg::Vec3Array> normals = new osg::Vec3Array;
@@ -207,8 +179,6 @@ void PlaneWellLog::buildLineGeometry()
 	osg::PrimitiveSet::LINE_STRIP, 0, 0);
     _lineGeometry->addPrimitiveSet(_linePrimitiveSet);
 
-    _lineWidth =  new osg::LineWidth;
-    _lineWidth->setWidth(1.0);
     osg::PolygonOffset* polyoffset = new osg::PolygonOffset;
     polyoffset->setFactor(1.0f);
     polyoffset->setUnits(1.0f);
