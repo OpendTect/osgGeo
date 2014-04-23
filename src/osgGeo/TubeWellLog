@@ -73,10 +73,6 @@ public:
     virtual bool 		getSeisLogStyle() const{return false;};
     virtual void		setLogFill(bool){};
     bool			getLogFill() const { return false; }
-    virtual void		setLineWidth( float ){};
-    virtual float		getLineWidth() const { return 0; };
-    virtual void		setLineColor( const osg::Vec4& ){};
-    virtual const osg::Vec4&	getLineColor() const;
     virtual void		clearLog();
 
 

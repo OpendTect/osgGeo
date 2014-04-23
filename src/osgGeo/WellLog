@@ -103,9 +103,13 @@ public:
     void 			setLogConstantSizeFactor(float);
     float 			getLogConstantSizeFactor() const 
 				    {return _constantSizeFactor;}
+
+    void			setLineColor(const osg::Vec4&);
+    const osg::Vec4&		getLineColor() const;
+    void			setLineWidth(float);
+    float			getLineWidth() const;
    
     bool			getDisplayStatus();
-
 
     enum			DisplaySide {Left, Right};
     virtual void		setDisplaySide(DisplaySide) = 0;
@@ -120,10 +124,6 @@ public:
     virtual bool 		getSeisLogStyle()const = 0;
     virtual void		setLogFill(bool) = 0;
     virtual bool		getLogFill() const = 0;
-    virtual void		setLineWidth(float) = 0;
-    virtual float		getLineWidth()const = 0;
-    virtual void		setLineColor(const osg::Vec4&) = 0;
-    virtual const osg::Vec4&	getLineColor() const = 0;
     virtual void		setResolution(int) = 0;
     virtual int			getResolution() const = 0;
 
@@ -150,6 +150,9 @@ protected:
     osg::ref_ptr<osg::FloatArray>	_fillLog;
     osg::ref_ptr<osg::FloatArray>	_fillLogDepths;
     std::vector<int>			_outFillIndex;
+    osg::ref_ptr<osg::Vec4Array>	_lineColor;
+    osg::ref_ptr<osg::LineWidth>	_lineWidth;
+
     bool                 		_showLog;
     bool                    		_resizeWhenZooming;
     bool                    		_colorTableChanged;
