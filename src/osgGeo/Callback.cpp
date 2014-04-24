@@ -67,12 +67,17 @@ void CallbackObject::removeCallback(Callback* cb)
 }
 
 
-void CallbackObject::triggerRedrawRequest()
-{
-    std::vector<Callback*>::iterator it = _callbacks.begin();
-    for ( ; it!=_callbacks.end(); it++ )
-	(*it)->requestRedraw();
+#define TRIGGER_CALLBACK( triggerFunc, callbackFunc ) \
+void CallbackObject::triggerFunc() \
+{ \
+    std::vector<Callback*>::iterator it = _callbacks.begin(); \
+    for ( ; it!=_callbacks.end(); it++ ) \
+	(*it)->callbackFunc(); \
 }
+
+TRIGGER_CALLBACK( triggerRedrawRequest, requestRedraw );
+TRIGGER_CALLBACK( triggerStartWorkInProgress, startWorkInProgress );
+TRIGGER_CALLBACK( triggerStopWorkInProgress, stopWorkInProgress );
 
 
 }; // namespace osgGeo

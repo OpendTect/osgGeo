@@ -44,6 +44,8 @@ public:
 
 		// Add here your own virtual callback function
 		virtual void requestRedraw() const		{}
+		virtual void startWorkInProgress() const	{}
+		virtual void stopWorkInProgress() const		{}
     };
 
     void	addCallback(Callback* cb);
@@ -51,6 +53,8 @@ public:
 
 		// Add here your own callback trigger function
     void	triggerRedrawRequest();
+    void	triggerStartWorkInProgress();
+    void	triggerStopWorkInProgress();
 
 protected:
     std::vector<Callback*>	_callbacks;
