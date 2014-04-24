@@ -46,6 +46,7 @@ AxesNode::AxesNode()
     , _root(new osg::Group)
     , _transform(new osg::MatrixTransform)
     , _masterCamera(0)
+    , _textSize(18)
 {
     setCullingActive(false);
 }
@@ -61,6 +62,7 @@ AxesNode::AxesNode( const AxesNode& node, const osg::CopyOp& co )
     , _root(node._root)
     , _transform(node._transform)
     , _masterCamera(node._masterCamera)
+    , _textSize(18)
 {
     setCullingActive(false);
 }
@@ -108,9 +110,9 @@ bool AxesNode::computeTransform(osg::Matrix& mt) const
 }
 
 
-osg::ref_ptr<osg::Node> arrowNode( const float rad, const float len, 
-				   const osg::Vec4& color, const osg::Vec3& dir,
-				   const char* text, const osg::Vec4& annotclr )
+osg::ref_ptr<osg::Node> arrowNode( const float rad, const float len,const osg::Vec4& color, 
+				   const osg::Vec3& dir,const char* text, const int txtSize, 
+				   const osg::Vec4& annotclr )
 {
     osg::ref_ptr<osg::Vec3Array> coords = new osg::Vec3Array;
     osg::ref_ptr<osg::Vec3Array> normals = new osg::Vec3Array;
@@ -194,7 +196,7 @@ osg::ref_ptr<osg::Node> arrowNode( const float rad, const float len,
     osg::ref_ptr<osg::Geode> textgeode = new osg::Geode();
     osg::ref_ptr<osgText::Text> annot = new  osgText::Text;
     annot->setPosition(p1);
-    annot->setCharacterSize(18);
+    annot->setCharacterSize(txtSize);
     annot->setAxisAlignment(osgText::TextBase::SCREEN);
     annot->setCharacterSizeMode(osgText::TextBase::SCREEN_COORDS);
     annot->setAutoRotateToScreen(true);
@@ -225,9 +227,9 @@ bool AxesNode::updateGeometry()
     const osg::Vec4& c = _annotColor;
     _root->removeChildren(0, _root->getNumChildren());
     _root->addChild(spheregeode );
-    _root->addChild(arrowNode(_radius,_length,red,osg::Vec3(0,1,0),  "N", c));
-    _root->addChild(arrowNode(_radius,_length,green,osg::Vec3(1,0,0),"E", c));
-    _root->addChild(arrowNode(_radius,_length,blue,osg::Vec3(0,0,-1),"Z", c));
+    _root->addChild(arrowNode(_radius,_length,red,osg::Vec3(0,1,0),  "N", _textSize, c));
+    _root->addChild(arrowNode(_radius,_length,green,osg::Vec3(1,0,0),"E", _textSize, c));
+    _root->addChild(arrowNode(_radius,_length,blue,osg::Vec3(0,0,-1),"Z", _textSize, c));
     _transform->addChild(_root);
     _needsUpdate = false;
     return true;
@@ -249,33 +251,33 @@ bool AxesNode::needsUpdate() const
 }
 
 
-void AxesNode::setMasterCamera( osg::Camera* camera )
+void AxesNode::setMasterCamera(osg::Camera* camera)
 {
     _masterCamera = camera;
 }
 
 
-void AxesNode::setRadius( const float& radius )
+void AxesNode::setRadius(const float& radius)
 {
     _radius = radius;
     _needsUpdate = true;
 }
 
 
-void AxesNode::setLength( const float& len )
+void AxesNode::setLength(const float& len)
 {
     _length = len;
     _needsUpdate = true;
 }
 
 
-void AxesNode::setPosition( osg::Vec2 pos )
+void AxesNode::setPosition(osg::Vec2 pos)
 {
     _pos = pos;
 }
 
 
-void AxesNode::setSize( osg::Vec2 size )
+void AxesNode::setSize(osg::Vec2 size)
 {
     _radius = size.x();
     _length = size.y();
@@ -284,10 +286,18 @@ void AxesNode::setSize( osg::Vec2 size )
 }
 
 
-void AxesNode::setAnnotationColor( osg::Vec4 col )
+void AxesNode::setAnnotationColor(osg::Vec4 col)
 {
     _annotColor = col;
     _needsUpdate = true;
 }
 
+
+void AxesNode::setAnnotationTextSize(int size)
+{
+    _textSize = size;
+    _needsUpdate = true;
+}
+
 } //namespace osgGeo
+
