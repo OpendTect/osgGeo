@@ -672,6 +672,7 @@ LayeredTexture::LayeredTexture()
     , _retileCompositeLayer( false )
     , _reInitTiling( false )
     , _isOn( true )
+    , _compositeSubsampleSteps( 1 )
 {
     _id2idxTable.push_back( -1 );	// ID=0 used to represent ColSeqTexture
 
@@ -702,6 +703,7 @@ LayeredTexture::LayeredTexture( const LayeredTexture& lt,
     , _retileCompositeLayer( false )
     , _reInitTiling( false )
     , _isOn( lt._isOn )
+    , _compositeSubsampleSteps( lt._compositeSubsampleSteps )
 {
     for ( unsigned int idx=0; idx<lt._dataLayers.size(); idx++ )
     {
@@ -1541,7 +1543,8 @@ float LayeredTexture::getMaxAnisotropy( int layerIdx ) const
     if ( layerIdx>=0 && layerIdx<nrDataLayers() )
     {
 	LayeredTextureData* layer = _dataLayers[layerIdx];
-	ratio *= layer->_scale[0] / layer->_scale[1];
+	if ( layer->_scale[0] && layer->_scale[1] )
+	    ratio *= layer->_scale[0] / layer->_scale[1];
     }
 
     if ( ratio<1.0f )
@@ -1892,7 +1895,7 @@ osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, co
 	texture->setWrap( osg::Texture::WRAP_S, xWrapMode );
 	texture->setWrap( osg::Texture::WRAP_T, yWrapMode );
 
-	texture->setMaxAnisotropy( getMaxAnisotropy(idx) );
+	texture->setMaxAnisotropy( osg::maximum(getMaxAnisotropy(idx),1.0f) );
 
 	osg::Texture::FilterMode filterMode = layer->_filterType==Nearest ? osg::Texture::NEAREST : osg::Texture::LINEAR;
 	texture->setFilter( osg::Texture::MAG_FILTER, filterMode );
@@ -2656,12 +2659,16 @@ void LayeredTexture::createCompositeTexture( bool dummyTexture )
     if ( !_compositeLayerUpdate )
 	return;
 
+    triggerStartWorkInProgress();
+
     _compositeLayerUpdate = false;
     updateTilingInfoIfNeeded();
     const osgGeo::TilingInfo& ti = *_tilingInfo;
 
     int width  = (int) ceil( ti._envelopeSize.x()/ti._smallestScale.x() );
     int height = (int) ceil( ti._envelopeSize.y()/ti._smallestScale.y() );
+    width *= _compositeSubsampleSteps;
+    height *= _compositeSubsampleSteps;
 
     if ( dummyTexture || width<1 )
 	width = 1;
@@ -2751,6 +2758,8 @@ void LayeredTexture::createCompositeTexture( bool dummyTexture )
 
     setUpdateVar( _tilingInfo->_needsUpdate, false );
     setUpdateVar( _tilingInfo->_retilingNeeded, retilingNeededAlready );
+
+    triggerStopWorkInProgress();
 }
 
 
@@ -2758,6 +2767,25 @@ const osg::Image* LayeredTexture::getCompositeTextureImage()
 {
     createCompositeTexture();
     return getDataLayerImage( _compositeLayerId );
+}
+
+
+void LayeredTexture::setCompositeSubsampleSteps( int steps )
+{ 
+    if ( steps>0 && steps!=_compositeSubsampleSteps )
+    {
+	_compositeSubsampleSteps = steps;
+	if ( _useShaders )
+	    _compositeLayerUpdate = true;
+	else
+	    setUpdateVar( _tilingInfo->_retilingNeeded, true );
+    }
+}
+
+
+int LayeredTexture::getCompositeSubsampleSteps() const
+{
+    return _compositeSubsampleSteps;
 }
 
 

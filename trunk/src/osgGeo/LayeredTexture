@@ -252,6 +252,9 @@ public:
     const osg::Image*	getCompositeTextureImage();
     int			compositeLayerId()	{ return _compositeLayerId; }
 
+    void		setCompositeSubsampleSteps(int);
+    int			getCompositeSubsampleSteps() const; 
+
     static int		image2TextureChannel(int channel,GLenum format);
     static int		powerOf2Ceil(unsigned short nr);
 
@@ -336,6 +339,7 @@ protected:
     bool				_maySkipEarlyProcesses;
 
     int					_compositeLayerId;
+    int					_compositeSubsampleSteps;
     bool				_compositeLayerUpdate;
     bool				_reInitTiling;
 };
