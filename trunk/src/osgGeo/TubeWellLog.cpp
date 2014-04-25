@@ -120,7 +120,6 @@ void TubeWellLog::buildTubeGeometry()
     _tubeGeometry->setColorArray(_tubeLogColors.get());
     _tubeGeometry->setColorBinding(osg::Geometry::BIND_PER_VERTEX);
     _tubeGeometry->setDataVariance(osg::Object::DYNAMIC);
-    _tubeGeometry->setNormalBinding(osg::Geometry::BIND_PER_VERTEX);
     
     setRenderMode( RenderFrontSide );
 }
