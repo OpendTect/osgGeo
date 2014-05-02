@@ -286,7 +286,6 @@ void TexturePlaneNode::traverse( osg::NodeVisitor& nv )
 	{
 	    cbv->applyBoundingBox(_boundingGeometry->getBound());
 	}
-
     }
 }
 
@@ -515,8 +514,9 @@ const osg::Vec3& TexturePlaneNode::getWidth() const
 float TexturePlaneNode::getSense() const 
 {
     float sense = _width.x()<0 ? -1.0f : 1.0f;
-    sense = _width.y()<0 ? -sense :  sense;
-    return _width.z()<0 ? -sense : sense;
+    sense = _width.y()<0 ? -sense : sense;
+    sense = _width.z()<0 ? -sense : sense;
+    return _swapTextureAxes ? -sense :  sense;
 }
 
 
