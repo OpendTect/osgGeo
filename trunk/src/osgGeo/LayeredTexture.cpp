@@ -21,6 +21,7 @@ $Id$
 
 #include <osgGeo/LayeredTexture>
 #include <osg/BlendFunc>
+#include <osg/GLExtensions>
 #include <osg/FragmentProgram>
 #include <osg/Geometry>
 #include <osg/State>
@@ -1331,7 +1332,26 @@ void LayeredTexture::updateTextureInfoIfNeeded() const
 	if ( !vertExt || !fragExt || !texExt )
 	    continue;
 
-#if OSG_VERSION_LESS_THAN(3,3,0)
+#if OSG_MIN_VERSION_REQUIRED(3,3,1)
+	osg::GraphicsContext::GraphicsContexts contexts = osg::GraphicsContext::getRegisteredGraphicsContexts( contextID );
+	int maxUnits = -1;
+	for( int idx=0; idx<(int)contexts.size(); idx++ )
+	{
+	    if ( maxUnits<0 || maxUnits>contexts[idx]->getState()->getMaxTextureUnits() )
+		maxUnits = contexts[idx]->getState()->getMaxTextureUnits();
+	}
+
+	if ( osg::getGLVersionNumber()>=2.0 || osg::isGLExtensionSupported(contextID,"GL_ARB_vertex_shader") || OSG_GLES2_FEATURES )
+	{
+	    if ( maxUnits%3==0 ) maxUnits/=3;	// Need max units per shader
+	}
+
+	if ( maxUnits>=0 )
+	{
+	    if ( !_texInfo->_isValid || _texInfo->_nrUnits>maxUnits )
+		_texInfo->_nrUnits = maxUnits;
+	}
+#else
 	if ( !_texInfo->_isValid || _texInfo->_nrUnits>texExt->numTextureUnits() )
 	    _texInfo->_nrUnits = texExt->numTextureUnits();
 #endif
