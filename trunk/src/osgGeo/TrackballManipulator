@@ -66,6 +66,15 @@ class OSGGEO_EXPORT TrackballManipulator : public osgGA::MultiTouchTrackballMani
 	virtual void updateCamera(osg::Camera& camera);
 	const bool   isCameraPerspective() const{ return _perspectiveProjection; }
 
+	enum MouseButton { LeftButton, MiddleButton, RightButton };
+
+	void setRotateMouseButton(MouseButton mb) { _rotateMouseButton = mb; }
+	void setPanMouseButton(MouseButton mb)	  { _panMouseButton = mb; }
+	void setZoomMouseButton(MouseButton mb)	  { _zoomMouseButton = mb; }
+	void setRotateModKeyMask(int mask)	  { _rotateModKeyMask = mask; }
+	void setPanModKeyMask(int mask)		  { _panModKeyMask = mask; }
+	void setZoomModKeyMask(int mask)	  { _zoomModKeyMask = mask; }
+
     protected:
 	void handleMultiTouchDrag(const osgGA::GUIEventAdapter::TouchData* now,
 				  const osgGA::GUIEventAdapter::TouchData* last,				  const double eventTimeDelta);
@@ -94,8 +103,14 @@ class OSGGEO_EXPORT TrackballManipulator : public osgGA::MultiTouchTrackballMani
         osg::Matrixd computePerspectiveProjectionFromOrtho(const osg::Camera& camera) const;
 
 	bool getZoomCenterIntersectionPoint(osg::View* view, const osg::Vec2d& zoomcenter,osg::Vec3d& intersection) const;
-	bool zoomIn(const osg::Vec3d& intersectionPos, float zoomFactor) ;
-	bool zoomOut(osg::View*,float zoomFactor) ;
+	bool zoomIn(const osg::Vec3d& intersectionPos, float zoomFactor);
+	bool zoomOut(osg::View*,float zoomFactor);
+
+	bool isModKeyMatch( int mask );
+	bool mapMouseButtonMovement(const double eventTimeDelta,const double dx,const double dy,MouseButton);
+	bool performMovementLeftMouseButton(const double eventTimeDelta,const double dx,const double dy);
+	bool performMovementMiddleMouseButton(const double eventTimeDelta,const double dx,const double dy);
+	bool performMovementRightMouseButton(const double eventTimeDelta,const double dx,const double dy);
 
 
         unsigned int			_boundTraversalMask;
@@ -109,6 +124,14 @@ class OSGGEO_EXPORT TrackballManipulator : public osgGA::MultiTouchTrackballMani
 
 	osg::Vec2d		        _touchZoomCenter;
 	osg::View*			_touchEventView;
+
+	MouseButton			_rotateMouseButton;
+	MouseButton			_panMouseButton;
+	MouseButton			_zoomMouseButton;
+	int				_rotateModKeyMask;
+	int				_panModKeyMask;
+	int				_zoomModKeyMask;
+	int				_currentModKeyMask;
 
         class TrackballAnimationData : public osgGA::StandardManipulator::AnimationData
         {
