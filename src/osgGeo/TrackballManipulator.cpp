@@ -65,6 +65,13 @@ TrackballManipulator::TrackballManipulator(int flags)
     , _fovy(45.0f)
     , _touchZoomCenter(0,0)
     , _touchEventView(0)
+    , _rotateMouseButton(LeftButton)
+    , _panMouseButton(MiddleButton)
+    , _zoomMouseButton(RightButton)
+    , _rotateModKeyMask(-1)
+    , _panModKeyMask(-1)
+    , _zoomModKeyMask(-1)
+    , _currentModKeyMask(0)
 {}
 
 
@@ -77,6 +84,13 @@ TrackballManipulator::TrackballManipulator(const TrackballManipulator& tm, const
     , _viewAllInitalFactor(tm._viewAllInitalFactor)
     , _touchZoomCenter(0,0)
     , _touchEventView(0)
+    , _rotateMouseButton(LeftButton)
+    , _panMouseButton(MiddleButton)
+    , _zoomMouseButton(RightButton)
+    , _rotateModKeyMask(-1)
+    , _panModKeyMask(-1)
+    , _zoomModKeyMask(-1)
+    , _currentModKeyMask(0)
 {}
 
 
@@ -269,6 +283,8 @@ osg::Matrix TrackballManipulator::getInverseMatrix(const osg::Vec3d& center,
 
 bool TrackballManipulator::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa)
 {
+    _currentModKeyMask = ea.getModKeyMask();
+
     if ( ea.getEventType()==osgGA::GUIEventAdapter::FRAME )
     {
         return osgGA::MultiTouchTrackballManipulator::handle(ea, aa);
@@ -331,6 +347,44 @@ bool TrackballManipulator::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIAc
     }
 
     return res;
+}
+
+
+bool TrackballManipulator::isModKeyMatch( int mask )
+{
+    return mask==-1 || mask==_currentModKeyMask || mask&_currentModKeyMask;
+}
+
+
+bool TrackballManipulator::mapMouseButtonMovement( const double eventTimeDelta, const double dx, const double dy, MouseButton mouseButton )
+{
+    if ( mouseButton==_rotateMouseButton && isModKeyMatch(_rotateModKeyMask) )
+	return osgGA::MultiTouchTrackballManipulator::performMovementLeftMouseButton( eventTimeDelta, dx, dy );
+
+    if ( mouseButton==_panMouseButton && isModKeyMatch(_panModKeyMask) )
+	return osgGA::MultiTouchTrackballManipulator::performMovementMiddleMouseButton( eventTimeDelta, dx, dy );
+
+    if ( mouseButton==_zoomMouseButton && isModKeyMatch(_zoomModKeyMask) )
+	return osgGA::MultiTouchTrackballManipulator::performMovementRightMouseButton( eventTimeDelta, dx, dy );
+
+    return false;
+}
+
+
+bool TrackballManipulator::performMovementLeftMouseButton( const double eventTimeDelta, const double dx, const double dy )
+{
+    return mapMouseButtonMovement( eventTimeDelta, dx, dy, LeftButton );
+}
+
+
+bool TrackballManipulator::performMovementMiddleMouseButton( const double eventTimeDelta, const double dx, const double dy )
+{
+    return mapMouseButtonMovement( eventTimeDelta, dx, dy, MiddleButton );
+}
+
+bool TrackballManipulator::performMovementRightMouseButton( const double eventTimeDelta, const double dx, const double dy )
+{
+    return mapMouseButtonMovement( eventTimeDelta, dx, dy, RightButton );
 }
 
 
