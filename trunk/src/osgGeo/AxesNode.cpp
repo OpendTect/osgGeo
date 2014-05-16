@@ -46,7 +46,7 @@ AxesNode::AxesNode()
     , _root(new osg::Group)
     , _transform(new osg::MatrixTransform)
     , _masterCamera(0)
-    , _textSize(18)
+    , _textSize(18.0f)
 {
     setCullingActive(false);
 }
@@ -62,7 +62,7 @@ AxesNode::AxesNode( const AxesNode& node, const osg::CopyOp& co )
     , _root(node._root)
     , _transform(node._transform)
     , _masterCamera(node._masterCamera)
-    , _textSize(18)
+    , _textSize(18.0f)
 {
     setCullingActive(false);
 }
@@ -110,8 +110,8 @@ bool AxesNode::computeTransform(osg::Matrix& mt) const
 }
 
 
-osg::ref_ptr<osg::Node> arrowNode( const float rad, const float len,const osg::Vec4& color, 
-				   const osg::Vec3& dir,const char* text, const int txtSize, 
+static osg::ref_ptr<osg::Node> arrowNode( const float rad, const float len,const osg::Vec4& color, 
+				   const osg::Vec3& dir,const char* text, float txtSize, 
 				   const osg::Vec4& annotclr )
 {
     osg::ref_ptr<osg::Vec3Array> coords = new osg::Vec3Array;
@@ -293,7 +293,7 @@ void AxesNode::setAnnotationColor(osg::Vec4 col)
 }
 
 
-void AxesNode::setAnnotationTextSize(int size)
+void AxesNode::setAnnotationTextSize(float size)
 {
     _textSize = size;
     _needsUpdate = true;
