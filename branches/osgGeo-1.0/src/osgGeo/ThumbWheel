@@ -1,0 +1,138 @@
+#ifndef OSGGEO_THUMBWHEEL_H
+#define OSGGEO_THUMBWHEEL_H
+
+/* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
+Copyright 2011 dGB Beheer B.V.
+
+osgGeo is free software; you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>
+
+$Id$
+
+*/
+
+#include <osgGeo/Common>
+#include <osg/Node>
+#include <osg/Version>
+#include <osgGA/EventQueue>
+#include <osgGA/GUIEventHandler>
+
+
+namespace osg { class Geode; class NodeVisitor; class Geometry; class Material; class Texture2D; }
+
+namespace osgGeo
+{
+
+
+/**
+ * Wheel for performing rotation
+ */
+
+class OSGGEO_EXPORT ThumbWheel : public osg::Node
+{
+public:
+    ThumbWheel();
+    
+    void accept(osg::NodeVisitor&);
+    osg::BoundingSphere computeBound() const;
+    
+    void setShape(short dim,const osg::Vec2& min,const osg::Vec2& max,
+		  float zval = 0);
+    const osg::Vec2& getMin() const { return _min; }
+    const osg::Vec2& getMax() const { return _max; }
+    void setAngle(float);
+    float getAngle() const { return _currentAngle; }
+    
+    void setWheelColor(const osg::Vec4&);
+    void setBorderColor(const osg::Vec4&);
+    
+    void addRotateCallback(osg::NodeCallback *nc);
+    void removeRotateCallback(osg::NodeCallback *nc);
+    
+protected:
+    friend class OSGGEO_EXPORT ThumbWheelEventHandler;
+    void updateCoords();
+
+    enum MouseProximity { Above, Nearby, None };
+
+    MouseProximity getMouseProximity(const osg::Vec2& mousepos ) const;
+    
+    bool updateAnimation(float progress);
+    //!<Returns if we should continue to animate
+    bool isAnimating() const { return _animationStart>0; }
+    
+    void updateWheel( ThumbWheel::MouseProximity nmp );
+    bool handleEvent( const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& );
+    ~ThumbWheel();
+    
+    static osg::Texture2D* getSharedTexture();
+    //Not threadsafe, don't call simultaniously
+    
+    osg::Vec2 _min;
+    osg::Vec2 _max;
+
+    osg::Geode* _geode;
+    osg::Geometry* _wheelGeometry;
+    osg::Material* _wheelMaterial;
+    osg::Geometry* _outlineGeometry;
+    osg::Material* _outlineMaterial;
+    bool _isTracking;
+    float _startPos;
+    float _startAngle;
+    float _currentAngle;
+    short _dim;
+    osg::ref_ptr<osg::NodeCallback> _cb;
+    
+    MouseProximity _mouseProximity;
+
+    double _animationTime;
+    double _animationStart;
+};
+
+
+class OSGGEO_EXPORT ThumbWheelEventHandler : public osgGA::GUIEventHandler
+{
+public:
+    ~ThumbWheelEventHandler();
+    void addThumbWheel(ThumbWheel* t)
+    { _thumbwheels.push_back(osg::ref_ptr<ThumbWheel>(t)); }
+    void removeThumbWheel(ThumbWheel* t);
+    
+    
+protected:
+    bool handle(const osgGA::GUIEventAdapter &ea,osgGA::GUIActionAdapter &aa,
+		osg::Object*,osg::NodeVisitor*);
+    bool handle(const osgGA::GUIEventAdapter &ea,osgGA::GUIActionAdapter &aa)
+	{ return osgGA::GUIEventHandler::handle(ea,aa); }
+
+#if OSG_MIN_VERSION_REQUIRED(3,3,1)
+    bool handle(osgGA::Event* ev,osg::Object* obj,osg::NodeVisitor* nv)
+	{ return osgGA::GUIEventHandler::handle(ev,obj,nv); }
+#endif
+
+    std::vector<osg::ref_ptr<ThumbWheel> > _thumbwheels;
+};
+
+class OSGGEO_EXPORT ThumbWheelEventNodeVisitor : public osg::NodeVisitor
+{
+public:
+    ThumbWheelEventNodeVisitor(float deltaangle);
+    ~ThumbWheelEventNodeVisitor();
+    float getDeltaAngle() const { return _deltaangle; }
+protected:
+    float _deltaangle;
+};
+
+}
+
+#endif

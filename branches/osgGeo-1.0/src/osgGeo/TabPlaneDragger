@@ -1,0 +1,59 @@
+#ifndef OSGGEO_TABPLANEDRAGGER_H
+#define OSGGEO_TABPLANEDRAGGER_H
+
+/* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
+Copyright 2011 dGB Beheer B.V.
+
+osgGeo is free software; you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>
+
+$Id: TrackballManipulator 231 2013-04-16 12:35:57Z kristofer.tingdahl@dgbes.com $
+
+*/
+
+#include <osgGeo/Common>
+#include <osgManipulator/TabPlaneDragger>
+
+namespace osgGeo
+{
+
+// TabPlaneDragger with customized TranslatePlaneDragger event handling
+
+class OSGGEO_EXPORT TabPlaneDragger : public osgManipulator::TabPlaneDragger
+{
+    public :
+
+	TabPlaneDragger(float handleScaleFactor=20.0f);
+
+	virtual bool handle(const osgManipulator::PointerInfo& pi, const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa);
+
+        bool isCurrentEventHandler() const;
+
+	void set1DTranslateModKeyMask(int mask)	{ _modKeyMask1D = mask; }
+	void set2DTranslateModKeyMask(int mask)	{ _modKeyMask2D = mask; }
+	int get1DTranslateModKeyMask() const	{ return _modKeyMask1D; }
+	int get2DTranslateModKeyMask() const	{ return _modKeyMask2D; }
+
+    protected:
+
+	bool handleInternal(const osgManipulator::PointerInfo& pi, const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa);
+
+	bool convToTranslatePlaneDraggerEvent(osgGA::GUIEventAdapter&) const;
+
+	int	_modKeyMask1D;
+	int	_modKeyMask2D;
+};
+
+}
+
+#endif //OSGGEO_TABPLANEDRAGGER_H

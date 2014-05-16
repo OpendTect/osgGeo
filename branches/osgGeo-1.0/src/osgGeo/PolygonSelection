@@ -1,0 +1,98 @@
+#ifndef OSGGEO_POLYGONSELECTION_H
+#define OSGGEO_POLYGONSELECTION_H
+
+/* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
+Copyright 2011 dGB Beheer B.V.
+
+osgGeo is free software; you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>
+
+$Id$
+
+*/
+
+#include <osgGeo/Common>
+#include <osg/Geode>
+#include <osg/Node>
+#include <osgGA/GUIEventHandler>
+
+namespace osg { class Geode; class NodeVisitor;
+		class Geometry; class Material; class Camera; }
+namespace osgGA { class GUIEventHandler; class GUIEventAdapter; }
+namespace osgGeo
+{
+
+class PolygonSelectionEventHandler;
+
+class OSGGEO_EXPORT PolygonSelection : public osg::Node
+{
+public:
+			    PolygonSelection();
+
+    void		    setEventHandlerCamera(osg::Camera*);
+    void		    setHUDCamera(osg::Camera*);
+    
+    osg::Vec2		    projectPointToScreen(osg::Vec3) const;
+    const osg::Vec3Array*   getCoords() const { return _coords; }
+
+    enum ShapeType	    { Off, Polygon, Rectangle };
+    ShapeType		    getShapeType() const  { return _shapeType; }
+    void		    setShapeType(ShapeType st);
+
+    void		    setColor(const osg::Vec4& col);
+    
+    void		    addCallBack(osg::NodeCallback *nc);
+    void		    removeCallBack(osg::NodeCallback *nc);
+
+    void		    setZCoord(float);
+    float		    getZCoord() const { return _zcoord; }
+    
+    void		    clear();
+    void		    accept(osg::NodeVisitor&);
+
+protected:
+
+    friend class	    PolygonSelectionEventHandler;
+
+    osg::BoundingSphere	    computeBound() const;
+
+    void		    setLatestMousePoints(const osg::Vec3&);
+    bool		    checkInteractionObjectIntersection(const osg::Vec3&) const;
+    bool		    isCameraChanged();
+
+    bool		    handleEvent(const osgGA::GUIEventAdapter&);
+    
+			    ~PolygonSelection();
+    
+
+    PolygonSelectionEventHandler*	_eventHandler;
+    osg::ref_ptr<osg::NodeCallback>	_callback;
+    osg::ref_ptr<osg::Geode>		_geode;
+    osg::Geometry*			_lineGeometry;
+    osg::Camera*			_masterCamera;
+    osg::Vec3				_cameraPos;
+    osg::Camera*			_hudCamera;
+    osg::DrawArrays*                    _coordsList;
+    ShapeType				_shapeType;
+    osg::Material*			_material;
+    osg::Vec3Array*			_coords;
+    float                               _zcoord;
+    bool                                _ison;
+    bool                                _isInterSecting;
+    osg::BoundingBox	                _bbox;
+};
+
+} // osgGeo
+
+
+#endif

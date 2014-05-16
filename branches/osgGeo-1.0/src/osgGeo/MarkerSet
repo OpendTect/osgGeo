@@ -1,0 +1,119 @@
+#ifndef OSGGEO_MARKERSET_H
+#define OSGGEO_MARKERSET_H
+
+/* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
+Copyright 2011 dGB Beheer B.V.
+
+osgGeo is free software; you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>
+
+$Id$
+
+*/
+
+#include <osg/Node>
+#include <osgGeo/Common>
+#include <osgGeo/MarkerShape>
+
+#include <osg/Array>
+#include <osg/Geode>
+#include <osg/AutoTransform>
+
+namespace osg 
+{ 
+    class Geometry; class Geode; class Shape; class Array; class Quat;
+}
+
+namespace osgGeo
+{
+
+
+class OSGGEO_EXPORT MarkerSet : public osg::Node
+{
+    public:
+			    		MarkerSet();
+					~MarkerSet();
+					 
+	void				setVertexArray(osg::Vec3Array*);
+	osg::Vec3Array*			getVertexArray() const { return _vertexArr; }
+
+	void				setNormalArray(osg::Vec3Array*);
+	osg::Vec3Array*			getNormalArray() const { return _normalArr; }
+
+	void				setColorArray(osg::Vec4Array*);
+	osg::Vec4Array*			getColorArray() const { return _colorArr; }
+
+	void				setSingleColor(osg::Vec4&);
+	osg::Vec4			getSingleColor() const { return _singleColor; }
+
+	void				useSingleColor(bool);
+
+	void				setShape(osgGeo::MarkerShape::ShapeType);
+	osgGeo::MarkerShape::ShapeType	getShape();
+
+	void				setDetail(float ratio);
+						//!<Between 0 and 1.
+	const float			getDetail();
+
+	void				setMarkerSize(float, bool useScreensize = true);
+	const float			getMarkerSize();
+	bool				isScreenSize() const { return _useScreenSize; }
+
+	void				setMarkerHeightRatio(float);
+	const float			getMarkerHeightRatio(); 
+	
+	void				setMarkerRotation(const osg::Quat&);
+	const osg::Quat&		getMarkerRotation() const;
+
+	void				setMinScale(float minscale);
+	float				getMinScale() const {return _minScale;}
+
+	void				setMaxScale(float maxscale);
+	float				getMaxScale() const {return _maxScale;}
+
+	void				setRotateMode(osg::AutoTransform::AutoRotateMode);
+	osg::AutoTransform::AutoRotateMode
+					getRotateMode() const { return _rotateMode; }
+
+	void				turnMarkerOn(unsigned int idx,bool);
+	void				turnAllMarkersOn(bool);
+	void				forceRedraw(bool);
+
+    protected:
+	osg::BoundingSphere		computeBound() const;
+	void				traverse(osg::NodeVisitor&);
+	bool				updateShapes();
+
+    private:
+
+	osg::ref_ptr<osg::Vec3Array>		_vertexArr;
+	osg::ref_ptr<osg::Vec4Array>		_colorArr;
+	osg::ref_ptr<osg::Vec3Array>		_normalArr;
+	osg::ref_ptr<osg::Switch>		_nonShadingSwitch;
+	osg::AutoTransform::AutoRotateMode	_rotateMode;
+	osg::Vec4f				_singleColor;
+
+	float					_minScale;
+	float					_maxScale;
+	bool					_useScreenSize;
+	bool					_applySingleColor;
+	osgGeo::MarkerShape			_markerShape;
+	bool					_forceRedraw;
+	mutable osg::BoundingBox		_bbox;
+	bool					_dirtyBoundAtNextCullStage;
+	bool					_waitForAutoTransformUpdate;
+	osg::Vec3				_prevEyePoint;
+};
+
+}
+#endif //OSGGEO_MARKERSET_H

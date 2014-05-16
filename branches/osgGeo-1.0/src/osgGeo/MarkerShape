@@ -1,0 +1,85 @@
+#ifndef OSGGEO_MARKERSHAPE_H
+#define OSGGEO_MARKERSHAPE_H
+
+/* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
+Copyright 2011 dGB Beheer B.V.
+
+osgGeo is free software; you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>
+
+$Id: MarkerShape 242 2013-04-26 11:26:59Z ding.zheng@dgbes.com $
+
+*/
+
+#include <osgGeo/Common>
+
+#include <osg/Geometry>
+#include <osg/ShapeDrawable>
+#include <osg/Quat>
+
+namespace osg { class TessellationHints; }
+
+namespace osgGeo
+{
+
+class OSGGEO_EXPORT MarkerShape 
+{
+    public:
+		        	MarkerShape();
+				~MarkerShape();
+
+        enum			ShapeType { None=-1,Box=0, Cone, Cylinder, 
+						 Sphere, Cross };
+
+	void			setType(const ShapeType);
+	const ShapeType		getType() { return _shapeType; }
+
+	void			setColor(const osg::Vec4f);
+	const osg::Vec4f	getColor() { return _color; }
+
+	void			setSize(const float);
+	const float		getSize() { return _size; }
+
+	void			setHeightRatio(const float);
+	const float		getHeightRatio() { return _heightRatio; }
+
+	void			setDetail(const float);
+	const float		getDetail();
+
+	void			setCenter(const osg::Vec3f);
+	const osg::Vec3f	getCenter() { return _center; }
+
+	void			setRotation(const osg::Quat&);
+	const osg::Quat&	getRotation() const { return _rotation; }
+
+	osg::ref_ptr<osg::Drawable>		createShape();
+
+    protected:
+	osg::ref_ptr<osg::Drawable>       createCrossDrawable();
+
+	osg::ref_ptr<osg::TessellationHints>	_hints;
+	osg::Vec3f		_center;
+	osg::Vec4		_color;
+	float			_size;
+	float			_heightRatio;
+	ShapeType   		_shapeType;
+	osg::Quat		_rotation;
+
+    private:
+
+    
+
+};
+
+}
+#endif //OSGGEO_MARKERSHAPE_H

@@ -1,0 +1,79 @@
+#ifndef OSGGEO_AXESNODE_H
+#define OSGGEO_AXESNODE_H
+
+/* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
+Copyright 2011 dGB Beheer B.V.
+
+osgGeo is free software; you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>
+
+$Id$
+
+*/
+
+#include <osg/Node>
+#include <osg/Vec2>
+#include <osg/NodeVisitor>
+#include <osgGeo/Common>
+
+
+namespace osg { class Camera; class MatrixTransform;  }
+
+namespace osgGeo
+{
+
+class OSGGEO_EXPORT AxesNode : public osg::Node
+{
+public:
+
+			AxesNode();
+			AxesNode(const AxesNode&, const osg::CopyOp& op =
+				    osg::CopyOp::DEEP_COPY_ALL);
+			META_Node(osgGeo,AxesNode);
+
+    void		traverse(osg::NodeVisitor&);
+    void		setSize(osg::Vec2 size);
+    void		setPosition(osg::Vec2 pos);
+    void		setRadius(const float&);
+    float		getRadius() const { return _radius; }
+    float		getLength() const { return _length; }
+    void		setLength(const float&);
+    void		setAnnotationColor(osg::Vec4 col);
+    void		setAnnotationTextSize(float);
+    float		getAnnotationTextSize() const {return _textSize;}
+    void		setMasterCamera(osg::Camera*);
+
+protected:
+
+    virtual		~AxesNode();
+    bool		updateGeometry();
+    bool		needsUpdate() const;
+    osg::BoundingSphere	computeBound() const;  
+    bool		computeTransform(osg::Matrix&) const;
+       
+    float			_radius;
+    float			_length;
+    float			_textSize;
+    osg::Vec2			_pos;
+    osg::Vec2			_size;
+    osg::Vec4			_annotColor;
+    bool			_needsUpdate;
+    osg::Group*			_root;
+    osg::ref_ptr<osg::Camera>		_masterCamera;
+    osg::ref_ptr<osg::MatrixTransform>	_transform;
+};
+
+
+} // namespace osgGeo
+#endif //OSGGEO_TEXTUREPLANE_H
+
