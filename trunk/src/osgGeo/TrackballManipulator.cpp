@@ -429,8 +429,8 @@ bool TrackballManipulator::handleMouseWheel(const osgGA::GUIEventAdapter& ea, os
 }
 
 
-bool TrackballManipulator::handleMouseWheelZoomOut(const osgGA::GUIEventAdapter& ea,
-                                                    osgGA::GUIActionAdapter& us)
+bool TrackballManipulator::handleMouseWheelZoomOut(const osgGA::GUIEventAdapter&,
+                                                   osgGA::GUIActionAdapter& us)
 {
     return zoomOut(us.asView(),_wheelZoomFactor);
 }
@@ -588,7 +588,7 @@ bool TrackballManipulator::getZoomCenterIntersectionPoint(osg::View* view, const
 
 
 void TrackballManipulator::handleMultiTouchDrag(const osgGA::GUIEventAdapter::TouchData* now, 
-    const osgGA::GUIEventAdapter::TouchData* last, const double eventTimeDelta) 
+    const osgGA::GUIEventAdapter::TouchData* last, const double ) 
 {
     const osg::Vec2 pt_1_now(now->get(0).x,now->get(0).y);
     const osg::Vec2 pt_2_now(now->get(1).x,now->get(1).y);
