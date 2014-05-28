@@ -94,6 +94,10 @@ void osgGeo::OneSideRender::traverse(osg::NodeVisitor& nv)
 		const osg::BoundingBox bb = _drawables[idx]->getBound();
 		const float depth = cv->getDistanceFromEyePoint(
 		    bb.center(), false );
+		
+		if ( depth < 0 )
+		    continue;
+
 		cv->addDrawableAndDepth(
 		    _drawables[idx], cv->getModelViewMatrix(), depth );
 		bbox.expandBy( bb );
