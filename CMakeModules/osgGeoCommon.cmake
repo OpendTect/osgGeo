@@ -21,7 +21,7 @@ if ( UNIX )
     set ( CMAKE_CXX_FLAGS "-Woverloaded-virtual -Wno-reorder ${CMAKE_CXX_FLAGS}" )
     set ( CMAKE_CXX_FLAGS "-Wunused -Wmissing-braces -Wparentheses ${CMAKE_CXX_FLAGS}" )
     set ( CMAKE_CXX_FLAGS "-Wswitch -Wunused-function -Wunused-label ${CMAKE_CXX_FLAGS}" )
-    set ( CMAKE_CXX_FLAGS "-Wshadow -Wwrite-strings -Wpointer-arith -Winline ${CMAKE_CXX_FLAGS}" )
+    set ( CMAKE_CXX_FLAGS "-Wshadow -Wwrite-strings -Wpointer-arith -Wno-inline ${CMAKE_CXX_FLAGS}" )
     set ( CMAKE_CXX_FLAGS "-Wformat ${CMAKE_CXX_FLAGS}" )
     set ( CMAKE_CXX_FLAGS "-Wreturn-type -Winit-self -Wno-char-subscripts ${CMAKE_CXX_FLAGS}" )
 
