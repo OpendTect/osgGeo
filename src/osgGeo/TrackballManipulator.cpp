@@ -102,6 +102,11 @@ osg::Matrixd TrackballManipulator::computePerspectiveProjectionFromOrtho(const o
 {
     double left, right, bottom, top, zNear, zFar;
     camera.getProjectionMatrixAsOrtho(left, right, bottom, top, zNear, zFar);
+    if ( zNear< 0 )
+    {
+	zNear /=(-1.0f);
+	zFar  += fabs(zNear);
+    }
 
     const osg::Viewport* vwp = camera.getViewport();
     const double aspectRatio = vwp->aspectRatio();
