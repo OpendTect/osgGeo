@@ -47,7 +47,6 @@ PlaneWellLog::PlaneWellLog()
     ,_isFilled(false)
     ,_triGeometryWidth(.0)
     ,_isFullFilled(false)
-    ,_worldWidth(.0)
 {
     buildLineGeometry();
     buildTriangleGeometry();
@@ -68,7 +67,6 @@ PlaneWellLog::PlaneWellLog( const PlaneWellLog& pwl, const osg::CopyOp& cop )
     ,_isFilled(false)
     ,_triGeometryWidth(.0)
     ,_isFullFilled(false)
-    ,_worldWidth(.0)
 {
     buildLineGeometry();
     buildTriangleGeometry();
@@ -238,11 +236,17 @@ void PlaneWellLog::traverse(osg::NodeVisitor& nv)
 	const osg::Vec3 normal = calcNormal(projdir);
 	
 	if ( _forceCoordReCalculation || eyeChanged(projdir) || 
-	    _screenSizeChanged )
+	    _logWidthChanged )
 	{
-	    _worldWidth = calcWorldWidth(cv);
-	    calcCoordinates(normal, _worldWidth); 
+	    calcCoordinates(normal); 
 	    _preProjDir = projdir;
+	    _logWidthChanged = false;
+
+	    if ( _lineWidth->getWidth() == 0 )
+		getStateSet()->removeAttribute(_lineWidth);
+	    else
+		getStateSet()->setAttributeAndModes(_lineWidth);
+	    
 	    dirtyBound();
 	}
 
@@ -359,7 +363,7 @@ osg::BoundingSphere PlaneWellLog::computeBound() const
 	    rad = 
 	    osg::maximum<float>( rad, fabs((*_coordLinedTriFactors)[2*idx+1]));
 
-	rad = rad*_worldWidth + fabs(getRepeatStep())*(_repeatNumber-1);
+	rad = rad*_logWidth + fabs(getRepeatStep())*(_repeatNumber-1);
 	logSphere.expandBy(osg::BoundingSphere(_logPath->at(idx),rad));
     }
 
@@ -367,12 +371,12 @@ osg::BoundingSphere PlaneWellLog::computeBound() const
 }
 
 
-void PlaneWellLog::calcCoordinates(const osg::Vec3& normal, float screenSize)
+void PlaneWellLog::calcCoordinates(const osg::Vec3& normal)
 {
     int nrSamples = _logPath->size();
 
     const bool doFill = (getLogItem() != LOGLINE_ONLY);
-    const osg::Vec3 appliedDir = normal * screenSize;
+    const osg::Vec3 appliedDir = normal * _logWidth;
     const osg::Vec3 emptyPnt( 0, 0, 0 );
 
     for ( int idx=0; idx<nrSamples; idx++ )

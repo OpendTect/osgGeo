@@ -123,8 +123,9 @@ bool MarkerSet::updateShapes()
 	autotrans->setPosition(_vertexArr->at(idx));
 	autotrans->setAutoRotateMode(_rotateMode);
 	autotrans->setAutoScaleToScreen(true);
-	autotrans->setMinimumScale(0.0f);
+	autotrans->setMinimumScale(1.0f);
 	autotrans->setMaximumScale(DBL_MAX);
+	autotrans->setAutoScaleTransitionWidthRatio(0.5);
 
 	if ( !_useScreenSize )
 	    autotrans->setScale( (double)1.0 );
