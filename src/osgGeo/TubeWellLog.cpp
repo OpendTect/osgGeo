@@ -182,10 +182,9 @@ void TubeWellLog::traverse(osg::NodeVisitor& nv)
 
     if (nv.getVisitorType() == osg::NodeVisitor::CULL_VISITOR)
     {
-	osgUtil::CullVisitor* cv = dynamic_cast<osgUtil::CullVisitor*>(&nv);
 	if (_forceReBuild)
 	{
-	    calcTubeShape(calcWorldWidth(cv));
+	    calcTubeShape();
 	    buildTube(true); 
 	    _colorTableChanged = true;
 	}
@@ -331,7 +330,7 @@ float TubeWellLog::getShapeFactor(float val, float minval, float maxval) const
 }
 
 
-void TubeWellLog::calcTubeShape(float screenSize)
+void TubeWellLog::calcTubeShape()
 {
     clearTubeShape();
  
@@ -360,7 +359,7 @@ void TubeWellLog::calcTubeShape(float screenSize)
 
 	osg::Vec3 appliedDir = osg::Vec3(circleNormal[2],0,-circleNormal[0]);		
 	appliedDir.normalize();
-	appliedDir *= screenSize;
+	appliedDir *= _logWidth;
 
 	_logTubeShapePoints->push_back(appliedDir*shpFactor);
 	_logTubeCircleNormals->push_back(circleNormal);

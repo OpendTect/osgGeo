@@ -85,7 +85,7 @@ protected:
 				 LOGFILL_ONLY,LOGLNFL_BOTH};
 
 private:
-    void			calcCoordinates(const osg::Vec3& normal,float screenSize);
+    void			calcCoordinates(const osg::Vec3& normal);
     void			calcFactors();
     osg::Vec3			calcNormal(const osg::Vec3& projdir) const;
     void			updateFilledLogColor();
@@ -115,7 +115,6 @@ private:
     bool	    _isFilled;
     float	    _triGeometryWidth;
     bool	    _isFullFilled;
-    float	    _worldWidth;
 };
 
 

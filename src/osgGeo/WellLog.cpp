@@ -39,13 +39,12 @@ WellLog::WellLog()
     ,_shapeLog ( new osg::FloatArray )
     ,_fillLog ( new osg::FloatArray )
     ,_fillLogDepths( new osg::FloatArray )
-    ,_resizeWhenZooming( false )
-    ,_screenSizeChanged( false )
+    ,_logWidthChanged( false )
     ,_colorTableChanged( false )
     ,_fillRevScale( false )
     ,_forceReBuild( false )
     ,_revScale( false)
-    ,_constantSizeFactor( 1 )
+    ,_logWidth( 250 )
     ,_minShapeValue( mMAX )
     ,_minFillValue( mMAX )
     ,_maxShapeValue( -mMAX )
@@ -75,10 +74,9 @@ WellLog::WellLog( const WellLog& wl, const osg::CopyOp& cop )
     , COPY_ARRAY( osg::FloatArray, _shapeLog )
     , COPY_ARRAY( osg::FloatArray, _fillLog )
     , COPY_ARRAY( osg::FloatArray, _fillLogDepths )
-    , _resizeWhenZooming( wl._resizeWhenZooming )
     , _fillRevScale( wl._fillRevScale )
     , _revScale( wl._revScale )
-    , _constantSizeFactor( wl._constantSizeFactor )
+    , _logWidth( wl._logWidth )
     , _minShapeValue( wl._minShapeValue )
     , _minFillValue( wl._minFillValue )
     , _maxShapeValue( wl._maxShapeValue )
@@ -86,7 +84,7 @@ WellLog::WellLog( const WellLog& wl, const osg::CopyOp& cop )
     , _geode( new osg::Geode )
     , _forceCoordReCalculation ( true )
     , _nonShadingGroup( new osg::Group )
-    , _screenSizeChanged( false )
+    , _logWidthChanged( false )
     , _colorTableChanged( false )
     , _forceReBuild( false )
 {}
@@ -148,18 +146,18 @@ void WellLog::setMaxFillValue( float maxfillvalue )
 }
 
 
-void WellLog::setMinFillValue( float minfillvalue )
+void WellLog::setMinFillValue( float minFillValue )
 {
-    _minFillValue = minfillvalue;
+    _minFillValue = minFillValue;
     _forceReBuild = true;
 }
 
 
-void WellLog::setScreenWidth( float screenwidth )
+void WellLog::setLogWidth( float logWidth )
 {
-    _screenWidth = screenwidth;
+    _logWidth = logWidth;
     _forceReBuild = true;
-    _screenSizeChanged = true;
+    _logWidthChanged = true;
 }
 
 
@@ -173,20 +171,6 @@ void WellLog::setFillLogColorTab( osg::Vec4Array* logcolortable )
 {
     _colorTable = logcolortable;
     _colorTableChanged = true;
-}
-
-
-void WellLog::setLogConstantSize( bool rsz )
-{
-    _resizeWhenZooming = !rsz;
-    _forceReBuild = true;
-}
-
-
-void WellLog::setLogConstantSizeFactor( float fac )
-{
-    _constantSizeFactor =  fac;
-    _forceReBuild = true;
 }
 
 
@@ -267,82 +251,6 @@ float WellLog::getShapeFactor(float val, float minval, float maxval )const
 }
 
 
-osg::Vec2 WellLog::worldToScreen( const osg::Vec3& worldposition,
-    const osg::Camera* ca )
-{
-    osg::Vec2 screenposition(0,0);
-
-    if ( ca )
-    {
-	osg::Matrixd MVPW = ca->getViewMatrix() * ca->getProjectionMatrix() * 
-	    ca->getViewport()->computeWindowMatrix();
-
-	osg::Vec4d screenposition4d = osg::Vec4d( worldposition, 1.0) * MVPW;
-	screenposition4d = screenposition4d / screenposition4d.w();
-	screenposition4d.y()=ca->getViewport()->height()-screenposition4d.y();
-	screenposition.set( screenposition4d.x(), screenposition4d.y() );
-    }
-    return screenposition; 
-}
-
-
-osg::Vec3 WellLog::screenToWorld( const osg::Vec2d& screenposition, 
-    const osg::Camera* ca )
-{
-    osg::Vec3 worldposition (0, 0, 0);
-
-    if ( ca)
-    {
-	osg::Vec4 screenpositionnear( screenposition.x(), 
-	    ca->getViewport()->height() - screenposition.y(), 0.0, 1.0 );
-	osg::Vec4 screenpositionfar( screenposition.x(), 
-	    ca->getViewport()->height() - screenposition.y(), 1.0, 1.0 );
-	osg::Matrixd iMVPW = osg::Matrixd::inverse( ca->getViewMatrix() * 
-	    ca->getProjectionMatrix() * 
-	    ca->getViewport()->computeWindowMatrix() );
-	osg::Vec4 worldpositionnear = screenpositionnear * iMVPW;
-	osg::Vec4 worldpositionfar = screenpositionfar * iMVPW;
-	worldpositionnear = worldpositionnear / worldpositionnear.w();
-	worldpositionfar = worldpositionfar / worldpositionfar.w();
-
-	worldposition.set( ( worldpositionnear.x() + worldpositionfar.x() )/2.0, 
-	    ( worldpositionnear.y() + worldpositionfar.y() )/2.0,  
-	    ( worldpositionnear.z() + worldpositionfar.z() )/2.0);
-    }
-
-    return worldposition; 
-}
-
-
-float WellLog::calcWorldWidth( const osgUtil::CullVisitor* cv )
-{
-    float worldwidth(.0);
-    if( !cv ) 
-	return 0;
-
-    osg::Viewport* viewport = 
-	const_cast<osgUtil::CullVisitor*>(cv)->getViewport();
-    float szpixel = viewport->height();
-    float nsize1 = _screenWidth / szpixel; 
-    int hnum = (int)_logPath->size() / 2;
-
-    const osg::Vec3& worldpnt =  _logPath->at(hnum);
-    osg::Vec2d scrpnt = worldToScreen( worldpnt,
-	const_cast<osgUtil::CullVisitor*>(cv)->getCurrentCamera() );
-    scrpnt[0] += nsize1;
-    osg::Vec3 newwldpnt = screenToWorld( scrpnt,
-	const_cast<osgUtil::CullVisitor*>(cv)->getCurrentCamera() );
-
-    worldwidth = fabs( newwldpnt[0] - worldpnt[0] );
-
-    if ( !_resizeWhenZooming ) 
-	worldwidth = nsize1*_constantSizeFactor;
-    _screenSizeChanged = false;
-
-    return worldwidth;
-}
-
-
 osg::Vec3 WellLog::getPrjDirection( const osgUtil::CullVisitor* cv ) const
 {
     osg::Vec3 projdir( 0, 0, 0 );
@@ -417,12 +325,10 @@ REGISTER_OBJECT_WRAPPER( WellLog_Wrapper,
 
     ADD_BOOL_SERIALIZER(ShowLog, true );
 
-    ADD_FLOAT_SERIALIZER( ScreenWidth, 5 );
+    ADD_FLOAT_SERIALIZER( LogWidth, 250 );
 
     ADD_BOOL_SERIALIZER( RevScale, false );
     ADD_BOOL_SERIALIZER( FillRevScale, false );
-    ADD_BOOL_SERIALIZER( LogConstantSize, false );
-    ADD_FLOAT_SERIALIZER( LogConstantSizeFactor, 0);
 
     BEGIN_ENUM_SERIALIZER( DisplaySide, Right );
     	ADD_ENUM_VALUE( Left );
