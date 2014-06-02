@@ -87,22 +87,14 @@ public:
     void			setShowLog(bool);
     bool			getShowLog() const {return _showLog;}
 	
-    void			setScreenWidth(float);
-    float			getScreenWidth() const {return _screenWidth;}
+    void			setLogWidth(float);
+    float			getLogWidth() const {return _logWidth;}
 	
     void			setRevScale(bool yn);
     bool			getRevScale() const { return _revScale; }
 
     void			setFillRevScale(bool yn);
     bool			getFillRevScale() const { return _fillRevScale; }
-
-    void 			setLogConstantSize(bool);
-    bool 			getLogConstantSize() const 
-				    {return !_resizeWhenZooming;}
-
-    void 			setLogConstantSizeFactor(float);
-    float 			getLogConstantSizeFactor() const 
-				    {return _constantSizeFactor;}
 
     void			setLineColor(const osg::Vec4&);
     const osg::Vec4&		getLineColor() const;
@@ -139,7 +131,6 @@ protected:
     void			clearDraw();
     bool			eyeChanged(const osg::Vec3);
 
-    float			calcWorldWidth(const osgUtil::CullVisitor* cv);
     osg::Vec3			getPrjDirection(const osgUtil::CullVisitor* cv) const;
     int				getClosestIndex(const osg::FloatArray& arr, float value);
     osg::ref_ptr<osg::Geode>		_geode;
@@ -154,28 +145,20 @@ protected:
     osg::ref_ptr<osg::LineWidth>	_lineWidth;
 
     bool                 		_showLog;
-    bool                    		_resizeWhenZooming;
     bool                    		_colorTableChanged;
-    bool                    		_screenSizeChanged;
+    bool                    		_logWidthChanged;
     bool                    		_forceCoordReCalculation;
     bool                    		_forceReBuild;
     bool                    		_revScale;
     bool                    		_fillRevScale;
     float                   		_maxShapeValue;
     float                   		_minShapeValue;
-    float                   		_screenWidth;
+    float                   		_logWidth;
     float                   		_maxFillValue;
     float                   		_minFillValue;
-    float                   		_constantSizeFactor;
-    osg::Vec2               		_screenSize;
     osg::Vec3               		_preProjDir;
     osg::BoundingBox        		_bbox;
 
-private:
-    osg::Vec2			worldToScreen(const osg::Vec3& worldPosition,
-					    	    const osg::Camera* ca);
-    osg::Vec3			screenToWorld( const osg::Vec2d& screenPosition, 
-						    const osg::Camera* ca );
 };
 
 } // namespace

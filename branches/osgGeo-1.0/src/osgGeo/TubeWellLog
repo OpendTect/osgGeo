@@ -83,7 +83,7 @@ protected:
 							float maxval) const;
     					~TubeWellLog();
 private:
-    void			calcTubeShape(float);
+    void			calcTubeShape();
     void			updateTubeLogColor();
     void			clearTubeShape();
     void			clearVerts();
