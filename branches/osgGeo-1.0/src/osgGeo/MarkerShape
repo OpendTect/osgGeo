@@ -39,7 +39,7 @@ class OSGGEO_EXPORT MarkerShape
 				~MarkerShape();
 
         enum			ShapeType { None=-1,Box=0, Cone, Cylinder, 
-						 Sphere, Cross };
+						 Sphere, Plane, Cross, Arrow };
 
 	void			setType(const ShapeType);
 	const ShapeType		getType() { return _shapeType; }
@@ -66,6 +66,7 @@ class OSGGEO_EXPORT MarkerShape
 
     protected:
 	osg::ref_ptr<osg::Drawable>       createCrossDrawable();
+	osg::ref_ptr<osg::Drawable>       createArrowDrawable();
 
 	osg::ref_ptr<osg::TessellationHints>	_hints;
 	osg::Vec3f		_center;
