@@ -99,27 +99,27 @@ osg::ref_ptr<osg::Drawable> MarkerShape::createShape()
     {
     case Box:
 	{
-	    osg::Box* box = new osg::Box( _center, _size, _size, height );
+	    osg::ref_ptr<osg::Box> box = new osg::Box( _center, _size, _size, height );
 	    box->setRotation( _rotation );
 	    shapeDrwB = new osg::ShapeDrawable( box, _hints );
 	    break;
 	}
     case Cone:
 	{
-	    osg::Cone* cone = new osg::Cone( _center, radius, height );
+	    osg::ref_ptr<osg::Cone> cone = new osg::Cone( _center, radius, height );
 	    cone->setRotation( _rotation );
 	    shapeDrwB = new osg::ShapeDrawable( cone,  _hints );
 	    break;
 	}
     case Sphere:
 	{
-	    osg::Sphere* sphere = new osg::Sphere( _center, radius );
+	    osg::ref_ptr<osg::Sphere> sphere = new osg::Sphere( _center, radius );
 	    shapeDrwB = new osg::ShapeDrawable( sphere, _hints );
 	    break;
 	}
     case Cylinder:
 	{
-	    osg::Cylinder* cyl = new osg::Cylinder( _center, radius, height );
+	    osg::ref_ptr<osg::Cylinder> cyl = new osg::Cylinder( _center, radius, height );
 	    cyl->setRotation( _rotation );
 	    shapeDrwB = new osg::ShapeDrawable( cyl, _hints );
 	    break;
