@@ -115,9 +115,9 @@ bool MarkerSet::updateShapes()
 
 	osg::ref_ptr<osg::Geode> geode = new osg::Geode;
 	geode->addDrawable(drwB);
-	geode->getOrCreateStateSet()->setMode(GL_LIGHTING,
-	    osg::StateAttribute::OFF);
-
+	geode->getOrCreateStateSet()->setMode( GL_RESCALE_NORMAL,
+						    osg::StateAttribute::ON );
+	
 	osg::ref_ptr<osg::AutoTransform> autotrans = 
 	    new osg::AutoTransform;
 	autotrans->setPosition(_vertexArr->at(idx));
