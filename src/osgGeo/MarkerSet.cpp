@@ -38,7 +38,7 @@ MarkerSet::MarkerSet()
     , _applySingleColor(false)
     , _forceRedraw(false)
     , _waitForAutoTransformUpdate(false)
-    , _isLightingOn(false)
+    , _isLightingOn(true)
 {
     setNumChildrenRequiringUpdateTraversal(0);
     _singleColor = osg::Vec4(0.1f, 0.1f, 0.1f, 1.0f);
@@ -334,9 +334,9 @@ void MarkerSet::useSingleColor(bool applySingleColor)
 }
 
 
-void MarkerSet::turnLightingOn( bool ison )
+void MarkerSet::turnLightingOn( bool yn )
 {
-    _isLightingOn = ison;
+    _isLightingOn = yn;
 }
 
 
