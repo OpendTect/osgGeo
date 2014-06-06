@@ -35,9 +35,10 @@ MarkerSet::MarkerSet()
     , _minScale(0.0f)
     , _maxScale(FLT_MAX)
     , _normalArr(new osg::Vec3Array)
-    , _applySingleColor( false )
-    , _forceRedraw( false )
-    , _waitForAutoTransformUpdate( false )
+    , _applySingleColor(false)
+    , _forceRedraw(false)
+    , _waitForAutoTransformUpdate(false)
+    , _isLightingOn(false)
 {
     setNumChildrenRequiringUpdateTraversal(0);
     _singleColor = osg::Vec4(0.1f, 0.1f, 0.1f, 1.0f);
@@ -115,8 +116,14 @@ bool MarkerSet::updateShapes()
 
 	osg::ref_ptr<osg::Geode> geode = new osg::Geode;
 	geode->addDrawable(drwB);
-	geode->getOrCreateStateSet()->setMode( GL_RESCALE_NORMAL,
-						    osg::StateAttribute::ON );
+	osg::StateSet* state = geode->getOrCreateStateSet();
+	if ( state )
+	{
+	    if ( _isLightingOn )
+		state->setMode( GL_RESCALE_NORMAL, osg::StateAttribute::ON );
+	    else
+		state->setMode( GL_LIGHTING, osg::StateAttribute::OFF);
+	}
 	
 	osg::ref_ptr<osg::AutoTransform> autotrans = 
 	    new osg::AutoTransform;
@@ -324,4 +331,16 @@ void MarkerSet::setSingleColor(osg::Vec4& singleColor)
 void MarkerSet::useSingleColor(bool applySingleColor)
 {
     _applySingleColor = applySingleColor;
+}
+
+
+void MarkerSet::turnLightingOn( bool ison )
+{
+    _isLightingOn = ison;
+}
+
+
+bool MarkerSet::isLightingOn() const
+{
+    return _isLightingOn;
 }
