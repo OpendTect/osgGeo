@@ -58,9 +58,6 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 
 	void				useSingleColor(bool);
 	
-	void				turnLightingOn(bool);
-	bool				isLightingOn() const;
-
 	void				setShape(osgGeo::MarkerShape::ShapeType);
 	osgGeo::MarkerShape::ShapeType	getShape();
 
@@ -116,7 +113,6 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 	bool					_dirtyBoundAtNextCullStage;
 	bool					_waitForAutoTransformUpdate;
 	osg::Vec3				_prevEyePoint;
-	bool					_isLightingOn;
 };
 
 }
