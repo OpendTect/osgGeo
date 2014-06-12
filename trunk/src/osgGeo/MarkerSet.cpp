@@ -20,6 +20,7 @@ $Id$
 
 #include "osgGeo/MarkerSet"
 #include <osg/Switch>
+#include <osg/Material>
 #include <osgGeo/ComputeBoundsVisitor>
 #include <osgUtil/CullVisitor>
 
@@ -38,7 +39,6 @@ MarkerSet::MarkerSet()
     , _applySingleColor(false)
     , _forceRedraw(false)
     , _waitForAutoTransformUpdate(false)
-    , _isLightingOn(true)
 {
     setNumChildrenRequiringUpdateTraversal(0);
     _singleColor = osg::Vec4(0.1f, 0.1f, 0.1f, 1.0f);
@@ -100,6 +100,9 @@ bool MarkerSet::updateShapes()
     osg::Switch::ValueList valuelist = _nonShadingSwitch->getValueList();
     _nonShadingSwitch->removeChildren(0, _nonShadingSwitch->getNumChildren());
 
+    osg::ref_ptr<osg::Material> material = new osg::Material;
+    material->setColorMode(osg::Material::DIFFUSE);
+
     for (unsigned int idx=0;idx<_vertexArr->size();idx++)
     {
 	if( !_applySingleColor && _colorArr )
@@ -117,14 +120,11 @@ bool MarkerSet::updateShapes()
 	osg::ref_ptr<osg::Geode> geode = new osg::Geode;
 	geode->addDrawable(drwB);
 	osg::StateSet* state = geode->getOrCreateStateSet();
-	if ( state )
-	{
-	    if ( _isLightingOn )
-		state->setMode( GL_RESCALE_NORMAL, osg::StateAttribute::ON );
-	    else
-		state->setMode( GL_LIGHTING, osg::StateAttribute::OFF);
-	}
-	
+
+	state->setAttributeAndModes(material,osg::StateAttribute::PROTECTED|osg::StateAttribute::ON);
+	state->setMode(GL_RESCALE_NORMAL, osg::StateAttribute::ON);
+	state->setMode(GL_LIGHTING, osg::StateAttribute::ON);
+
 	osg::ref_ptr<osg::AutoTransform> autotrans = 
 	    new osg::AutoTransform;
 	autotrans->setPosition(_vertexArr->at(idx));
@@ -333,14 +333,3 @@ void MarkerSet::useSingleColor(bool applySingleColor)
     _applySingleColor = applySingleColor;
 }
 
-
-void MarkerSet::turnLightingOn( bool yn )
-{
-    _isLightingOn = yn;
-}
-
-
-bool MarkerSet::isLightingOn() const
-{
-    return _isLightingOn;
-}
