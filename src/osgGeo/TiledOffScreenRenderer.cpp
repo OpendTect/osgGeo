@@ -123,7 +123,7 @@ class SwapBuffersCallback : public osg::GraphicsContext::SwapCallback
 {
 public:
     SwapBuffersCallback(){};
-    virtual void swapBuffersImplementation(osg::GraphicsContext* gc){return;}
+    virtual void swapBuffersImplementation(osg::GraphicsContext*){return;}
 };
 
 
@@ -146,7 +146,7 @@ bool TiledOffScreenRenderer::doRender()
     {
 	_viewer->advance();
 
-	_imageCollector->frame(_viewer->getFrameStamp(), _view->getSceneData());
+	_imageCollector->frame(_viewer->getFrameStamp());
 	_viewer->renderingTraversals();
     }
 
@@ -211,8 +211,7 @@ void TiledOffScreenRenderer::OffscreenTileImageCollector::setCameraOrientation(
 }
 
 
-void TiledOffScreenRenderer::OffscreenTileImageCollector::frame(
-    const osg::FrameStamp* fs, osg::Node* node)
+void TiledOffScreenRenderer::OffscreenTileImageCollector::frame(const osg::FrameStamp* fs)
 {
     if ( _isFinishing )
     {
