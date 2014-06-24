@@ -118,10 +118,27 @@ void TiledOffScreenRenderer::setupImageCollector()
 }
 
 
+
+class SwapBuffersCallback : public osg::GraphicsContext::SwapCallback
+{
+public:
+    SwapBuffersCallback(){};
+    virtual void swapBuffersImplementation(osg::GraphicsContext* gc){return;}
+};
+
+
+
 bool TiledOffScreenRenderer::doRender()
 {
     _imageCollector->setCameraOrientation(_orientationCamera->getViewMatrix(),
 					 _orientationCamera->getProjectionMatrix());
+
+    osg::GraphicsContext* gc = _orientationCamera->getGraphicsContext();
+
+    osg::GraphicsContext::SwapCallback* oldSwapCallBack = gc->getSwapCallback();
+
+    osg::ref_ptr<SwapBuffersCallback> swapcallback = new SwapBuffersCallback;
+    gc->setSwapCallback(swapcallback);
 
     const osgViewer::ViewerBase::FrameScheme oldscheme = _viewer->getRunFrameScheme();
     _viewer->setRunFrameScheme(osgViewer::ViewerBase::CONTINUOUS);
@@ -135,6 +152,8 @@ bool TiledOffScreenRenderer::doRender()
 
     _collectorCamera->setRenderingCache(NULL);
     _collectorCamera->detach(osg::Camera::COLOR_BUFFER);
+
+    gc->setSwapCallback(oldSwapCallBack);
 
     _viewer->setRunFrameScheme(oldscheme);
 
