@@ -60,14 +60,14 @@ protected:
 	    typedef std::map< TilePosition, osg::ref_ptr<osg::Image> > TileImages;
     
 	    OffscreenTileImageCollector();
-	    void setTileSize( int w, int h ) { _tileSize.set(w, h); }
-	    void setFinalImageSize( int w, int h ) { _finalImageSize.set(w, h); }
-	    void setCaptureCamera( osg::Camera* camera ) { _camera = camera; }
-	    void setFinalImage( osg::Image* image ) { _finalImage = image; }
+	    void setTileSize(int w, int h) { _tileSize.set(w, h); }
+	    void setFinalImageSize(int w, int h) { _finalImageSize.set(w, h); }
+	    void setCaptureCamera(osg::Camera* camera) { _camera = camera; }
+	    void setFinalImage(osg::Image* image) { _finalImage = image; }
 	    bool done() const { return !_isRunning && !_isFinishing; }
 	    bool finished() const { return _isFinishing; }
-	    void setCameraOrientation( const osg::Matrixd& view, const osg::Matrixd& proj );
-	    void frame( const osg::FrameStamp* fs, osg::Node* node );
+	    void setCameraOrientation(const osg::Matrixd& view, const osg::Matrixd& proj);
+	    void frame(const osg::FrameStamp* fs);
 	    osg::ref_ptr<osg::Image> getFinalImage(){ return _finalImage; }
 	    void setBackgroundTransparency(unsigned char transparency){_transparency = transparency;}
 
