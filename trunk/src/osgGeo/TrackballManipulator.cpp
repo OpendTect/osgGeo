@@ -658,6 +658,25 @@ void TrackballManipulator::animateTo(const osg::Vec3d& newCenter,
 }
 
 
+static bool isProjectionMatrixSet(osg::Camera* camera,bool perspectiveProjection)
+{
+    if ( !camera ) return false;
+
+    double zNear, zFar;
+    if ( perspectiveProjection )
+    {
+	double fovy, oldAspectRatio;
+	return camera->getProjectionMatrixAsPerspective(fovy, oldAspectRatio, zNear, zFar);
+    }
+    else
+    {
+	double left, right, bottom, up;
+	return  camera->getProjectionMatrixAsOrtho(left, right, bottom, up, zNear, zFar);
+    }
+
+}
+
+
 void TrackballManipulator::viewAll(osg::View* view, const osg::Vec3d& dir, const osg::Vec3d& up, bool animate)
 {
     osg::Vec3d f( -dir );  f.normalize();
@@ -673,6 +692,10 @@ void TrackballManipulator::viewAll(osg::View* view, const osg::Vec3d& dir, const
     
     osg::Vec3d newCenter;
     double newDistance;
+    
+    if ( !isProjectionMatrixSet(view->getCamera(),_perspectiveProjection) )
+	updateCamera( *view->getCamera() );
+    
     computeViewAllParams(view, newRotation, newCenter, newDistance);
 
     animateTo(newCenter, newRotation, newDistance, animate );
@@ -683,6 +706,9 @@ void TrackballManipulator::viewAll(osg::View* view, bool animate)
 {
     osg::Vec3d newCenter;
     double newDistance;
+
+    if ( !isProjectionMatrixSet(view->getCamera(),_perspectiveProjection) )
+	updateCamera( *view->getCamera() );
 
     computeViewAllParams(view, _rotation, newCenter, newDistance);
 
