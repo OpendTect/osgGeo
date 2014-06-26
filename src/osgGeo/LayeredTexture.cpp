@@ -947,13 +947,13 @@ void LayeredTexture::setDataLayerImage( int id, osg::Image* image, bool freezewh
 
     LayeredTextureData& layer = *_dataLayers[idx];
 
-    if ( freezewhile0 && !image && layer._imageSource.get() )
+    if ( image || !freezewhile0 )
+	setUpdateVar( layer._freezeDisplay, false );
+    else if ( layer._imageSource.get() )
 	setUpdateVar( layer._freezeDisplay, true );
 
     if ( image )
     {
-	setUpdateVar( layer._freezeDisplay, false );
-
 	if ( !image->getTotalSizeInBytes() || !image->getPixelFormat() )
 	{
 	    std::cerr << "Data layer image cannot be set before allocation" << std::endl;
@@ -1329,7 +1329,8 @@ void LayeredTexture::updateTextureInfoIfNeeded() const
 
 	const osg::Texture::Extensions* texExt = osg::Texture::getExtensions( contextID, _texInfo->_contextId>=0 );
 
-	if ( !vertExt || !fragExt || !texExt )
+	if ( !vertExt || !vertExt->isVertexProgramSupported() ||
+	     !fragExt || !fragExt->isFragmentProgramSupported() || !texExt )
 	    continue;
 
 #if OSG_MIN_VERSION_REQUIRED(3,3,1)
