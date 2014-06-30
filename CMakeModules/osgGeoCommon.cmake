@@ -33,7 +33,7 @@ if ( UNIX )
 endif()
 
 if ( WIN32 )
-    add_definitions( "/W4" "/EHsc" "-DWIN32" "/wd4127" "/wd4800" )
+    add_definitions( "/W4" "/EHsc" "-DWIN32" "/wd4127" "/wd4800" "/wd9025" )
 endif( WIN32 )
 
 
