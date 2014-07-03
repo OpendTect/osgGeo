@@ -33,10 +33,15 @@ if ( UNIX )
 endif()
 
 if ( WIN32 )
-    add_definitions( "/W4" "/EHsc" "-DWIN32" "/wd4127" "/wd4800" "/wd9025" )
+   set( CMAKE_CXX_WARNING_LEVEL 4 )
+   if( CMAKE_CXX_FLAGS MATCHES "/W[0-4]" )
+     string( REGEX REPLACE "/W[0-4]" "/W4" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}" )
+   else( CMAKE_CXX_FLAGS MATCHES "/W[0-4]" )
+     set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4" )
+   endif( CMAKE_CXX_FLAGS MATCHES "/W[0-4]" )
+
+   add_definitions( "/EHsc" "-DWIN32" "/wd4127" "/wd4800" )
 endif( WIN32 )
-
-
 
 if ( UNIX AND NOT WIN32 AND NOT APPLE )
   if (CMAKE_SIZEOF_VOID_P MATCHES "8")
