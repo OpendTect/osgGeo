@@ -57,6 +57,7 @@ void ComputeBoundsVisitor::applyBoundingBox(const osg::BoundingBox& bbox)
 TrackballManipulator::TrackballManipulator(int flags)
     : osgGA::MultiTouchTrackballManipulator(flags)
     , _dragEnabled(true)
+    , _keyHandlingEnabled(true)
     , _boundTraversalMask(mAllTraversals)
     , _viewallMargin(0.2f)
     , _viewAllInitalFactor(3.5f)
@@ -79,6 +80,7 @@ TrackballManipulator::TrackballManipulator(const TrackballManipulator& tm, const
     : osgGA::MultiTouchTrackballManipulator(tm, copyOp)
     , osg::Object(tm, copyOp)	// needs explicit init in copy constructor because of [-Wextra] warning
     , _dragEnabled(tm._dragEnabled)
+    , _keyHandlingEnabled(true)
     , _boundTraversalMask(tm._boundTraversalMask)
     , _viewallMargin(tm._viewallMargin)
     , _viewAllInitalFactor(tm._viewAllInitalFactor)
@@ -352,6 +354,15 @@ bool TrackballManipulator::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIAc
     }
 
     return res;
+}
+
+
+bool TrackballManipulator::handleKeyDown( const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& us )
+{
+    if ( !_keyHandlingEnabled )
+	return false;
+
+    return osgGA::MultiTouchTrackballManipulator::handleKeyDown( ea, us );
 }
 
 

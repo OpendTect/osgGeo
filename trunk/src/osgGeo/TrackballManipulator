@@ -43,6 +43,7 @@ class OSGGEO_EXPORT TrackballManipulator : public osgGA::MultiTouchTrackballMani
 	~TrackballManipulator();
 
 	void enableDragging(bool yn) { _dragEnabled=yn; }
+	void enableKeyHandling(bool yn) { _keyHandlingEnabled=yn; } 
         void setBoundTraversalMask(unsigned int nm) { _boundTraversalMask = nm; }
         void setViewAllMargin(float nv) { _viewallMargin=nv; }
 
@@ -93,6 +94,7 @@ class OSGGEO_EXPORT TrackballManipulator : public osgGA::MultiTouchTrackballMani
         
 
         bool handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa);
+        bool handleKeyDown(const osgGA::GUIEventAdapter& ea,osgGA::GUIActionAdapter& us);
 
         bool handleMouseWheel( const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& us);
 
@@ -115,6 +117,7 @@ class OSGGEO_EXPORT TrackballManipulator : public osgGA::MultiTouchTrackballMani
 
         unsigned int			_boundTraversalMask;
 	bool				_dragEnabled;
+	bool				_keyHandlingEnabled;
         float				_viewallMargin;
         float				_viewAllInitalFactor;
         osg::ref_ptr<osg::NodeCallback> _cb;
