@@ -45,14 +45,11 @@ protected:
 					osg::Object*,
 					osg::NodeVisitor*)
     {
-	const bool ret = _polysel->handleEvent(ea);
-	ea.setHandled( ret );
-	return ret;
+	return _polysel->handleEvent(ea);
     }
 
     bool handle(const osgGA::GUIEventAdapter &ea,osgGA::GUIActionAdapter& aa)
     {
-	ea.setHandled( true );
 	return osgGA::GUIEventHandler::handle(ea,aa);
     }
 
@@ -79,7 +76,7 @@ PolygonSelection::PolygonSelection()
     , _zcoord(0)
     , _masterCamera(0)
     , _eventHandler(0) 
-    , _isInterSecting(false)
+    , _isDrawing(false)
     , _hudCamera(0)
 {
     _lineGeometry->setVertexArray(_coords);
@@ -191,7 +188,7 @@ bool PolygonSelection::isCameraChanged()
 
 bool PolygonSelection::handleEvent(const osgGA::GUIEventAdapter& ea)
 {
-    if (!_ison || _shapeType==Off)
+    if ( !_ison || _shapeType==Off )
 	return false;
 
     if ( isCameraChanged() )
@@ -205,11 +202,15 @@ bool PolygonSelection::handleEvent(const osgGA::GUIEventAdapter& ea)
     if (ea.getEventType()==osgGA::GUIEventAdapter::PUSH 
 	&& ea.getButton()==osgGA::GUIEventAdapter::LEFT_MOUSE_BUTTON)
     {
-	_isInterSecting = checkInteractionObjectIntersection( mousepos );
-	if ( _isInterSecting )
+	clear();
+
+	if ( ea.getHandled() )
+	    return false;
+	if ( checkInteractionObjectIntersection(mousepos) )
 	    return false;
 
-	_coords->clear();
+	_isDrawing = true;
+
 	if ( _shapeType == Rectangle )
 	{
 	    _coords->resize(4);
@@ -218,7 +219,7 @@ bool PolygonSelection::handleEvent(const osgGA::GUIEventAdapter& ea)
 	return true;
     }
 
-    if ( _isInterSecting )
+    if ( !_isDrawing )
 	return false;
 
     if (ea.getEventType()==osgGA::GUIEventAdapter::DRAG
@@ -227,9 +228,12 @@ bool PolygonSelection::handleEvent(const osgGA::GUIEventAdapter& ea)
 	setLatestMousePoints (mousepos);
 	return true;
     }
+
     if (ea.getEventType()==osgGA::GUIEventAdapter::RELEASE 
 	&& ea.getButton()==osgGA::GUIEventAdapter::LEFT_MOUSE_BUTTON)
     {
+	_isDrawing = false;
+
 	if (_callback)
 	{
 	    osg::NodeVisitor nv;
@@ -305,9 +309,13 @@ osg::BoundingSphere PolygonSelection::computeBound() const
 
 void PolygonSelection::clear()
 {
-    _coords->clear();
-    _coordsList->setCount(0);
-    _lineGeometry->dirtyDisplayList();
+    if ( _coordsList->getCount()>0 )
+    {
+	_coords->clear();
+	_coordsList->setCount(0);
+	_lineGeometry->dirtyDisplayList();
+	_isDrawing = false;
+    }
 }
 
 
