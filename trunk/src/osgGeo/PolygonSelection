@@ -88,7 +88,7 @@ protected:
     osg::Vec3Array*			_coords;
     float                               _zcoord;
     bool                                _ison;
-    bool                                _isInterSecting;
+    bool                                _isDrawing;
     osg::BoundingBox	                _bbox;
 };
 
