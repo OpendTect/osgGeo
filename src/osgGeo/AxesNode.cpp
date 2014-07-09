@@ -43,8 +43,6 @@ AxesNode::AxesNode()
     , _radius(1)
     , _length(10)
     , _annotColor(osg::Vec4(1.0f,1.0f,1.0f,1.0f))
-    , _root(new osg::Group)
-    , _transform(new osg::MatrixTransform)
     , _masterCamera(0)
     , _textSize(18.0f)
 {
@@ -53,14 +51,12 @@ AxesNode::AxesNode()
 
 
 AxesNode::AxesNode( const AxesNode& node, const osg::CopyOp& co )
-    : osg::Node(node,co)
+    : osg::MatrixTransform(node,co)
     , _needsUpdate(true)
     , _radius(node._radius)
     , _length(node._length)
     , _pos(node._pos)
     , _annotColor(node._annotColor)
-    , _root(node._root)
-    , _transform(node._transform)
     , _masterCamera(node._masterCamera)
     , _textSize(18.0f)
 {
@@ -83,11 +79,11 @@ void AxesNode::traverse( osg::NodeVisitor& nv )
        {
 	   osg::Matrixd matrix;
 	   if ( computeTransform(matrix) )
-		_transform->setMatrix(matrix);
+		setMatrix(matrix);
 	}
     }
 
-    _transform->accept( nv );
+    MatrixTransform::traverse( nv );
 }
 
 
@@ -96,11 +92,11 @@ bool AxesNode::computeTransform(osg::Matrix& mt) const
     bool ret = false;
     osg::Vec3d eye, center, up; 
     _masterCamera->getViewMatrixAsLookAt(eye, center, up, 45); 
-    osg::Matrixd matrix = _transform->getMatrix();
+    osg::Matrixd matrix = getMatrix();
     matrix.makeLookAt(eye-center, osg::Vec3(0,0,0), up); 
     matrix *= osg::Matrixd::translate(_pos.x(), _pos.y(), 0);
 
-    if ( matrix !=  _transform->getMatrix() )
+    if ( matrix !=  getMatrix() )
     {
 	mt = matrix;
 	ret = true;
@@ -215,7 +211,7 @@ bool AxesNode::updateGeometry()
     if ( !_needsUpdate )
 	return false;
 
-    osg::Vec4 red(1,0,0,0), green(0,1,0,0), blue(0,0.55,1,0), yellow(1,1,0,1);
+    osg::Vec4 red(1,0,0,1), green(0,1,0,1), blue(0,0.55,1,1), yellow(1,1,0,1);
     
     osg::ref_ptr<osg::Material> mat = new osg::Material;
     mat->setDiffuse(osg::Material::FRONT, yellow);
@@ -225,24 +221,17 @@ bool AxesNode::updateGeometry()
     spheregeode->getOrCreateStateSet()->setAttribute(mat);
     spheregeode->addDrawable(sphere);
     const osg::Vec4& c = _annotColor;
-    _root->removeChildren(0, _root->getNumChildren());
-    _root->addChild(spheregeode );
-    _root->addChild(arrowNode(_radius,_length,red,osg::Vec3(0,1,0),  "N", _textSize, c));
-    _root->addChild(arrowNode(_radius,_length,green,osg::Vec3(1,0,0),"E", _textSize, c));
-    _root->addChild(arrowNode(_radius,_length,blue,osg::Vec3(0,0,-1),"Z", _textSize, c));
-    _transform->addChild(_root);
+    removeChildren(0, getNumChildren());
+    addChild( spheregeode ); 
+    
+    addChild(arrowNode(_radius,_length,red,osg::Vec3(0,1,0),  "N", _textSize, c));
+    addChild(arrowNode(_radius,_length,green,osg::Vec3(1,0,0),"E", _textSize, c));
+    addChild(arrowNode(_radius,_length,blue,osg::Vec3(0,0,-1),"Z", _textSize, c));
+
     _needsUpdate = false;
     return true;
 }
 
-
-osg::BoundingSphere AxesNode::computeBound() const
-{
-    osg::BoundingSphere sphere;
-    if ( _transform )
-	sphere = _transform->computeBound();
-    return sphere;
-}
 
 
 bool AxesNode::needsUpdate() const

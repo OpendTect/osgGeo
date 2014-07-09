@@ -21,7 +21,7 @@ $Id$
 
 */
 
-#include <osg/Node>
+#include <osg/MatrixTransform>
 #include <osg/Vec2>
 #include <osg/NodeVisitor>
 #include <osgGeo/Common>
@@ -32,7 +32,7 @@ namespace osg { class Camera; class MatrixTransform;  }
 namespace osgGeo
 {
 
-class OSGGEO_EXPORT AxesNode : public osg::Node
+class OSGGEO_EXPORT AxesNode : public osg::MatrixTransform
 {
 public:
 
@@ -58,7 +58,6 @@ protected:
     virtual		~AxesNode();
     bool		updateGeometry();
     bool		needsUpdate() const;
-    osg::BoundingSphere	computeBound() const;  
     bool		computeTransform(osg::Matrix&) const;
        
     float			_radius;
@@ -68,9 +67,7 @@ protected:
     osg::Vec2			_size;
     osg::Vec4			_annotColor;
     bool			_needsUpdate;
-    osg::Group*			_root;
     osg::ref_ptr<osg::Camera>		_masterCamera;
-    osg::ref_ptr<osg::MatrixTransform>	_transform;
 };
 
 
