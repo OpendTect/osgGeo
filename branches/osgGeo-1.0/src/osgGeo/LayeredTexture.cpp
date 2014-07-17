@@ -36,7 +36,7 @@ $Id$
 #include <cstdio>
 
 
-#if OSG_MIN_VERSION_REQUIRED(3,1,0)
+#if (OSG_VERSION_GREATER_THAN(3,2,1) && OSG_VERSION_LESS_THAN(3,3,0)) || OSG_VERSION_GREATER_THAN(3,3,1)
      #define USE_IMAGE_STRIDE
 #endif
 
