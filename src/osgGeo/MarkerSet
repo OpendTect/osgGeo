@@ -72,9 +72,13 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 	void				setMarkerHeightRatio(float);
 	const float			getMarkerHeightRatio(); 
 	
-	void				setMarkerRotation(const osg::Quat&);
-	const osg::Quat&		getMarkerRotation() const;
+	void				setRotationForAllMarkers(const osg::Quat&);
+	const osg::Quat&		getRotationForAllMarkers() const;
 
+	void				applyRotationToAllMarkers(bool);
+
+	void				setSingleMarkerRotation(const osg::Quat&,int);
+		
 	void				setMinScale(float minscale);
 	float				getMinScale() const {return _minScale;}
 
@@ -100,7 +104,10 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 	osg::ref_ptr<osg::Vec4Array>		_colorArr;
 	osg::ref_ptr<osg::Vec3Array>		_normalArr;
 	osg::ref_ptr<osg::Switch>		_nonShadingSwitch;
+	std::vector<osg::Quat>		 	_rotationSet;
 	osg::AutoTransform::AutoRotateMode	_rotateMode;
+	osg::Quat				_rotationForAllMarkers;
+	bool					_applyRotationForAll;
 	osg::Vec4f				_singleColor;
 
 	float					_minScale;
