@@ -127,7 +127,7 @@ osg::ref_ptr<osg::Drawable> MarkerShape::createShape()
     case Plane:
 	{
 	    osg::ref_ptr<osg::Box> plane =
-			    new osg::Box( _center, 2*_size, _size, _size/2 );
+			    new osg::Box( _center, 3*_size, 2*_size, _size/2 );
 	    plane->setRotation( _rotation );
 	    shapeDrwB = new osg::ShapeDrawable( plane, _hints );
 	    break;
@@ -201,57 +201,97 @@ osg::ref_ptr<osg::Drawable>  MarkerShape::createArrowDrawable()
 {
     osg::ref_ptr<osg::Vec3Array> coords = new osg::Vec3Array;
     osg::ref_ptr<osg::Vec3Array> normals = new osg::Vec3Array;
-    
+    const int resolution = 4;
+    osg::Vec3 curu,curv;
     const osg::Vec3 dir = _rotation * osg::Vec3(1,0,0);
-    const float len = 2*_size;
-    const osg::Vec3 pos = _center;
+    
+    osg::Vec3 anyvec(1,1,1); 
+    curu = dir ^ anyvec;
+    curu.normalize();
+    curv = dir ^ curu;
+    curv.normalize();
 
-    const osg::Vec3 headpos = pos + (dir * len/2);
-    const osg::Vec3 tailpos = pos + (-dir * len/2);
-    const osg::Vec3 midpos = pos;
+    const float len = _size * 4;
+    const float conelen = len/2;
+    osg::Vec3 p1, p2, p3;
+    p1 = dir * len;
+    p2 = dir * ( len - conelen );
    
-    const float normalintesity = 2.0f;
-    const float peakedness = len/8.0f;
-    coords->push_back( headpos );
-    normals->push_back( dir );
-    coords->push_back( midpos + osg::Vec3(0,1,0)*peakedness );
-    normals->push_back( osg::Vec3(0,1,0) * normalintesity );
-    coords->push_back( midpos + osg::Vec3(0,0,1)*peakedness );
-    normals->push_back( osg::Vec3(0,0,1)  * normalintesity );
-    coords->push_back( midpos + osg::Vec3(0,-1,0)*peakedness );
-    normals->push_back( osg::Vec3(0,-1,0) * normalintesity );
-    coords->push_back( midpos + osg::Vec3(0,0,-1)*peakedness );
-    normals->push_back( osg::Vec3(0,0,-1) * normalintesity );
-    coords->push_back( midpos + osg::Vec3(0,1,0)*peakedness );
-    normals->push_back( osg::Vec3(0,1,0) * normalintesity );
+    osg::Vec3 normdir( dir );
+    normdir.normalize();
+    osg::ref_ptr<osg::DrawElementsUInt> cone =
+	new osg::DrawElementsUInt(osg::PrimitiveSet::TRIANGLE_STRIP, 0); 
+    cone->push_back( 0 );
+    int ci = 0;
+    const float rad = len/8;
+    for ( int idx=0; idx<=resolution; idx++ )
+    {
+	float angl = idx * 2 * M_PI / resolution;
+	osg::Vec3 vec = ( curu * cos(angl) ) + ( curv * sin(angl) );
+	osg::Vec3 norm = vec + normdir;
+	norm.normalize();
+	normals->push_back( norm*2.0 );
+	coords->push_back( p1 );
+	cone->push_back( ci++ );
+	coords->push_back( p2 + vec*rad   );
+	normals->push_back( norm*2.0 );
+	cone->push_back( ci++ );
+    }
+
+    //cone base
+    osg::ref_ptr<osg::DrawElementsUInt> conebase =
+	new osg::DrawElementsUInt(osg::PrimitiveSet::TRIANGLE_FAN, 0); 
+    float conesz = coords->size();
+    for ( int idx=0; idx<=resolution; idx++ )
+    {
+	float angl = idx * 2 * M_PI / resolution;
+	osg::Vec3 vec = ( curu * cos(angl) ) + ( curv * sin(angl) );
+	coords->push_back( p2 + vec*rad   );
+	normals->push_back( -normdir );
+	conebase->push_back( idx+conesz );
+    }
+    
+    // cylinder
+    float platesz = coords->size();
+    for ( int idx=0; idx<=resolution; idx++ )
+    {
+	float angl = idx * 2 * M_PI / resolution;
+	osg::Vec3 vec = ( curu * cos(angl) ) + ( curv * sin(angl) );
+	coords->push_back( p2 + vec*rad/2   );
+	normals->push_back( vec );
+	coords->push_back( vec*rad/2   );
+	normals->push_back( vec );
+    }
+
+    const float cylsz = coords->size() - platesz;
+    osg::ref_ptr<osg::DrawElementsUInt> cylbase =
+	new osg::DrawElementsUInt(osg::PrimitiveSet::TRIANGLE_FAN, 0); 
+    const float sz = coords->size();
+    for ( int idx=0; idx<=resolution; idx++ )
+    {
+	float angl = idx * 2 * M_PI / resolution;
+	osg::Vec3 vec = ( curu * cos(angl) ) + ( curv * sin(angl) );
+	coords->push_back( vec*rad/2   );
+	normals->push_back( -normdir );
+	cylbase->push_back( idx+sz );
+    }
 
     osg::ref_ptr<osg::Geometry> arrowgeometry = new osg::Geometry();
     arrowgeometry->setVertexArray( coords );
-    
-    osg::ref_ptr<osg::DrawArrays> arrowheadidx =
-	new osg::DrawArrays(osg::PrimitiveSet::TRIANGLE_FAN,0,coords->size());
-    arrowgeometry->addPrimitiveSet( arrowheadidx );
-    
-    coords->push_back( midpos );
-    normals->push_back( midpos );
-    coords->push_back( tailpos );
-    normals->push_back( tailpos );
+     
+    arrowgeometry->addPrimitiveSet( cone );
+    arrowgeometry->addPrimitiveSet( conebase );
 
-    osg::ref_ptr<osg::DrawArrays> stick =
-	new osg::DrawArrays(osg::PrimitiveSet::LINES,coords->size()-2,2);
-    arrowgeometry->addPrimitiveSet( stick );
+    arrowgeometry->addPrimitiveSet( 
+	new osg::DrawArrays( GL_TRIANGLE_STRIP, platesz,
+			       cylsz, 0 ));
+    arrowgeometry->addPrimitiveSet( cylbase );
     
     arrowgeometry->setNormalArray( normals.get() );
     arrowgeometry->setNormalBinding( osg::Geometry::BIND_PER_VERTEX );
-
-    osg::ref_ptr<osg::LineWidth> lineWidth = new osg::LineWidth;
-    lineWidth->setWidth(2.0);
-    osg::StateSet* stateset  = arrowgeometry->getOrCreateStateSet();
-    stateset->setAttributeAndModes(lineWidth);
-
     osg::ref_ptr<osg::Vec4Array> colors = new osg::Vec4Array; 
     colors->push_back( _color );
     arrowgeometry->setColorArray( colors );
-    arrowgeometry->setColorBinding(osg::Geometry::BIND_OVERALL); 
+    arrowgeometry->setColorBinding(osg::Geometry::BIND_OVERALL);
     return arrowgeometry;
 }
