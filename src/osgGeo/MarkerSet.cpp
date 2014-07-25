@@ -39,6 +39,7 @@ MarkerSet::MarkerSet()
     , _applySingleColor(false)
     , _forceRedraw(false)
     , _waitForAutoTransformUpdate(false)
+    , _applyRotationForAll(true)
 {
     setNumChildrenRequiringUpdateTraversal(0);
     _singleColor = osg::Vec4(0.1f, 0.1f, 0.1f, 1.0f);
@@ -48,6 +49,12 @@ MarkerSet::MarkerSet()
 
 MarkerSet::~MarkerSet()
 {
+}
+
+
+void MarkerSet::applyRotationToAllMarkers( bool yn )
+{
+    _applyRotationForAll = yn;
 }
 
 
@@ -115,6 +122,12 @@ bool MarkerSet::updateShapes()
 	else if ( _applySingleColor )
 	    _markerShape.setColor( _singleColor );
 
+	const osg::Quat& rot = _applyRotationForAll ? _rotationForAllMarkers
+						    : idx < _rotationSet.size()
+						    ? _rotationSet.at(idx)
+						    : osg::Quat();
+	_markerShape.setRotation( rot );
+	
 	osg::ref_ptr<osg::Drawable> drwB = _markerShape.createShape();
 
 	osg::ref_ptr<osg::Geode> geode = new osg::Geode;
@@ -261,16 +274,24 @@ const float MarkerSet::getMarkerHeightRatio()
 }
 
 
-void MarkerSet::setMarkerRotation(const osg::Quat& quat)
+void MarkerSet::setRotationForAllMarkers(const osg::Quat& quat)
 {
-    _markerShape.setRotation( quat );
-    forceRedraw(true);
+    _rotationForAllMarkers = quat;
 }
 
 
-const osg::Quat& MarkerSet::getMarkerRotation() const
+const osg::Quat& MarkerSet::getRotationForAllMarkers() const
 {
-    return _markerShape.getRotation();
+    return _rotationForAllMarkers;
+}
+
+
+void MarkerSet::setSingleMarkerRotation( const osg::Quat& rot, int idx )
+{
+    if ( idx >= _rotationSet.size() )
+	_rotationSet.resize( idx+1 );
+     
+    _rotationSet[idx] = rot;
 }
 
 
