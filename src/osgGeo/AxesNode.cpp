@@ -263,6 +263,7 @@ void AxesNode::setLength(const float& len)
 void AxesNode::setPosition(osg::Vec2 pos)
 {
     _pos = pos;
+    _needsUpdate = true;
 }
 
 
