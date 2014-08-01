@@ -241,8 +241,8 @@ osg::ref_ptr<osg::Drawable>  MarkerShape::createArrowDrawable()
     //cone base
     osg::ref_ptr<osg::DrawElementsUInt> conebase =
 	new osg::DrawElementsUInt(osg::PrimitiveSet::TRIANGLE_FAN, 0); 
-    float conesz = coords->size();
-    for ( int idx=0; idx<=resolution; idx++ )
+    const unsigned int conesz = coords->size();
+    for ( unsigned int idx=0; idx<=resolution; idx++ )
     {
 	float angl = idx * 2 * M_PI / resolution;
 	osg::Vec3 vec = ( curu * cos(angl) ) + ( curv * sin(angl) );
@@ -252,7 +252,7 @@ osg::ref_ptr<osg::Drawable>  MarkerShape::createArrowDrawable()
     }
     
     // cylinder
-    float platesz = coords->size();
+    const int platesz = coords->size();
     for ( int idx=0; idx<=resolution; idx++ )
     {
 	float angl = idx * 2 * M_PI / resolution;
@@ -263,11 +263,11 @@ osg::ref_ptr<osg::Drawable>  MarkerShape::createArrowDrawable()
 	normals->push_back( vec );
     }
 
-    const float cylsz = coords->size() - platesz;
+    const int cylsz = coords->size() - platesz;
     osg::ref_ptr<osg::DrawElementsUInt> cylbase =
 	new osg::DrawElementsUInt(osg::PrimitiveSet::TRIANGLE_FAN, 0); 
-    const float sz = coords->size();
-    for ( int idx=0; idx<=resolution; idx++ )
+    const unsigned sz = coords->size();
+    for ( unsigned int idx=0; idx<=resolution; idx++ )
     {
 	float angl = idx * 2 * M_PI / resolution;
 	osg::Vec3 vec = ( curu * cos(angl) ) + ( curv * sin(angl) );
@@ -295,3 +295,4 @@ osg::ref_ptr<osg::Drawable>  MarkerShape::createArrowDrawable()
     arrowgeometry->setColorBinding(osg::Geometry::BIND_OVERALL);
     return arrowgeometry;
 }
+
