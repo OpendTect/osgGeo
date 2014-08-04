@@ -68,8 +68,8 @@ void TiledOffScreenRenderer::setOutputSize(int width, int length)
 
     const osg::Viewport* viewport = _orientationCamera->getViewport();
 
-    const int widthTimes = ceil(_width/viewport->width());
-    const int heighTimes = ceil(_height/viewport->height());
+    const int widthTimes = (int) ceil(_width/viewport->width());
+    const int heighTimes = (int) ceil(_height/viewport->height());
 
     _tileWidth  = (int)(_width/widthTimes);
     _tileHeight = (int)(_height/heighTimes);
