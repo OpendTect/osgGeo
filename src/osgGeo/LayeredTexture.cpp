@@ -36,7 +36,7 @@ $Id$
 #include <cstdio>
 
 
-#if (OSG_VERSION_GREATER_THAN(3,2,1) && OSG_VERSION_LESS_THAN(3,3,0)) || OSG_VERSION_GREATER_THAN(3,3,1)
+#if OSG_MIN_VERSION_REQUIRED(3,1,0)
      #define USE_IMAGE_STRIDE
 #endif
 
@@ -1972,7 +1972,9 @@ void LayeredTexture::updateSetupStateSetIfNeeded()
 
     if ( _updateSetupStateSet )
     {
-	_compositeLayerUpdate = !_retileCompositeLayer;
+	if ( !_retileCompositeLayer )
+	    _compositeLayerUpdate = true;
+
 	buildShaders();
 	setUpdateVar( _updateSetupStateSet, false );
     }
@@ -2405,7 +2407,7 @@ void LayeredTexture::getFragmentShaderCode( std::string& code, const std::vector
     code += "{\n"
 	    "    vec4 col, udfcol;\n"
 	    "    vec2 texcrd;\n"
-	    "    float a, b, udf, oldudf, orgcol3, mip, stddev, scale;\n"
+	    "    float a, b, udf, oldudf, orgcol3, mip, var, stddev, scale;\n"
 	    "\n";
 
     int stage = 0;
