@@ -19,7 +19,7 @@ $Id$
 */
 
 #include "Palette"
-
+#include <algorithm>
 
 namespace osgGeo
 {
