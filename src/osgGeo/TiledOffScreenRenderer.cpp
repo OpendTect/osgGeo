@@ -30,7 +30,6 @@ using namespace osgGeo;
 
 static unsigned char NOTRANSPARENCY = 255; 
 
-
 TiledOffScreenRenderer::TiledOffScreenRenderer(osgViewer::View* view,
 					       osgViewer::CompositeViewer* viewer)
     :_view(view)
@@ -69,8 +68,8 @@ void TiledOffScreenRenderer::setOutputSize(int width, int length)
 
     const osg::Viewport* viewport = _orientationCamera->getViewport();
 
-    const int widthTimes = ceil(_width/viewport->width());
-    const int heighTimes = ceil(_height/viewport->height());
+    const int widthTimes = (int) ceil(_width/viewport->width());
+    const int heighTimes = (int) ceil(_height/viewport->height());
 
     _tileWidth  = (int)(_width/widthTimes);
     _tileHeight = (int)(_height/heighTimes);
@@ -119,12 +118,14 @@ void TiledOffScreenRenderer::setupImageCollector()
 }
 
 
+
 class SwapBuffersCallback : public osg::GraphicsContext::SwapCallback
 {
 public:
     SwapBuffersCallback(){};
     virtual void swapBuffersImplementation(osg::GraphicsContext*){return;}
 };
+
 
 
 bool TiledOffScreenRenderer::doRender()
@@ -151,8 +152,9 @@ bool TiledOffScreenRenderer::doRender()
 
     _collectorCamera->setRenderingCache(NULL);
     _collectorCamera->detach(osg::Camera::COLOR_BUFFER);
-    
+
     gc->setSwapCallback(oldSwapCallBack);
+
     _viewer->setRunFrameScheme(oldscheme);
 
     if ( !_imageCollector->getFinalImage() )

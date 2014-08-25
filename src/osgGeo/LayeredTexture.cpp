@@ -1573,7 +1573,7 @@ float LayeredTexture::getMaxAnisotropy( int layerIdx ) const
     
     float maxAnisotropy = powerOf2Ceil( (int) floor(ratio+0.5) );
 
-    int power = _anisotropicPower;
+    int power = (int)_anisotropicPower;
     while ( (--power)>=0 )
 	maxAnisotropy *= 2.0;
 
@@ -1974,7 +1974,6 @@ void LayeredTexture::updateSetupStateSetIfNeeded()
     {
 	if ( !_retileCompositeLayer )
 	    _compositeLayerUpdate = true;
-
 	buildShaders();
 	setUpdateVar( _updateSetupStateSet, false );
     }
