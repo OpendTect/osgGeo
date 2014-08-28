@@ -66,6 +66,7 @@ class OSGGEO_EXPORT TrackballManipulator : public osgGA::MultiTouchTrackballMani
 
 	virtual void updateCamera(osg::Camera& camera);
 	const bool   isCameraPerspective() const{ return _perspectiveProjection; }
+	bool isDiscreteZooming() const { return _isDiscreteZooming; }
 
 	enum MouseButton { LeftButton, MiddleButton, RightButton };
 
@@ -124,6 +125,7 @@ class OSGGEO_EXPORT TrackballManipulator : public osgGA::MultiTouchTrackballMani
 	bool				_perspectiveProjection;
 	bool				_projectionSwitched;
 	double				_fovy;
+	bool				_isDiscreteZooming;
 
 	osg::Vec2d		        _touchZoomCenter;
 	osg::View*			_touchEventView;
