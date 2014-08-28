@@ -31,6 +31,8 @@ using namespace osgGeo;
 #define IMAGEHEIGHT 16
 #define IMAGEWIDTH  8
 
+#define MAXANIMATEDROTATIONSPEED  5 	// ticks per second
+
 unsigned char imagedata[] =
     {   255, 255, 255, 255,
 	255, 255, 255, 255,
@@ -177,6 +179,9 @@ ThumbWheel::ThumbWheel()
     , _animationStart( -1 )
     , _animationTime( 1 )
     , _mouseProximity( None )
+    , _rotationToDo( 0 )
+    , _rotationProgressToDo( 0 )
+    , _maxRotationProgress( 1 )
 {
     _geode->ref();
     _geode->setCullingActive( false );
@@ -336,20 +341,15 @@ void ThumbWheel::setShape( short dim, const osg::Vec2& min,const osg::Vec2& max,
 }
 
 
-void ThumbWheel::setAngle( float angle )
+void ThumbWheel::updateWheelTexture( float diffAngle )
 {
-    float diff = angle-_currentAngle;
-    if ( diff==0 )
-	return;
-    
-    _currentAngle = angle;
-    
     osg::Vec2Array* tcarr = (osg::Vec2Array*) _wheelGeometry->getTexCoordArray( TEXUNIT );
     
     const float degreespertick = DEGREESPERTICK;
     const float radspertick = (degreespertick/180*M_PI);
 
-    const float increment = diff/radspertick;
+    const float increment = diffAngle/radspertick;
+
     for ( int idx=0; idx<RESOLUTION; idx++ )
     {
 	(*tcarr)[idx*2][1] += increment;
@@ -358,10 +358,27 @@ void ThumbWheel::setAngle( float angle )
     
     tcarr->dirty();
     _wheelGeometry->dirtyDisplayList();
+}
 
-    updateWheel( Above );
-    updateAnimation( 0 );
-    updateWheel( None );
+
+void ThumbWheel::setAngle( float angle, float rotationTime )
+{
+    _rotationToDo += angle-_currentAngle;
+    _currentAngle = angle;
+
+    const bool animate = rotationTime>0.0;
+    _maxRotationProgress = animate ? rotationTime/_animationTime : 1.0;
+    _rotationProgressToDo = 0.0;
+
+    if ( fabs(_rotationToDo) > 1e-5 )
+    {
+	_rotationProgressToDo = _maxRotationProgress;
+
+	if ( animate )
+	    restartAnimation();
+	else
+	    updateRotation( _rotationProgressToDo );
+    }
 }
 
 
@@ -381,37 +398,69 @@ void ThumbWheel::accept( osg::NodeVisitor& nv )
 }
 
 
+bool ThumbWheel::updateRotation( float progress )
+{
+    if ( _rotationProgressToDo<=0.0 )
+	return false;
+
+    float newRotationProgressToDo = _maxRotationProgress-progress;
+    if ( newRotationProgressToDo<=0.0 )
+    {
+	newRotationProgressToDo = 0.0;
+	restartAnimation();		// start mouse-proximity animation
+    }
+
+    const float fracToDo = newRotationProgressToDo/_rotationProgressToDo;
+    float diffAngle = (1.0-fracToDo)*_rotationToDo;
+
+    const float progressDone = _maxRotationProgress-_rotationProgressToDo; 
+    const float diffTime = (progress-progressDone)*_animationTime;
+    const float maxTicks = MAXANIMATEDROTATIONSPEED*diffTime;
+    const float maxRad = maxTicks*M_PI*DEGREESPERTICK/180;
+    // Slip to avoid optical illusion of thumbwheel rolling backwards on screen
+    if ( diffAngle > maxRad )
+	diffAngle = maxRad;
+    if ( diffAngle < -maxRad )
+	diffAngle = -maxRad;
+
+    _wheelMaterial->setAlpha( osg::Material::FRONT, 1.0 );
+    updateWheelTexture( diffAngle );
+
+    _rotationToDo *= fracToDo;
+    _rotationProgressToDo = newRotationProgressToDo;
+    return true;
+}
+
+
+
 bool ThumbWheel::updateAnimation( float progress )
 {
-    const float curpoacity = _wheelMaterial->getDiffuse( osg::Material::FRONT).a();
-    float opacity;
-    bool do_cont;
+    if ( updateRotation(progress) )
+	return true;
+
+    float opacity = _wheelMaterial->getDiffuse( osg::Material::FRONT).a();
+    bool do_cont = true;
+
     if ( _mouseProximity==Above )
     {
         opacity = 1;
-        do_cont = false;
+	do_cont = false;
     }
     else if ( _mouseProximity==Nearby )
     {
-        if ( curpoacity==1 )
-        {
-            return false;
-        }
+	if ( opacity==1 )
+	    return false;
 
-        opacity = progress;
-        if ( opacity>1 ) opacity = 1;
-        do_cont = true;
+	opacity = progress;
+	if ( opacity>1 ) opacity = 1;
     }
     else
     {
-        if ( !curpoacity )
-        {
-            return false;
-        }
+        if ( !opacity )
+	    return false;
 
-        opacity = 1-progress;
-        if ( opacity<0 ) opacity = 0;
-        do_cont = true;
+	opacity = 1-progress;
+	if ( opacity<0 ) opacity = 0;
     }
 
     _wheelMaterial->setAlpha( osg::Material::FRONT, opacity );
@@ -459,8 +508,11 @@ ThumbWheel::MouseProximity ThumbWheel::getMouseProximity( const osg::Vec2& mouse
 }
 
 #define mTurnOffTracking \
-_isTracking = false; \
-setNumChildrenRequiringUpdateTraversal( getNumChildrenRequiringUpdateTraversal()-1 )
+if ( _isTracking ) \
+{ \
+    _isTracking = false; \
+    setNumChildrenRequiringUpdateTraversal( getNumChildrenRequiringUpdateTraversal()-1 ); \
+}
 
 bool ThumbWheel::handleEvent( const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& )
 {
@@ -519,6 +571,27 @@ bool ThumbWheel::handleEvent( const osgGA::GUIEventAdapter& ea, osgGA::GUIAction
 }
 
 
+void ThumbWheel::updateWheel( ThumbWheel::MouseProximity nmp )
+{
+    if ( nmp!=_mouseProximity )
+    {
+	_mouseProximity = nmp;
+	restartAnimation();
+    }
+}
+
+
+void ThumbWheel::restartAnimation()
+{
+    if ( !isAnimating() )
+    {
+	setNumChildrenRequiringUpdateTraversal( getNumChildrenRequiringUpdateTraversal()+1 );
+    }
+
+    _animationStart = osg::Timer::instance()->time_s();
+}
+
+
 ThumbWheelEventNodeVisitor::ThumbWheelEventNodeVisitor( float deltaangle )
     : _deltaangle( deltaangle )
 {}
@@ -526,22 +599,6 @@ ThumbWheelEventNodeVisitor::ThumbWheelEventNodeVisitor( float deltaangle )
 
 ThumbWheelEventNodeVisitor::~ThumbWheelEventNodeVisitor()
 {}
-
-
-void ThumbWheel::updateWheel( ThumbWheel::MouseProximity nmp )
-{
-    if ( nmp!=_mouseProximity )
-    {
-        _mouseProximity = nmp;
-
-        if ( !isAnimating() )
-        {
-            setNumChildrenRequiringUpdateTraversal( getNumChildrenRequiringUpdateTraversal()+1 );
-        }
-
-        _animationStart = osg::Timer::instance()->time_s();
-    }
-}
 
 
 ThumbWheelEventHandler::~ThumbWheelEventHandler()

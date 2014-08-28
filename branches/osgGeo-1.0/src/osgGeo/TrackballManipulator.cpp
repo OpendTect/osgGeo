@@ -73,6 +73,7 @@ TrackballManipulator::TrackballManipulator(int flags)
     , _panModKeyMask(-1)
     , _zoomModKeyMask(-1)
     , _currentModKeyMask(0)
+    , _isDiscreteZooming(false)
 {}
 
 
@@ -93,6 +94,7 @@ TrackballManipulator::TrackballManipulator(const TrackballManipulator& tm, const
     , _panModKeyMask(-1)
     , _zoomModKeyMask(-1)
     , _currentModKeyMask(0)
+    , _isDiscreteZooming(false)
 {}
 
 
@@ -381,7 +383,10 @@ bool TrackballManipulator::mapMouseButtonMovement( const double eventTimeDelta, 
 	return osgGA::MultiTouchTrackballManipulator::performMovementMiddleMouseButton( eventTimeDelta, dx, dy );
 
     if ( mouseButton==_zoomMouseButton && isModKeyMatch(_zoomModKeyMask) )
+    {
+	_isDiscreteZooming = false;
 	return osgGA::MultiTouchTrackballManipulator::performMovementRightMouseButton( eventTimeDelta, dx, dy );
+    }
 
     return false;
 }
@@ -428,12 +433,14 @@ bool TrackballManipulator::handleMouseWheel(const osgGA::GUIEventAdapter& ea, os
        ((sm == osgGA::GUIEventAdapter::SCROLL_UP   && _wheelZoomFactor < 0.)) )
     {
         res = handleMouseWheelZoomIn(ea, us);
+	_isDiscreteZooming = true;
     }
 
     if( ((sm == osgGA::GUIEventAdapter::SCROLL_UP && _wheelZoomFactor > 0.)) ||
        ((sm == osgGA::GUIEventAdapter::SCROLL_DOWN   && _wheelZoomFactor < 0.)))
     {
          res = handleMouseWheelZoomOut(ea, us);
+	 _isDiscreteZooming = true;
     }
 
     return res ? true : mDefaultHandling;
@@ -638,6 +645,8 @@ void TrackballManipulator::handleMultiTouchDrag(const osgGA::GUIEventAdapter::To
 	    success = zoomOut(_touchEventView, fabs(zoomFactor) );
 	}
     }
+
+    _isDiscreteZooming = false;
 
     if ( success )
 	return;
