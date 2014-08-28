@@ -50,7 +50,8 @@ public:
 		  float zval = 0);
     const osg::Vec2& getMin() const { return _min; }
     const osg::Vec2& getMax() const { return _max; }
-    void setAngle(float);
+    void setAngle(float angle,float rotationTime=0.0);
+    //!<angle in rad, rotation time in seconds
     float getAngle() const { return _currentAngle; }
     
     void setWheelColor(const osg::Vec4&);
@@ -67,11 +68,14 @@ protected:
 
     MouseProximity getMouseProximity(const osg::Vec2& mousepos ) const;
     
+    void restartAnimation();
     bool updateAnimation(float progress);
     //!<Returns if we should continue to animate
     bool isAnimating() const { return _animationStart>0; }
+    bool updateRotation(float progress);
     
     void updateWheel( ThumbWheel::MouseProximity nmp );
+    void updateWheelTexture(float diffAngle);
     bool handleEvent( const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& );
     ~ThumbWheel();
     
@@ -97,6 +101,10 @@ protected:
 
     double _animationTime;
     double _animationStart;
+
+    float _rotationToDo;
+    float _rotationProgressToDo;
+    float _maxRotationProgress;
 };
 
 
