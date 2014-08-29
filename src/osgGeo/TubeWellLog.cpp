@@ -96,7 +96,7 @@ void TubeWellLog::buildCenterLineGeometry()
     _logPathGeometry->setColorBinding(osg::Geometry::BIND_OVERALL);
     _logPathGeometry->setNormalArray(normals.get());
     _logPathGeometry->setNormalBinding(osg::Geometry::BIND_OVERALL);
-   
+
     _logPathGeometry->addPrimitiveSet( _logPathPrimitiveSet );
 
     _logPathWidth =  new osg::LineWidth;
@@ -106,7 +106,7 @@ void TubeWellLog::buildCenterLineGeometry()
     polyoffset->setUnits(1.0f);
     getOrCreateStateSet()->setAttributeAndModes(_logPathWidth);
     getStateSet()->setMode(GL_LIGHTING, osg::StateAttribute::OFF);
-    getStateSet()->setAttributeAndModes( 
+    getStateSet()->setAttributeAndModes(
 	polyoffset,osg::StateAttribute::OVERRIDE|osg::StateAttribute::ON);
 }
 
@@ -120,7 +120,7 @@ void TubeWellLog::buildTubeGeometry()
     _tubeGeometry->setColorArray(_tubeLogColors.get());
     _tubeGeometry->setColorBinding(osg::Geometry::BIND_PER_VERTEX);
     _tubeGeometry->setDataVariance(osg::Object::DYNAMIC);
-    
+
     setRenderMode( RenderFrontSide );
 }
 
@@ -132,7 +132,7 @@ void TubeWellLog::setRenderMode( RenderMode mode )
     if ( !stateset )
 	return;
 
-    stateset->setMode(GL_LIGHTING, osg::StateAttribute::ON); 
+    stateset->setMode(GL_LIGHTING, osg::StateAttribute::ON);
 
     osg::ref_ptr<osg::LightModel> lightmodel = new osg::LightModel;
     lightmodel->setTwoSided( true );
@@ -158,7 +158,7 @@ TubeWellLog::RenderMode TubeWellLog::getRenderMode() const
         : 0;
 
     const osg::CullFace* cullface =
-    	dynamic_cast<const osg::CullFace*>(stateset->getAttribute(osg::StateAttribute::CULLFACE));
+	dynamic_cast<const osg::CullFace*>(stateset->getAttribute(osg::StateAttribute::CULLFACE));
 
     if ( !stateset || !lightmodel || lightmodel->getTwoSided() || !cullface )
         return RenderBothSides;
@@ -185,7 +185,7 @@ void TubeWellLog::traverse(osg::NodeVisitor& nv)
 	if (_forceReBuild)
 	{
 	    calcTubeShape();
-	    buildTube(true); 
+	    buildTube(true);
 	    _colorTableChanged = true;
 	}
 
@@ -200,7 +200,7 @@ void TubeWellLog::traverse(osg::NodeVisitor& nv)
 }
 
 
-void TubeWellLog::buildTube(bool dirtybound) 
+void TubeWellLog::buildTube(bool dirtybound)
 {
     const int nrSamples = _logPath->size();
 
@@ -218,7 +218,7 @@ void TubeWellLog::buildTube(bool dirtybound)
     int total(0);
     for (int res = 0; res <_resolution + 1; res++)
     {
-	osg::ref_ptr<osg::DrawElementsUShort> drawElements = 
+	osg::ref_ptr<osg::DrawElementsUShort> drawElements =
 	    new osg::DrawElementsUShort(GL_TRIANGLE_STRIP,2*nrSamples);
 
 	int count(0);
@@ -230,7 +230,7 @@ void TubeWellLog::buildTube(bool dirtybound)
 	    const osg::Vec3 edgePnt = pathCoord + (*_logTubeShapePoints)[idx];
 	    osg::Vec3 pnt1 = edgePnt - pathCoord;
 	    pnt1.normalize();
-	    
+
 	    osg::Vec3 ciclecNormal = (*_logTubeCircleNormals)[idx];
 	    ciclecNormal.normalize();
 
@@ -240,20 +240,20 @@ void TubeWellLog::buildTube(bool dirtybound)
 	    osg::Vec3 circlePnt = pathCoord +
 		(pnt1*sin(res*angle) + pnt2*cos( res*angle )) * radius;
 
-	    if (std::find(_outTubeIndex.begin(),_outTubeIndex.end(), idx) 
+	    if (std::find(_outTubeIndex.begin(),_outTubeIndex.end(), idx)
 			    != _outTubeIndex.end() )
 		 (*_logTubeVerts)[total] =  pathCoord;
 	    else
 		 (*_logTubeVerts)[total] = circlePnt;
 
 	    bbox.expandBy((*_logTubeVerts)[total]);
-		
+
 	    (*drawElements)[2*count] = total;
 	    (*drawElements)[2*count+1] = total + nrSamples;
-	    
+
 	    if ( count == 0)
 		tubeClosedSurfacePointIndexs.push_back(total);
-	    
+
 	    count++;
 	    total++;
 	}
@@ -261,14 +261,14 @@ void TubeWellLog::buildTube(bool dirtybound)
 	if(res < _resolution)
 	    _tubeGeometry->addPrimitiveSet(drawElements);
     }
-    
+
     _logPathVerts->clear();
     _logPathVerts->insert(_logPathVerts->end(),_logPath->begin(),
 			  _logPath->end() );
 
     if ( _bbox._min != bbox._min || _bbox._max != bbox._max )
     {
-	dirtyBound(); 
+	dirtyBound();
 	dirtybound = false;
 	_bbox = bbox;
     }
@@ -279,18 +279,18 @@ void TubeWellLog::buildTube(bool dirtybound)
 	dirtyBound();
     }
 
-    if ( tubeClosedSurfacePointIndexs.size()> 2 )
+    if ( tubeClosedSurfacePointIndexs.size() > 2 )
     {
-	osg::ref_ptr<osg::DrawElementsUShort> closedSurfaceDrawElements = 
+	osg::ref_ptr<osg::DrawElementsUShort> closedSurfaceDrawElements =
 	    new osg::DrawElementsUShort(GL_TRIANGLES, 0);
-	for ( int idx =0; idx<tubeClosedSurfacePointIndexs.size()-1; idx++ )
+	for ( int idx=0; idx<(int)tubeClosedSurfacePointIndexs.size()-1; idx++ )
 	{
 	    closedSurfaceDrawElements->push_back(
 		tubeClosedSurfacePointIndexs[tubeClosedSurfacePointIndexs.size()-2]);
 	    closedSurfaceDrawElements->push_back(tubeClosedSurfacePointIndexs[idx+1]);
 	    closedSurfaceDrawElements->push_back(tubeClosedSurfacePointIndexs[idx]);
 	}
-	
+
 	_tubeGeometry->addPrimitiveSet(closedSurfaceDrawElements);
     }
 
@@ -319,7 +319,7 @@ osg::BoundingSphere TubeWellLog::computeBound() const
 
 void TubeWellLog::setResolution(int resolution)
 {
-    _resolution = resolution; 
+    _resolution = resolution;
     _forceReBuild = true;
 }
 
@@ -333,7 +333,7 @@ float TubeWellLog::getShapeFactor(float val, float minval, float maxval) const
 void TubeWellLog::calcTubeShape()
 {
     clearTubeShape();
- 
+
     if(!_logPath->size())
 	return;
 
@@ -348,7 +348,7 @@ void TubeWellLog::calcTubeShape()
 	logval = (logval<_minShapeValue) ? _minShapeValue : logval;
 	logval = (logval>_maxShapeValue) ? _maxShapeValue : logval;
 
-	const float shpFactor =  getShapeFactor( 
+	const float shpFactor =  getShapeFactor(
 				logval, _minShapeValue, _maxShapeValue);
 
 	osg::Vec3 circleNormal;
@@ -357,7 +357,7 @@ void TubeWellLog::calcTubeShape()
 	else
 	    circleNormal = _logPath->at(idx-1) - _logPath->at(idx);
 
-	osg::Vec3 appliedDir = osg::Vec3(circleNormal[2],0,-circleNormal[0]);		
+	osg::Vec3 appliedDir = osg::Vec3(circleNormal[2],0,-circleNormal[0]);
 	appliedDir.normalize();
 	appliedDir *= _logWidth;
 
@@ -399,7 +399,7 @@ void TubeWellLog::updateTubeLogColor()
 	_tubeGeometry->setColorBinding(osg::Geometry::BIND_PER_VERTEX);
 	setRenderMode(RenderFrontSide);
     }
-    
+
     const osg::FloatArray::iterator itmin = std::min_element(
 	_fillLogDepths->begin(), _fillLogDepths->end());
     const float minfillz = *itmin;
@@ -442,7 +442,7 @@ void TubeWellLog::updateTubeLogColor()
 	     (*_tubeLogColors)[total] = (*_logColors)[idx];
 	     total++;
 	}
-	
+
     }
 
     _colorTableChanged = false;
