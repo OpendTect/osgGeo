@@ -2822,5 +2822,7 @@ REGISTER_OBJECT_WRAPPER( LayeredTexture_Wrapper,
                         osgGeo::LayeredTexture,
                         "osg::Object osgGeo::LayeredTexture")
 {
+    wrapper->ref();
+    wrapper->unref();
 }
 

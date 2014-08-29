@@ -602,4 +602,7 @@ REGISTER_OBJECT_WRAPPER( PlaneWellLog_Wrapper,
                         new osgGeo::PlaneWellLog,
                         osgGeo::PlaneWellLog,
                         "osg::Object osg::Node osgGeo::WellLog osgGeo::PlaneWellLog")
-{}
+{
+    wrapper->ref();
+    wrapper->unref();
+}
