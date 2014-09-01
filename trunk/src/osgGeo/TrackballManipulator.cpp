@@ -73,6 +73,8 @@ TrackballManipulator::TrackballManipulator(int flags)
     , _panModKeyMask(-1)
     , _zoomModKeyMask(-1)
     , _currentModKeyMask(0)
+    , _onlyUseLeftButtonForAllMovement(false)
+    , _alsoUseLeftButtonForAllMovement(false)
     , _isDiscreteZooming(false)
 {}
 
@@ -94,6 +96,8 @@ TrackballManipulator::TrackballManipulator(const TrackballManipulator& tm, const
     , _panModKeyMask(-1)
     , _zoomModKeyMask(-1)
     , _currentModKeyMask(0)
+    , _onlyUseLeftButtonForAllMovement(false)
+    , _alsoUseLeftButtonForAllMovement(false)
     , _isDiscreteZooming(false)
 {}
 
@@ -368,6 +372,13 @@ bool TrackballManipulator::handleKeyDown( const osgGA::GUIEventAdapter& ea, osgG
 }
 
 
+void TrackballManipulator::useLeftMouseButtonForAllMovement( bool yn, bool additional )
+{
+    _onlyUseLeftButtonForAllMovement = yn && !additional;
+    _alsoUseLeftButtonForAllMovement = yn &&  additional;
+}
+
+
 bool TrackballManipulator::isModKeyMatch( int mask )
 {
     return mask==-1 || mask==_currentModKeyMask || mask&_currentModKeyMask;
@@ -376,13 +387,52 @@ bool TrackballManipulator::isModKeyMatch( int mask )
 
 bool TrackballManipulator::mapMouseButtonMovement( const double eventTimeDelta, const double dx, const double dy, MouseButton mouseButton )
 {
-    if ( mouseButton==_rotateMouseButton && isModKeyMatch(_rotateModKeyMask) )
+    if ( !_onlyUseLeftButtonForAllMovement )
+    {
+	if ( mouseButton==_rotateMouseButton && isModKeyMatch(_rotateModKeyMask) )
+	    return osgGA::MultiTouchTrackballManipulator::performMovementLeftMouseButton( eventTimeDelta, dx, dy );
+
+	if ( mouseButton==_panMouseButton && isModKeyMatch(_panModKeyMask) )
+	    return osgGA::MultiTouchTrackballManipulator::performMovementMiddleMouseButton( eventTimeDelta, dx, dy );
+
+	if ( mouseButton==_zoomMouseButton && isModKeyMatch(_zoomModKeyMask) )
+	{
+	    _isDiscreteZooming = false;
+	    return osgGA::MultiTouchTrackballManipulator::performMovementRightMouseButton( eventTimeDelta, dx, dy );
+	}
+    }
+
+    if ( _onlyUseLeftButtonForAllMovement || _alsoUseLeftButtonForAllMovement )
+	return mapLeftMouseButtonForAllMovement( eventTimeDelta, dx, dy, mouseButton );
+
+    return false;
+}
+
+
+bool TrackballManipulator::mapLeftMouseButtonForAllMovement( const double eventTimeDelta, const double dx, const double dy, MouseButton mouseButton )
+{
+    if ( mouseButton != LeftButton )
+	return false;
+
+    const int shift = osgGA::GUIEventAdapter::MODKEY_SHIFT;
+    const int ctrl = osgGA::GUIEventAdapter::MODKEY_CTRL;
+
+    if ( !isModKeyMatch(shift) && !isModKeyMatch(ctrl) )
+    {
 	return osgGA::MultiTouchTrackballManipulator::performMovementLeftMouseButton( eventTimeDelta, dx, dy );
+    }
 
-    if ( mouseButton==_panMouseButton && isModKeyMatch(_panModKeyMask) )
+    if ( isModKeyMatch(shift) && !isModKeyMatch(ctrl) )
+    {
 	return osgGA::MultiTouchTrackballManipulator::performMovementMiddleMouseButton( eventTimeDelta, dx, dy );
+    }
 
-    if ( mouseButton==_zoomMouseButton && isModKeyMatch(_zoomModKeyMask) )
+    if ( !isModKeyMatch(shift) && isModKeyMatch(ctrl) )
+    {
+	return osgGA::MultiTouchTrackballManipulator::performMovementMiddleMouseButton( eventTimeDelta, dx, dy );
+    }
+
+    if ( isModKeyMatch(shift) && isModKeyMatch(ctrl) )
     {
 	_isDiscreteZooming = false;
 	return osgGA::MultiTouchTrackballManipulator::performMovementRightMouseButton( eventTimeDelta, dx, dy );
