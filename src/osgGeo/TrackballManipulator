@@ -77,6 +77,8 @@ class OSGGEO_EXPORT TrackballManipulator : public osgGA::MultiTouchTrackballMani
 	void setPanModKeyMask(int mask)		  { _panModKeyMask = mask; }
 	void setZoomModKeyMask(int mask)	  { _zoomModKeyMask = mask; }
 
+	void useLeftMouseButtonForAllMovement(bool yn,bool additional=false);
+
     protected:
 	void handleMultiTouchDrag(const osgGA::GUIEventAdapter::TouchData* now,
 				  const osgGA::GUIEventAdapter::TouchData* last,				  const double eventTimeDelta);
@@ -111,10 +113,11 @@ class OSGGEO_EXPORT TrackballManipulator : public osgGA::MultiTouchTrackballMani
 
 	bool isModKeyMatch( int mask );
 	bool mapMouseButtonMovement(const double eventTimeDelta,const double dx,const double dy,MouseButton);
+	bool mapLeftMouseButtonForAllMovement(const double eventTimeDelta,const double dx,const double dy, MouseButton mouseButton );
+
 	bool performMovementLeftMouseButton(const double eventTimeDelta,const double dx,const double dy);
 	bool performMovementMiddleMouseButton(const double eventTimeDelta,const double dx,const double dy);
 	bool performMovementRightMouseButton(const double eventTimeDelta,const double dx,const double dy);
-
 
         unsigned int			_boundTraversalMask;
 	bool				_dragEnabled;
@@ -137,6 +140,9 @@ class OSGGEO_EXPORT TrackballManipulator : public osgGA::MultiTouchTrackballMani
 	int				_panModKeyMask;
 	int				_zoomModKeyMask;
 	int				_currentModKeyMask;
+
+	bool				_onlyUseLeftButtonForAllMovement;
+	bool				_alsoUseLeftButtonForAllMovement;
 
         class TrackballAnimationData : public osgGA::StandardManipulator::AnimationData
         {
