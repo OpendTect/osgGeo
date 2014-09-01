@@ -94,8 +94,8 @@ void MarkerSet::traverse( osg::NodeVisitor& nv )
 	    return;
 	}
     }
-    
-    if ( _nonShadingSwitch ) 
+
+    if ( _nonShadingSwitch )
 	_nonShadingSwitch->accept( nv );
 }
 
@@ -127,7 +127,7 @@ bool MarkerSet::updateShapes()
 						    ? _rotationSet.at(idx)
 						    : osg::Quat();
 	_markerShape.setRotation( rot );
-	
+
 	osg::ref_ptr<osg::Drawable> drwB = _markerShape.createShape();
 
 	osg::ref_ptr<osg::Geode> geode = new osg::Geode;
@@ -138,7 +138,7 @@ bool MarkerSet::updateShapes()
 	state->setMode(GL_RESCALE_NORMAL, osg::StateAttribute::ON);
 	state->setMode(GL_LIGHTING, osg::StateAttribute::ON);
 
-	osg::ref_ptr<osg::AutoTransform> autotrans = 
+	osg::ref_ptr<osg::AutoTransform> autotrans =
 	    new osg::AutoTransform;
 	autotrans->setPosition(_vertexArr->at(idx));
 	autotrans->setAutoRotateMode(_rotateMode);
@@ -170,14 +170,14 @@ bool MarkerSet::updateShapes()
     }
 
     // In case of autoscale to screen, new AutoTransforms cannot compute
-    // their bounding spheres till after their first cull traversal. 
+    // their bounding spheres till after their first cull traversal.
     if ( _useScreenSize )
     {
 	_waitForAutoTransformUpdate = true;
 	setCullingActive(false);
 	_nonShadingSwitch->setCullingActive(false);
     }
-    
+
     _nonShadingSwitch->setValueList(valuelist);
 
     return true;
@@ -195,7 +195,7 @@ void MarkerSet::turnMarkerOn(unsigned int idx,bool yn)
 
 void MarkerSet::turnAllMarkersOn(bool yn)
 {
-    yn = true ? _nonShadingSwitch->setAllChildrenOn() : 
+    yn = true ? _nonShadingSwitch->setAllChildrenOn() :
 	       _nonShadingSwitch->setAllChildrenOff() ;
     forceRedraw(true);
 }
@@ -288,9 +288,9 @@ const osg::Quat& MarkerSet::getRotationForAllMarkers() const
 
 void MarkerSet::setSingleMarkerRotation( const osg::Quat& rot, int idx )
 {
-    if ( idx >= _rotationSet.size() )
+    if ( idx >= (int)_rotationSet.size() )
 	_rotationSet.resize( idx+1 );
-     
+
     _rotationSet[idx] = rot;
 }
 
