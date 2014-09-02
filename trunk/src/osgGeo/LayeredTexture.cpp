@@ -1877,8 +1877,9 @@ osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, co
 
 	    if ( dataOrder==SRT )
 	    {
-		dataOrigin = image->data(tileOrigin.x(),tileOrigin.y(),sliceNr);
-		rowLength *= image->t();
+		dataOrigin = image->data(tileOrigin.x(),sliceNr,0);
+		rowLength *= image->r();
+		dataOrigin += tileOrigin.y() * rowLength * image->getPixelSizeInBits()/8;
 	    }
 
 	    tileImage->setUserData( image );
