@@ -28,6 +28,7 @@ $Id$
 #include <osg/Version>
 #include <osgUtil/CullVisitor>
 #include <osgUtil/LineSegmentIntersector>
+#include <osgViewer/View>
 
 namespace osgGeo
 {
@@ -99,11 +100,16 @@ PolygonSelection::~PolygonSelection()
 }
 
 
-void PolygonSelection::setEventHandlerCamera( osg::Camera* camera )
+bool PolygonSelection::setEventHandlerCamera( osg::Camera* camera, bool handleAfterScene )
 {
     if ( _masterCamera )
     {
 	_masterCamera->removeEventCallback( _eventHandler );
+
+	osgViewer::View* view = dynamic_cast<osgViewer::View*>(_masterCamera->getView());
+	if ( view && view->getSceneData() )
+	    view->getSceneData()->removeEventCallback( _eventHandler );
+
 	_masterCamera->unref();
     }
 
@@ -120,8 +126,19 @@ void PolygonSelection::setEventHandlerCamera( osg::Camera* camera )
 	    _eventHandler->setPolygonSelector(this);
 	}
 
-	_masterCamera->addEventCallback( _eventHandler );
+	if ( handleAfterScene )
+	    _masterCamera->addEventCallback( _eventHandler );
+	else
+	{
+	    osgViewer::View* view = dynamic_cast<osgViewer::View*>(_masterCamera->getView());
+	    if ( !view || !view->getSceneData() )
+		return false;
+
+	    view->getSceneData()->addEventCallback( _eventHandler );
+	}
     }
+
+    return true;
 }
 
 
