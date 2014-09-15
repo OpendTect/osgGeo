@@ -39,7 +39,8 @@ class OSGGEO_EXPORT PolygonSelection : public osg::Node
 public:
 			    PolygonSelection();
 
-    void		    setEventHandlerCamera(osg::Camera*);
+    bool		    setEventHandlerCamera(osg::Camera*,bool handleAfterScene=true);
+
     void		    setHUDCamera(osg::Camera*);
     
     osg::Vec2		    projectPointToScreen(osg::Vec3) const;
