@@ -26,6 +26,7 @@ $Id$
 #include <osg/BoundingBox>
 #include <osg/NodeVisitor>
 #include <osgGeo/Common>
+#include <osg/PrimitiveSet>
 
 
 namespace osg { class Geometry; }
@@ -62,6 +63,8 @@ protected:
     bool		isCameraChanged(const osgUtil::CullVisitor*);
     bool		needsUpdate() const;
     void		getOrthoVecs(const osg::Vec3&,osg::Vec3&,osg::Vec3&) const;
+    void		buildA3DLineStrip(osg::DrawElementsUInt*,osg::Vec3Array*,
+			osg::Vec3Array*,int pidx0,int pidx1,int pidx2,bool doonce);
     osg::BoundingSphere	computeBound() const;
     void			 touch();
     void			 setUpdateFlag(bool);  
@@ -85,8 +88,8 @@ protected:
     osg::ref_ptr<osg::Geometry>	 _geometry;
 
     std::vector< osg::ref_ptr<osg::PrimitiveSet> >    _primitiveSets;
+    std::vector<bool>		 _capflags;
 };
 
 }
 #endif //OSGGEO_POLYLONENODE_H
-
