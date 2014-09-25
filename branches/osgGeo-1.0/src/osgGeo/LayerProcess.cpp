@@ -650,15 +650,15 @@ void ColTabLayerProcess::getShaderCode( std::string& code, int stage ) const
 
 	code += "    mip = log2( max(1.0, max(length(dFdx(texcrd)),length(dFdy(texcrd)))) );\n";
 
-	code += "    var = 65025.0 * (col[1]";
+	code += "    var = col[1]";
 	code += nrChannels>2 ? " + col[2]/255.0" : "";
-	code += " - col[0]*col[0]);\n";
+	code += " - col[0]*col[0];\n";
 
 	code += "    stddev = sqrt( max(0.0001, var) );\n";
 	// Threshold is somewhat larger than 0.0. Sqrt fails for smaller values
 	// at some graphics cards, causing contour line-like texture artifacts.
 
-	code += "    stddev *= clamp( mip, 0.0, 1.0 );\n";
+	code += "    stddev *= 255.0 * clamp( mip, 0.0, 1.0 );\n";
 	// Upper bound of clamp interval tunes transition smoothness
 	// between magnification and minification filtered areas.
 
