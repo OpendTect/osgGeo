@@ -16,6 +16,7 @@
 
 #include <osgGeo/Common>
 #include <osgSim/ColorRange>    // The default ScalarsToColors is a ColorRange
+#include <osgText/Font>
 #include <osg/Geode>
 #include <string>
 
@@ -69,16 +70,18 @@ public:
     */
     struct TextProperties
     {
-        std::string         _fontFile;
-        std::pair<int,int>  _fontResolution;
-        float               _characterSize;
-        osg::Vec4           _color;
+        std::string		    _fontFile;
+        std::pair<int,int>	    _fontResolution;
+        float			    _characterSize;
+        osg::Vec4		    _color;
+	osg::ref_ptr<osgText::Font> _font;
 
         TextProperties():
             _fontFile("fonts/arial.ttf"),
             _fontResolution(40,40),
             _characterSize(0.0f),
-            _color(1.0f,1.0f,1.0f,1.0f)
+            _color(1.0f,1.0f,1.0f,1.0f),
+	    _font(0)
         {
         }
     };

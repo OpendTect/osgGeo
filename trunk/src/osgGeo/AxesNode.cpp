@@ -31,6 +31,7 @@ $Id$
 
 DISABLE_WARNINGS;
 
+#include <osgText/Font>
 #include <osgText/Text>
 
 ENABLE_WARNINGS;
@@ -45,6 +46,7 @@ AxesNode::AxesNode()
     , _annotColor(osg::Vec4(1.0f,1.0f,1.0f,1.0f))
     , _masterCamera(0)
     , _textSize(18.0f)
+    , _font(0)
 {
     setCullingActive(false);
 }
@@ -58,7 +60,8 @@ AxesNode::AxesNode( const AxesNode& node, const osg::CopyOp& co )
     , _pos(node._pos)
     , _annotColor(node._annotColor)
     , _masterCamera(node._masterCamera)
-    , _textSize(18.0f)
+    , _textSize(node._textSize)
+    , _font(node._font)
 {
     setCullingActive(false);
 }
@@ -108,7 +111,7 @@ bool AxesNode::computeTransform(osg::Matrix& mt) const
 
 static osg::ref_ptr<osg::Node> arrowNode( const float rad, const float len,const osg::Vec4& color, 
 				   const osg::Vec3& dir,const char* text, float txtSize, 
-				   const osg::Vec4& annotclr )
+				   const osg::Vec4& annotclr, osgText::Font* font )
 {
     osg::ref_ptr<osg::Vec3Array> coords = new osg::Vec3Array;
     osg::ref_ptr<osg::Vec3Array> normals = new osg::Vec3Array;
@@ -198,6 +201,7 @@ static osg::ref_ptr<osg::Node> arrowNode( const float rad, const float len,const
     annot->setAutoRotateToScreen(true);
     annot->setText(text);
     annot->setColor(annotclr);
+    if ( font ) annot->setFont(font);
     textgeode->addDrawable(annot);
     osg::ref_ptr<osg::Group> grp = new osg::Group;
     grp->addChild(arrowgeode);
@@ -224,9 +228,9 @@ bool AxesNode::updateGeometry()
     removeChildren(0, getNumChildren());
     addChild( spheregeode ); 
     
-    addChild(arrowNode(_radius,_length,red,osg::Vec3(0,1,0),  "N", _textSize, c));
-    addChild(arrowNode(_radius,_length,green,osg::Vec3(1,0,0),"E", _textSize, c));
-    addChild(arrowNode(_radius,_length,blue,osg::Vec3(0,0,-1),"Z", _textSize, c));
+    addChild(arrowNode(_radius,_length,red,osg::Vec3(0,1,0),  "N", _textSize, c, _font));
+    addChild(arrowNode(_radius,_length,green,osg::Vec3(1,0,0),"E", _textSize, c, _font));
+    addChild(arrowNode(_radius,_length,blue,osg::Vec3(0,0,-1),"Z", _textSize, c, _font));
 
     _needsUpdate = false;
     return true;
@@ -286,6 +290,13 @@ void AxesNode::setAnnotationColor(osg::Vec4 col)
 void AxesNode::setAnnotationTextSize(float size)
 {
     _textSize = size;
+    _needsUpdate = true;
+}
+
+
+void AxesNode::setAnnotationFont( osgText::Font* font )
+{
+    _font = font;
     _needsUpdate = true;
 }
 
