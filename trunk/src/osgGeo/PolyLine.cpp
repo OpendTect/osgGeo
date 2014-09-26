@@ -378,7 +378,6 @@ bool PolyLineNode::updateGeometry()
     _arrayModifiedCount = _polyLineCoords->getModifiedCount();
 
     dirtyBound();
-    osg::BoundingSphere sp = getBound();
     _isGeometryChanged = true;
     setUpdateFlag(false);
     return true;
