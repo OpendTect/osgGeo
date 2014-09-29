@@ -338,7 +338,7 @@ bool PolyLineNode::updateGeometry()
 	const osg::PrimitiveSet* ps = _primitiveSets.at(primidx);
 	const unsigned int pssz = ps->getNumIndices();
 	unsigned int endidx = 0;
-	for (unsigned int cidx=0; cidx<pssz; cidx=cidx ++)
+	for (unsigned int cidx=0; cidx<pssz; cidx++)
 	{
 	    osg::ref_ptr<osg::PrimitiveSet> stripidxarr = 0;
 	    if (ps->getMode() == osg::PrimitiveSet::LINES)
