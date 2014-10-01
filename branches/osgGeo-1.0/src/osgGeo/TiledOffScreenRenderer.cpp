@@ -36,8 +36,8 @@ TiledOffScreenRenderer::TiledOffScreenRenderer(osgViewer::View* view,
     ,_viewer(viewer)
     ,_tileWidth(640)
     ,_tileHeight(480)
-    ,_width(0)
-    ,_height(0)
+    ,_width(1)
+    ,_height(1)
     ,_collectorCamera(0)
     ,_transparency(NOTRANSPARENCY)
     ,_orientationCamera(view->getCamera())
@@ -61,10 +61,10 @@ TiledOffScreenRenderer::~TiledOffScreenRenderer()
 }
 
 
-void TiledOffScreenRenderer::setOutputSize(int width, int length)
+void TiledOffScreenRenderer::setOutputSize(int width, int height)
 {
-    _width = width;
-    _height = length;
+    _width = width>0 ? width : 1;
+    _height = height>0 ? height : 1;
 
     const osg::Viewport* viewport = _orientationCamera->getViewport();
 
