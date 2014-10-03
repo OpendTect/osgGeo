@@ -489,10 +489,10 @@ void PolyLineNode::removePrimitiveSet(int idx)
     if (idx<0)
 	return;
 
-    if (idx<_primitivesetModCount.size())
+    if (idx<(int)_primitivesetModCount.size())
 	_primitivesetModCount.erase(_primitivesetModCount.begin()+idx);
 
-    if (idx<_primitiveSets.size())
+    if (idx<(int)_primitiveSets.size())
 	_primitiveSets.erase(_primitiveSets.begin()+idx);
     
     touch();
