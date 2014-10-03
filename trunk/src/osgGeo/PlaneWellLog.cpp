@@ -598,11 +598,7 @@ void PlaneWellLog::updateFilledLogColor()
 #include <osgDB/Registry>
 #include <osgDB/Serializer>
 
-REGISTER_OBJECT_WRAPPER( PlaneWellLog_Wrapper,
+REGISTER_EMPTY_OBJECT_WRAPPER( PlaneWellLog_Wrapper,
                         new osgGeo::PlaneWellLog,
                         osgGeo::PlaneWellLog,
-                        "osg::Object osg::Node osgGeo::WellLog osgGeo::PlaneWellLog")
-{
-    wrapper->ref();
-    wrapper->unref();
-}
+                        "osg::Object osg::Node osgGeo::WellLog osgGeo::PlaneWellLog");
