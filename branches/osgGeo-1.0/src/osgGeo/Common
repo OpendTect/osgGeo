@@ -34,5 +34,9 @@ __pragma(warning( disable : 4100 ))
 # define ENABLE_WARNINGS 
 #endif
 
+#define REGISTER_EMPTY_OBJECT_WRAPPER(NAME, PROTO, CLASS, ASSOCIATES) \
+REGISTER_OBJECT_WRAPPER(NAME, PROTO, CLASS, ASSOCIATES) \
+{ if ( wrapper ) return; }
+
 
 #endif //OSGGEO_COMMON_H
