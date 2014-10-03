@@ -2818,10 +2818,8 @@ int LayeredTexture::getCompositeSubsampleSteps() const
 #include <osgDB/Registry>
 #include <osgDB/Serializer>
 
-REGISTER_OBJECT_WRAPPER( LayeredTexture_Wrapper,
+REGISTER_EMPTY_OBJECT_WRAPPER( LayeredTexture_Wrapper,
                         new osgGeo::LayeredTexture,
                         osgGeo::LayeredTexture,
-                        "osg::Object osgGeo::LayeredTexture")
-{
-}
+                        "osg::Object osgGeo::LayeredTexture");
 
