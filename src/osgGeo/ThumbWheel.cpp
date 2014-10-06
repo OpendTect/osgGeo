@@ -31,7 +31,7 @@ using namespace osgGeo;
 #define IMAGEHEIGHT 16
 #define IMAGEWIDTH  8
 
-#define MAXANIMATEDROTATIONSPEED  5 	// ticks per second
+#define MAXANIMATEDROTATIONSPEED  5	// ticks per second
 
 unsigned char imagedata[] =
     {   255, 255, 255, 255,
@@ -50,7 +50,7 @@ unsigned char imagedata[] =
         255, 255, 255, 255,
 	255, 255, 255, 255,
 	255, 255, 255, 255,
-	
+
 	255, 255, 255, 255,
 	0, 0, 0, 255,
 	0, 0, 0, 255,
@@ -67,41 +67,7 @@ unsigned char imagedata[] =
         0, 0, 0, 255,
 	0, 0, 0, 255,
 	255, 255, 255, 255,
-	
-	255, 255, 255, 255,
-	0, 0, 0, 255,
-	0, 0, 0, 255,
-	0, 0, 0, 255,
-	0, 0, 0, 255,
-	0, 0, 0, 255,
-	0, 0, 0, 255,
-        0, 0, 0, 255,
-	0, 0, 0, 255,
-	0, 0, 0, 255,
-	0, 0, 0, 255,
-	0, 0, 0, 255,
-	0, 0, 0, 255,
-        0, 0, 0, 255,
-	0, 0, 0, 255,
-	255, 255, 255, 255,
-	
-	255, 255, 255, 255,
-	0, 0, 0, 255,
-	0, 0, 0, 255,
-	0, 0, 0, 255,
-	0, 0, 0, 255,
-	0, 0, 0, 255,
-	0, 0, 0, 255,
-        0, 0, 0, 255,
-	0, 0, 0, 255,
-	0, 0, 0, 255,
-	0, 0, 0, 255,
-	0, 0, 0, 255,
-	0, 0, 0, 255,
-        0, 0, 0, 255,
-	0, 0, 0, 255,
-	255, 255, 255, 255,
-	
+
 	255, 255, 255, 255,
 	0, 0, 0, 255,
 	0, 0, 0, 255,
@@ -152,7 +118,41 @@ unsigned char imagedata[] =
         0, 0, 0, 255,
 	0, 0, 0, 255,
 	255, 255, 255, 255,
-	
+
+	255, 255, 255, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+        0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+        0, 0, 0, 255,
+	0, 0, 0, 255,
+	255, 255, 255, 255,
+
+	255, 255, 255, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+        0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
+        0, 0, 0, 255,
+	0, 0, 0, 255,
+	255, 255, 255, 255,
+
 	255, 255, 255, 255,
 	0, 0, 0, 255,
 	0, 0, 0, 255,
@@ -176,6 +176,7 @@ ThumbWheel::ThumbWheel()
     : _geode( new osg::Geode )
     , _isTracking( false )
     , _currentAngle( 0 )
+    , _hasFadeInOut( true )
     , _animationStart( -1 )
     , _animationTime( 1 )
     , _mouseProximity( None )
@@ -185,7 +186,7 @@ ThumbWheel::ThumbWheel()
 {
     _geode->ref();
     _geode->setCullingActive( false );
-    
+
     _wheelGeometry = new osg::Geometry;
     _wheelGeometry->ref();
     _wheelGeometry->setVertexArray( new osg::Vec3Array );
@@ -208,7 +209,7 @@ ThumbWheel::ThumbWheel()
 
     _wheelGeometry->getStateSet()->setTextureAttributeAndModes( TEXUNIT, getSharedTexture() );
     _geode->addDrawable( _wheelGeometry );
-    
+
     _outlineGeometry = new osg::Geometry;
     _geode->addDrawable( _outlineGeometry );
     _outlineMaterial = new osg::Material;
@@ -221,7 +222,7 @@ ThumbWheel::ThumbWheel()
     outlineNormals->push_back( osg::Vec3(0.0f,0.0f,1.0f) );
     _outlineGeometry->setNormalArray( outlineNormals.get() );
     _outlineGeometry->setNormalBinding( osg::Geometry::BIND_OVERALL );
-    
+
     setShape( 0, osg::Vec2( 200, 200 ), osg::Vec2( 400,  250 ), 0 );
     setAngle( 0 );
 
@@ -280,14 +281,14 @@ void ThumbWheel::setShape( short dim, const osg::Vec2& min,const osg::Vec2& max,
     osg::Vec3Array* varr = (osg::Vec3Array*) _wheelGeometry->getVertexArray();
     osg::Vec3Array* narr = (osg::Vec3Array*) _wheelGeometry->getNormalArray();
     osg::Vec2Array* tcarr = (osg::Vec2Array*) _wheelGeometry->getTexCoordArray( TEXUNIT );
-    
+
     const int resolution = RESOLUTION;
     const float anglestep = M_PI/(resolution-1);
     const float wheelradius = (_max[_dim]-_min[_dim])/2;
     const float wheelcenter = (_max[_dim]+_min[_dim])/2;
-    
+
     const short dim2 = _dim ? 0 : 1;
-    
+
     for ( int idx=varr->size(); idx<resolution*2; idx++ )
     {
 	varr->push_back( osg::Vec3() );
@@ -297,7 +298,7 @@ void ThumbWheel::setShape( short dim, const osg::Vec2& min,const osg::Vec2& max,
 
     const float tc0 = 0.5/IMAGEHEIGHT;
     const float tc1 = 1-(0.5/IMAGEHEIGHT);
-    
+
     const float degreespertick = DEGREESPERTICK;
     const float radspertick = (degreespertick/180*M_PI);
     for ( int idx=0; idx<resolution; idx++ )
@@ -318,12 +319,12 @@ void ThumbWheel::setShape( short dim, const osg::Vec2& min,const osg::Vec2& max,
 	(*tcarr)[idx*2+1] = osg::Vec2( tc0, tc );
 	(*narr)[idx*2] = (*narr)[idx*2+1] = normal;
     }
-    
+
     if ( !_wheelGeometry->getNumPrimitiveSets() )
     {
 	_wheelGeometry->addPrimitiveSet( new osg::DrawArrays( GL_TRIANGLE_STRIP,0, resolution*2) );
     }
-    
+
     if ( !_outlineGeometry->getNumPrimitiveSets() )
     {
 	osg::DrawElementsUByte* primitive = new osg::DrawElementsUByte( GL_LINE_STRIP );
@@ -334,7 +335,7 @@ void ThumbWheel::setShape( short dim, const osg::Vec2& min,const osg::Vec2& max,
 	primitive->push_back( 0 );
 	_outlineGeometry->addPrimitiveSet( primitive );
     }
-    
+
     _wheelGeometry->dirtyDisplayList();
     _outlineGeometry->dirtyDisplayList();
     dirtyBound();
@@ -344,7 +345,7 @@ void ThumbWheel::setShape( short dim, const osg::Vec2& min,const osg::Vec2& max,
 void ThumbWheel::updateWheelTexture( float diffAngle )
 {
     osg::Vec2Array* tcarr = (osg::Vec2Array*) _wheelGeometry->getTexCoordArray( TEXUNIT );
-    
+
     const float degreespertick = DEGREESPERTICK;
     const float radspertick = (degreespertick/180*M_PI);
 
@@ -355,7 +356,7 @@ void ThumbWheel::updateWheelTexture( float diffAngle )
 	(*tcarr)[idx*2][1] += increment;
 	(*tcarr)[idx*2+1][1] += increment;
     }
-    
+
     tcarr->dirty();
     _wheelGeometry->dirtyDisplayList();
 }
@@ -379,6 +380,13 @@ void ThumbWheel::setAngle( float angle, float rotationTime )
 	else
 	    updateRotation( _rotationProgressToDo );
     }
+}
+
+
+void ThumbWheel::enableFadeInOut( bool yn )
+{
+    _hasFadeInOut = yn;
+    restartAnimation();
 }
 
 
@@ -413,7 +421,7 @@ bool ThumbWheel::updateRotation( float progress )
     const float fracToDo = newRotationProgressToDo/_rotationProgressToDo;
     float diffAngle = (1.0-fracToDo)*_rotationToDo;
 
-    const float progressDone = _maxRotationProgress-_rotationProgressToDo; 
+    const float progressDone = _maxRotationProgress-_rotationProgressToDo;
     const float diffTime = (progress-progressDone)*_animationTime;
     const float maxTicks = MAXANIMATEDROTATIONSPEED*diffTime;
     const float maxRad = maxTicks*M_PI*DEGREESPERTICK/180;
@@ -437,6 +445,12 @@ bool ThumbWheel::updateAnimation( float progress )
 {
     if ( updateRotation(progress) )
 	return true;
+
+    if ( !_hasFadeInOut )
+    {
+	_wheelMaterial->setAlpha( osg::Material::FRONT, 1 );
+	return false;
+    }
 
     float opacity = _wheelMaterial->getDiffuse( osg::Material::FRONT).a();
     bool do_cont = true;
@@ -503,7 +517,7 @@ ThumbWheel::MouseProximity ThumbWheel::getMouseProximity( const osg::Vec2& mouse
 
     if ( diffLen2<hotarea2 )
         return Nearby;
-    
+
     return None;
 }
 
@@ -536,16 +550,16 @@ bool ThumbWheel::handleEvent( const osgGA::GUIEventAdapter& ea, osgGA::GUIAction
 		return true;
 	    }
 	}
-	
+
 	return false;
     }
-    
+
     if ( ea.getEventType()==osgGA::GUIEventAdapter::RELEASE && ea.getButton()==1)
     {
         mTurnOffTracking;
         return true;
     }
-    
+
     if ( ea.getEventType()==osgGA::GUIEventAdapter::RESIZE ||
 	ea.getEventType()==osgGA::GUIEventAdapter::MOVE ||
 	ea.getEventType()==osgGA::GUIEventAdapter::DOUBLECLICK )
@@ -554,19 +568,19 @@ bool ThumbWheel::handleEvent( const osgGA::GUIEventAdapter& ea, osgGA::GUIAction
         mTurnOffTracking;
         return false;
     }
-    
+
     const float movement = mousePos[_dim] - _startPos;
     const float deltaAngleSinceStart = movement * 2 / (_max[_dim]-_min[_dim]);
     const float newAngle = _startAngle + deltaAngleSinceStart;
     const float deltaangle = _currentAngle-newAngle;
     setAngle( newAngle );
-    
+
     if ( deltaangle && _cb )
     {
 	ThumbWheelEventNodeVisitor nv( deltaangle );
 	(*_cb)( this, &nv );
     }
-        
+
     return true;
 }
 
@@ -616,7 +630,7 @@ bool ThumbWheelEventHandler::handle (const osgGA::GUIEventAdapter &ea,
 	if ( iter->get()->handleEvent( ea, us ) )
 	    handled = true;
     }
-    
+
     return handled;
 }
 
