@@ -1,4 +1,26 @@
+/* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
+Copyright 2014 dGB Beheer B.V.
+
+osgGeo is free software; you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>
+
+$Id: PlaneWellLog.cpp 434 2014-08-29 13:14:05Z nanne.hemstra@dgbes.com $
+
+*/
+
+
 #include <osgGeo/ScalarBar>
+
 #include <osgText/Text>
 #include <osg/Geometry>
 #include <osg/Material>
@@ -201,7 +223,9 @@ void ScalarBar::createDrawables()
     float characterSize = _textProperties._characterSize;
     if(characterSize == 0) characterSize = _width * 0.03f;
 
-    //osgText::Font* font = osgText::readFontFile(_textProperties._fontFile.c_str());
+    osg::ref_ptr<osgText::Font> font = _textProperties._font
+				? _textProperties._font
+				: osgText::readFontFile(_textProperties._fontFile.c_str());
 
     std::vector<osgText::Text*> texts(_numLabels);      // We'll need to collect pointers to these for later
     float labelIncr = (_numLabels>0) ? (_stc->getMax()-_stc->getMin())/(_numLabels-1) : 0.0f;
@@ -214,7 +238,7 @@ void ScalarBar::createDrawables()
     for(i=0; i<_numLabels; ++i)
     {
         osgText::Text* text = new osgText::Text;
-        //text->setFont(font);
+        text->setFont(font);
         text->setColor(_textProperties._color);
         text->setFontResolution(_textProperties._fontResolution.first,_textProperties._fontResolution.second);
         text->setCharacterSize(characterSize);
@@ -235,7 +259,7 @@ void ScalarBar::createDrawables()
     if(_title != "")
     {
         osgText::Text* text = new osgText::Text;
-        //text->setFont(font);
+        text->setFont(font);
         text->setColor(_textProperties._color);
         text->setFontResolution(_textProperties._fontResolution.first,_textProperties._fontResolution.second);
         text->setCharacterSize(characterSize);
