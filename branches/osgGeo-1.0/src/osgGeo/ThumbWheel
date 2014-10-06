@@ -42,24 +42,27 @@ class OSGGEO_EXPORT ThumbWheel : public osg::Node
 {
 public:
     ThumbWheel();
-    
+
     void accept(osg::NodeVisitor&);
     osg::BoundingSphere computeBound() const;
-    
+
     void setShape(short dim,const osg::Vec2& min,const osg::Vec2& max,
 		  float zval = 0);
     const osg::Vec2& getMin() const { return _min; }
     const osg::Vec2& getMax() const { return _max; }
+
+    void enableFadeInOut(bool);
+    bool isFadeInOutEnabled() const { return _hasFadeInOut; }
     void setAngle(float angle,float rotationTime=0.0);
     //!<angle in rad, rotation time in seconds
     float getAngle() const { return _currentAngle; }
-    
+
     void setWheelColor(const osg::Vec4&);
     void setBorderColor(const osg::Vec4&);
-    
+
     void addRotateCallback(osg::NodeCallback *nc);
     void removeRotateCallback(osg::NodeCallback *nc);
-    
+
 protected:
     friend class OSGGEO_EXPORT ThumbWheelEventHandler;
     void updateCoords();
@@ -67,21 +70,22 @@ protected:
     enum MouseProximity { Above, Nearby, None };
 
     MouseProximity getMouseProximity(const osg::Vec2& mousepos ) const;
-    
+
     void restartAnimation();
     bool updateAnimation(float progress);
     //!<Returns if we should continue to animate
     bool isAnimating() const { return _animationStart>0; }
     bool updateRotation(float progress);
-    
+
     void updateWheel( ThumbWheel::MouseProximity nmp );
     void updateWheelTexture(float diffAngle);
     bool handleEvent( const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& );
+
     ~ThumbWheel();
-    
+
     static osg::Texture2D* getSharedTexture();
     //Not threadsafe, don't call simultaniously
-    
+
     osg::Vec2 _min;
     osg::Vec2 _max;
 
@@ -96,9 +100,10 @@ protected:
     float _currentAngle;
     short _dim;
     osg::ref_ptr<osg::NodeCallback> _cb;
-    
+
     MouseProximity _mouseProximity;
 
+    bool _hasFadeInOut;
     double _animationTime;
     double _animationStart;
 
@@ -115,8 +120,8 @@ public:
     void addThumbWheel(ThumbWheel* t)
     { _thumbwheels.push_back(osg::ref_ptr<ThumbWheel>(t)); }
     void removeThumbWheel(ThumbWheel* t);
-    
-    
+
+
 protected:
     bool handle(const osgGA::GUIEventAdapter &ea,osgGA::GUIActionAdapter &aa,
 		osg::Object*,osg::NodeVisitor*);
