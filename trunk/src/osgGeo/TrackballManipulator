@@ -68,7 +68,7 @@ class OSGGEO_EXPORT TrackballManipulator : public osgGA::MultiTouchTrackballMani
 	const bool   isCameraPerspective() const{ return _perspectiveProjection; }
 	bool isDiscreteZooming() const { return _isDiscreteZooming; }
 
-	enum MouseButton { LeftButton, MiddleButton, RightButton };
+	enum MouseButton { NoButton, LeftButton, MiddleButton, RightButton };
 
 	void setRotateMouseButton(MouseButton mb) { _rotateMouseButton = mb; }
 	void setPanMouseButton(MouseButton mb)	  { _panMouseButton = mb; }
@@ -111,9 +111,10 @@ class OSGGEO_EXPORT TrackballManipulator : public osgGA::MultiTouchTrackballMani
 	bool zoomIn(const osg::Vec3d& intersectionPos, float zoomFactor);
 	bool zoomOut(osg::View*,float zoomFactor);
 
-	bool isModKeyMatch( int mask );
+	bool isModKeyMatch( int mask ) const;
+	int getMappedMouseButton(MouseButton) const;
+	void notifyMappedMouseButtonEvents(const osgGA::GUIEventAdapter& ea);
 	bool mapMouseButtonMovement(const double eventTimeDelta,const double dx,const double dy,MouseButton);
-	bool mapLeftMouseButtonForAllMovement(const double eventTimeDelta,const double dx,const double dy, MouseButton mouseButton );
 
 	bool performMovementLeftMouseButton(const double eventTimeDelta,const double dx,const double dy);
 	bool performMovementMiddleMouseButton(const double eventTimeDelta,const double dx,const double dy);
@@ -167,8 +168,13 @@ class OSGGEO_EXPORT TrackballManipulator : public osgGA::MultiTouchTrackballMani
 class OSGGEO_EXPORT TrackballEventNodeVisitor : public osg::NodeVisitor
 {
 public:
+    enum EventType { RotateStart, PanStart, ZoomStart, MoveStart, Moving, MoveStop };
+
     TrackballEventNodeVisitor(float deltahorangle, float deltavertangle, float distfactor);
+    TrackballEventNodeVisitor(EventType);
     ~TrackballEventNodeVisitor();
+
+    EventType _eventType;
 
     float _deltahorangle;
     float _deltavertangle;
