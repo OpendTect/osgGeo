@@ -296,6 +296,9 @@ osg::Matrix TrackballManipulator::getInverseMatrix(const osg::Vec3d& center,
 
 void TrackballManipulator::notifyMappedMouseButtonEvents(const osgGA::GUIEventAdapter& ea)
 {
+    if ( ea.getHandled() )
+	return; 
+
     if ( ea.getEventType()!=osgGA::GUIEventAdapter::PUSH && ea.getEventType()!=osgGA::GUIEventAdapter::RELEASE )
 	return;
 
@@ -387,7 +390,11 @@ bool TrackballManipulator::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIAc
                 horAngle = rotationAngle * (horAxis*rotationAxis);
                 vertAngle = rotationAngle * (vertAxis*rotationAxis);
             }
-	    TrackballEventNodeVisitor nv(horAngle, vertAngle,(_distance-oldDist)/oldDist);
+	}
+
+	if ( horAngle || vertAngle || _distance!=oldDist )
+	{
+	    TrackballEventNodeVisitor nv( horAngle, vertAngle, (_distance-oldDist)/oldDist );
 	    (*_cb)( 0, &nv );
 	}
 
