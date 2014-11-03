@@ -618,6 +618,23 @@ ThumbWheelEventNodeVisitor::~ThumbWheelEventNodeVisitor()
 ThumbWheelEventHandler::~ThumbWheelEventHandler()
 {}
 
+
+void ThumbWheelEventHandler::addThumbWheel( ThumbWheel* tw )
+{
+    _thumbwheels.push_back( osg::ref_ptr<ThumbWheel>(tw) );
+}
+
+
+void ThumbWheelEventHandler::removeThumbWheel( ThumbWheel* tw )
+{
+    for ( int idx=_thumbwheels.size()-1; idx>=0; idx-- )
+    {
+	if ( _thumbwheels[idx].get()==tw )
+	    _thumbwheels.erase( _thumbwheels.begin()+idx );
+    }
+}
+
+
 bool ThumbWheelEventHandler::handle (const osgGA::GUIEventAdapter &ea,
 				     osgGA::GUIActionAdapter &us,
 				     osg::Object*,
