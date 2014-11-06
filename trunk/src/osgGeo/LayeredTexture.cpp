@@ -1329,8 +1329,7 @@ void LayeredTexture::updateTextureInfoIfNeeded() const
 
 	const osg::Texture::Extensions* texExt = osg::Texture::getExtensions( contextID, _texInfo->_contextId>=0 );
 
-	if ( !vertExt || !vertExt->isVertexProgramSupported() ||
-	     !fragExt || !fragExt->isFragmentProgramSupported() || !texExt )
+	if ( !vertExt || !fragExt || !texExt )
 	    continue;
 
 #if OSG_MIN_VERSION_REQUIRED(3,3,1)
