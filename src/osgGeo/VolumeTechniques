@@ -69,7 +69,7 @@ class OSGGEO_EXPORT FixedFunctionTechnique : public osgVolume::FixedFunctionTech
 class OSGGEO_EXPORT RayTracedTechnique : public osgVolume::RayTracedTechnique
 {
     public :
-	RayTracedTechnique();
+	RayTracedTechnique(bool dynamicFragShading=false);
 	RayTracedTechnique(const RayTracedTechnique&,const osg::CopyOp& copyop=osg::CopyOp::SHALLOW_COPY);
 
 	virtual void init();
@@ -78,9 +78,28 @@ class OSGGEO_EXPORT RayTracedTechnique : public osgVolume::RayTracedTechnique
 	void setCustomShader(osg::Shader::Type,const char* code);
 	static const char* volumeTfFragDepthCode();
 
+	enum FragShaderType { ColTab, RGBA, Identity };
+	void setFragShaderType(FragShaderType);
+	int getFragShaderType() const;
+
+	void enableDestChannel(int destChannel,bool yn);
+	bool isDestChannelEnabled(int destChannel) const;
+
+	void setSourceChannel(int destChannel,int sourceChannel);
+	int getSourceChannel(int destChannel) const;
+
+	static const osg::Vec4f& getChannelDefaults();
+
     protected:
+	void	updateFragShaderCode();
+
 	std::vector< osg::ref_ptr<osg::Shader> >	_customShaders;
 	osg::ref_ptr<BoundingGeometry>			_boundingGeometry;
+
+	osg::ref_ptr<osg::Shader>	_dynamicFragShader;
+	FragShaderType			_fragShaderType;
+	bool				_dstEnabled[4];
+	int				_srcChannel[4];
 };
 
 
