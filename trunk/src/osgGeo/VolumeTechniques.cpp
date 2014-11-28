@@ -24,6 +24,13 @@ $Id: TrackballManipulator.cpp 231 2013-04-16 12:35:57Z kristofer.tingdahl@dgbes.
 #include <osg/TexGenNode>
 #include <osgUtil/IntersectionVisitor>
 
+#include <iostream>
+#include <cstdio>
+
+#if defined _MSC_VER && __cplusplus < 201103L
+# define snprintf( a, n, ... ) _snprintf_s( a, n, _TRUNCATE, __VA_ARGS__ )
+#endif
+
 
 namespace osgGeo
 {
@@ -128,15 +135,48 @@ void FixedFunctionTechnique::traverse(osg::NodeVisitor& nv)
 //=============================================================================
 
 
-RayTracedTechnique::RayTracedTechnique():
-    osgVolume::RayTracedTechnique()
+RayTracedTechnique::RayTracedTechnique( bool dynamicFragShading )
+    : osgVolume::RayTracedTechnique()
+    , _dynamicFragShader(0)
+    , _fragShaderType(ColTab)
 {
+    for ( int idx=0; idx<4; idx++)
+    {
+	_dstEnabled[idx] = true;
+	_srcChannel[idx] = idx;
+    }
+
+    if ( dynamicFragShading )
+    {
+	_dynamicFragShader = new osg::Shader( osg::Shader::FRAGMENT );
+	updateFragShaderCode();
+    }
 }
 
 
-RayTracedTechnique::RayTracedTechnique(const RayTracedTechnique& fft,const osg::CopyOp& copyop):
-    osgVolume::RayTracedTechnique(fft,copyop)
+RayTracedTechnique::RayTracedTechnique(const RayTracedTechnique& rtt,const osg::CopyOp& copyop)
+    : osgVolume::RayTracedTechnique(rtt,copyop)
+    , _boundingGeometry( rtt._boundingGeometry )
+    , _dynamicFragShader(0)
+    , _fragShaderType(rtt._fragShaderType)
 {
+    for ( unsigned int idx=0; idx<rtt._customShaders.size(); idx++ )
+    {
+	setCustomShader( _customShaders[idx]->getType(),
+			 rtt._customShaders[idx]->getShaderSource().c_str() );
+    }
+
+    for ( int idx=0; idx<4; idx++ )
+    {
+	_dstEnabled[idx] = rtt._dstEnabled[idx];
+	_srcChannel[idx] = rtt._srcChannel[idx];
+    }
+
+    if ( rtt._dynamicFragShader )
+    {
+	_dynamicFragShader = new osg::Shader( osg::Shader::FRAGMENT );
+	updateFragShaderCode();
+    }
 }
 
 
@@ -177,6 +217,9 @@ void RayTracedTechnique::init()
     osg::StateAttribute* attr2 = stateSet->getAttribute( osg::StateAttribute::PROGRAM );
     osg::Program* program = dynamic_cast<osg::Program*>( attr2 );
 
+    if ( _dynamicFragShader )
+	_customShaders.push_back( _dynamicFragShader );
+
     for ( unsigned int idx=0; program && idx<_customShaders.size(); idx++ )
     {
 	for ( int idy=program->getNumShaders()-1; idy>=0; idy-- )
@@ -188,6 +231,9 @@ void RayTracedTechnique::init()
 	program->addShader( _customShaders[idx] );
 	stateSet->removeMode( GL_CULL_FACE );
     }
+
+    if ( _dynamicFragShader )
+	_customShaders.pop_back();
 }
 
 
@@ -220,9 +266,64 @@ void RayTracedTechnique::setCustomShader( osg::Shader::Type type, const char* co
 }
 
 
+void RayTracedTechnique::setFragShaderType( FragShaderType fragShaderTyp )
+{
+    if ( _fragShaderType!=fragShaderTyp )
+    {
+	 _fragShaderType = fragShaderTyp;
+	 updateFragShaderCode();
+    }
+}
+
+
+int RayTracedTechnique::getFragShaderType() const
+{
+    return _fragShaderType;
+}
+
+
+void RayTracedTechnique::enableDestChannel( int dest, bool yn )
+{
+    if ( dest>=0 && dest<4 && _dstEnabled[dest]!=yn )
+    {
+	_dstEnabled[dest] = yn;
+	updateFragShaderCode();
+    }
+}
+
+
+bool RayTracedTechnique::isDestChannelEnabled( int dest ) const
+{
+    return dest>=0 && dest<4 ? _dstEnabled[dest] : false;
+}
+
+
+void RayTracedTechnique::setSourceChannel( int dest, int src )
+{
+    if ( dest>=0 && dest<4 && src>=0 && src<4 && _srcChannel[dest]!=src )
+    {
+	_srcChannel[dest] = src;
+	updateFragShaderCode();
+    }
+}
+
+
+int RayTracedTechnique::getSourceChannel( int dest ) const
+{
+    return dest>=0 && dest<4 ? _srcChannel[dest] : -1;
+}
+
+
+const osg::Vec4f& RayTracedTechnique::getChannelDefaults()
+{
+    static osg::Vec4f rgba( 0.0f, 0.0f, 0.0f, 1.0f );
+    return rgba;
+}
+
+
 //=============================================================================
 
-static char volume_tf_frag_depth[] =
+static char volume_frag_depth_header[] =
 
 "uniform sampler3D baseTexture;\n"
 "\n"
@@ -321,9 +422,14 @@ static char volume_tf_frag_depth[] =
 "\n"
 "    vec4 fragColor = vec4(0.0, 0.0, 0.0, 0.0); \n"
 "    while(num_iterations>0.5)\n"	// bugfix to solve numerical instability
-"    {\n"
-"        float v = texture3D( baseTexture, texcoord).a * tfScale + tfOffset;\n"
-"        vec4 color = texture1D( tfTexture, v);\n"
+"    {\n";
+
+//==============================================================================
+// "     vec4 color = ... \n"	// INSERT DYNAMIC volume_frag_depth BODY HERE
+//==============================================================================
+
+static char volume_frag_depth_footer[] =
+
 "\n"
 "        float r = color[3]*TransparencyValue;\n"
 "        if (r>AlphaFuncValue)\n"
@@ -370,9 +476,64 @@ static char volume_tf_frag_depth[] =
 "\n";
 
 
+static char volume_coltab_frag_body [] =
+
+"        float v = texture3D( baseTexture, texcoord).a * tfScale + tfOffset;\n"
+"        vec4 color = texture1D( tfTexture, v);\n";
+
+
 const char* RayTracedTechnique::volumeTfFragDepthCode()
 {
-    return volume_tf_frag_depth;
+    static std::string code;
+
+    code = volume_frag_depth_header;
+    code += volume_coltab_frag_body;
+    code += volume_frag_depth_footer;
+
+    return code.c_str();
+}
+
+
+void RayTracedTechnique::updateFragShaderCode()
+{
+    if ( !_dynamicFragShader )
+	return;
+
+    char line[100];
+
+    std::string code = volume_frag_depth_header;
+
+    if ( _fragShaderType==ColTab )
+    {
+	code += volume_coltab_frag_body;
+    }
+    else if ( getFragShaderType()==RGBA )
+    {
+	code += "        vec4 src = texture3D( baseTexture, texcoord );\n";
+
+	const osg::Vec4f rgba = getChannelDefaults();
+	snprintf( line, 100, "        vec4 color = vec4(%.6f,%.6f,%.6f,%.6f);\n", rgba[0], rgba[1], rgba[2], rgba[3] );
+	code += line;
+
+	for ( int idx=0; idx<4; idx++ )
+	{
+	    if ( !_dstEnabled[idx] )
+		continue;
+
+	    snprintf( line, 100, "        color[%d] = src[%d];\n", idx, _srcChannel[idx] );
+	    code += line;
+	}
+    }
+    else // _fragShaderType==Identity
+    {
+	code += "        vec4 color = texture3D( baseTexture, texcoord );\n";
+    }
+
+    code += volume_frag_depth_footer;
+
+    _dynamicFragShader->setShaderSource( code );
+
+    //std::cout << code << std::endl;
 }
 
 
