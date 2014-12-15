@@ -21,6 +21,8 @@ $Id: TrackballManipulator.cpp 231 2013-04-16 12:35:57Z kristofer.tingdahl@dgbes.
 #include <osg/Texture3D>
 #include <osgVolume/VolumeTile>
 #include <osgGeo/VolumeTechniques>
+#include <osg/VertexProgram>
+#include <osg/FragmentProgram>
 #include <osg/TexGenNode>
 #include <osgUtil/IntersectionVisitor>
 
@@ -217,6 +219,21 @@ void RayTracedTechnique::setCustomShader( osg::Shader::Type type, const char* co
     }
 
     _customShaders.push_back( new osg::Shader(type,code) );
+}
+
+
+bool RayTracedTechnique::isShadingSupported()
+{
+    const int maxContextID = (int) osg::GraphicsContext::getMaxContextID();
+    for( int contextID=0; contextID<=maxContextID; contextID++ )
+    {
+	const osg::VertexProgram::Extensions* vertExt = osg::VertexProgram::getExtensions( contextID, false );
+	const osg::FragmentProgram::Extensions* fragExt = osg::FragmentProgram::getExtensions( contextID, false );
+
+	if ( vertExt && vertExt->isVertexProgramSupported() && fragExt && fragExt->isFragmentProgramSupported() )
+	    return true;
+    }
+    return false;
 }
 
 

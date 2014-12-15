@@ -81,6 +81,9 @@ class OSGGEO_EXPORT RayTracedTechnique : public osgVolume::RayTracedTechnique
     protected:
 	std::vector< osg::ref_ptr<osg::Shader> >	_customShaders;
 	osg::ref_ptr<BoundingGeometry>			_boundingGeometry;
+
+    public:
+	static bool isShadingSupported();
 };
 
 
