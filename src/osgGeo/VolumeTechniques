@@ -90,6 +90,8 @@ class OSGGEO_EXPORT RayTracedTechnique : public osgVolume::RayTracedTechnique
 
 	static const osg::Vec4f& getChannelDefaults();
 
+	static bool isShadingSupported();
+
     protected:
 	void	updateFragShaderCode();
 
