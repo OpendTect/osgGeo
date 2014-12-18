@@ -119,6 +119,11 @@ public:
     virtual void		setResolution(int) = 0;
     virtual int			getResolution() const = 0;
 
+    virtual float		getRepeatStep() const = 0;
+    virtual osg::ref_ptr<osg::Geometry> getLogPathGeometry() const = 0;
+    virtual osg::ref_ptr<osg::Geometry> getLogGeometry() const = 0;
+    virtual osg::ref_ptr<osg::Geometry>	getTubeGeometry() const = 0;
+
     virtual void		clearLog();
 
 protected:
