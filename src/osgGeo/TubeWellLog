@@ -74,7 +74,11 @@ public:
     virtual void		setLogFill(bool){};
     bool			getLogFill() const { return false; }
     virtual void		clearLog();
-
+    virtual float		getRepeatStep() const { return 0; }
+    osg::ref_ptr<osg::Geometry>	getTubeGeometry() const { return _tubeGeometry; }
+    osg::ref_ptr<osg::Geometry> getLogPathGeometry() const { return _logPathGeometry; }
+    osg::ref_ptr<osg::Geometry> getLogGeometry() const { return 0; }
+	
 
 protected:
     osg::BoundingSphere			computeBound() const;

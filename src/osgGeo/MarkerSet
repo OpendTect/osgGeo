@@ -57,6 +57,7 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 	osg::Vec4			getSingleColor() const { return _singleColor; }
 
 	void				useSingleColor(bool);
+	bool				usesSingleColor() { return _applySingleColor; }
 	
 	void				setShape(osgGeo::MarkerShape::ShapeType);
 	osgGeo::MarkerShape::ShapeType	getShape();
