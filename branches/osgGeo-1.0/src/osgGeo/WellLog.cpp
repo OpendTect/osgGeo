@@ -19,6 +19,9 @@ $Id$
 */
 
 #include <osgGeo/WellLog>
+#include <osgGeo/PlaneWellLog>
+#include <osgGeo/TubeWellLog>
+
 #include <osg/MatrixTransform>
 #include <osgViewer/Viewer>
 #include <osg/PolygonOffset>
@@ -298,6 +301,54 @@ int WellLog::getClosestIndex(const osg::FloatArray& arr, float val)
 
     return -1;
 }
+
+
+float WellLog::getRepeatStep() const
+{
+    const PlaneWellLog* plog = dynamic_cast<const PlaneWellLog*>(this);
+    if ( plog )
+	return plog->getRepeatStepDistance();
+    return .0f;
+}
+
+
+osg::ref_ptr<osg::Geometry> WellLog::getLogPathGeometry() const
+{
+    const PlaneWellLog* plog = dynamic_cast<const PlaneWellLog*>(this);
+    if ( plog )
+	return plog->getLogPathGeometry();
+
+    const TubeWellLog* tblog = dynamic_cast<const TubeWellLog*>(this);
+    if ( tblog )
+	return tblog->getLogPathGeometry();
+
+    return 0;
+}
+
+
+osg::ref_ptr<osg::Geometry> WellLog::getLogGeometry() const
+{
+    const PlaneWellLog* plog = dynamic_cast<const PlaneWellLog*>(this);
+    if ( plog )
+	return plog->getLogGeometry();
+
+    const TubeWellLog* tblog = dynamic_cast<const TubeWellLog*>(this);
+    if ( tblog )
+	return tblog->getLogGeometry();
+
+    return 0;
+}
+
+
+osg::ref_ptr<osg::Geometry> WellLog::getTubeGeometry() const
+{
+    const TubeWellLog* tblog = dynamic_cast<const TubeWellLog*>(this);
+    if ( tblog )
+	return tblog->getTubeGeometry();
+
+    return 0;
+}
+
 
 }// Namespace
 

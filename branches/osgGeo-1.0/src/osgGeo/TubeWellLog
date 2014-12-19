@@ -106,6 +106,10 @@ private:
     osg::ref_ptr<osg::Vec3Array>	_logTubeCircleNormals;
     int					_resolution;
 
+public:
+    osg::ref_ptr<osg::Geometry>	getTubeGeometry() const { return _tubeGeometry; }
+    osg::ref_ptr<osg::Geometry> getLogPathGeometry() const { return _logPathGeometry; }
+
 };
 
 

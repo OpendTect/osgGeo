@@ -159,6 +159,12 @@ protected:
     osg::Vec3               		_preProjDir;
     osg::BoundingBox        		_bbox;
 
+public:
+    float			 getRepeatStep() const;
+    osg::ref_ptr<osg::Geometry>  getLogPathGeometry() const;
+    osg::ref_ptr<osg::Geometry>  getLogGeometry() const;
+    osg::ref_ptr<osg::Geometry>	 getTubeGeometry() const;
+
 };
 
 } // namespace
