@@ -120,6 +120,8 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 	bool					_dirtyBoundAtNextCullStage;
 	bool					_waitForAutoTransformUpdate;
 	osg::Vec3				_prevEyePoint;
+public:
+	bool				 usesSingleColor() { return _applySingleColor; }
 };
 
 }

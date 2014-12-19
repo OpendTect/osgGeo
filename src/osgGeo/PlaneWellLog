@@ -115,6 +115,11 @@ private:
     bool	    _isFilled;
     float	    _triGeometryWidth;
     bool	    _isFullFilled;
+
+public:
+    float			getRepeatStepDistance() const { return getRepeatStep(); }
+    osg::ref_ptr<osg::Geometry> getLogPathGeometry() const { return _lineGeometry; }
+    osg::ref_ptr<osg::Geometry> getLogGeometry() const { return _triangleGeometry; }
 };
 
 
