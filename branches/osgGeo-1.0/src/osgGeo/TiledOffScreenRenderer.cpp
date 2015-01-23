@@ -30,6 +30,8 @@ using namespace osgGeo;
 
 static unsigned char NOTRANSPARENCY = 255; 
 
+static std::vector<std::pair<TiledOffScreenRenderer*,unsigned char> > _foregroundTransList;
+
 TiledOffScreenRenderer::TiledOffScreenRenderer(osgViewer::View* view,
 					       osgViewer::CompositeViewer* viewer)
     :_view(view)
@@ -43,6 +45,8 @@ TiledOffScreenRenderer::TiledOffScreenRenderer(osgViewer::View* view,
     ,_orientationCamera(view->getCamera())
     ,_cameraSwitch(dynamic_cast<osg::Switch*>(view->getSceneData()))
 {
+    _foregroundTransList.push_back( std::pair<TiledOffScreenRenderer*,unsigned char>(this,NOTRANSPARENCY));
+
     if (!_cameraSwitch)
     {
 	_cameraSwitch = new osg::Switch;
@@ -115,6 +119,7 @@ void TiledOffScreenRenderer::setupImageCollector()
     finalImage->allocateImage(_width, _height , 1, GL_RGBA, GL_UNSIGNED_BYTE);
     _imageCollector->setFinalImage(finalImage.get());
     _imageCollector->setBackgroundTransparency(_transparency);
+    _imageCollector->setForegroundTransparency(getForegroundTransparency());
 }
 
 
@@ -190,6 +195,33 @@ void TiledOffScreenRenderer::setOutputBackgroundTransparency(unsigned char trans
 }
 
 
+unsigned char TiledOffScreenRenderer::getForegroundTransparency() const
+{
+     for ( int idx=0; idx<_foregroundTransList.size(); idx++ )
+     {
+	    if ( _foregroundTransList[idx].first==this )
+	    {
+	    return _foregroundTransList[idx].second;
+	    }
+     }
+
+ return 0;
+}
+
+
+void TiledOffScreenRenderer::setForegroundTransparency(unsigned char transparency)
+{
+     for ( int idx=0; idx<_foregroundTransList.size(); idx++ )
+     {
+	    if ( _foregroundTransList[idx].first==this )
+	    {
+	    _foregroundTransList[idx].second = transparency;
+	    break;
+	    }
+     }
+}
+
+
 TiledOffScreenRenderer::OffscreenTileImageCollector::OffscreenTileImageCollector()
     :_isRunning(true)
     ,_isFinishing(false)
@@ -199,6 +231,8 @@ TiledOffScreenRenderer::OffscreenTileImageCollector::OffscreenTileImageCollector
     ,_camera(0)
     ,_finalImage(0)
     ,_transparency(NOTRANSPARENCY)
+    ,_foregroundTransparency(NOTRANSPARENCY)
+
 {
 }
 
@@ -350,7 +384,13 @@ void TiledOffScreenRenderer::OffscreenTileImageCollector
 	if ( imageData && depthImageData )
 	{
 	    if ( *depthImageData == BACKGROUNDDEPTH )
+	    {
 		imageData[3] = _transparency;
+	    }
+	    else if ( _foregroundTransparency != NOTRANSPARENCY )
+	    {
+		imageData[3] = _foregroundTransparency;
+	    }
 	}
 	
     }
