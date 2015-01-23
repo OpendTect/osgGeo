@@ -232,7 +232,7 @@ void ScalarBar::createDrawables()
     float labelxIncr = (_numLabels>0) ? (_width)/(_numLabels-1) : 0.0f;
     const float labelStickStartY = _orientation==HORIZONTAL ? arOffset : 0;
     const float labelY = labelStickStartY +
-        (_orientation==HORIZONTAL ?  characterSize : -characterSize) * CHARACTER_OFFSET_FACTOR;
+        (_orientation==HORIZONTAL ?  arOffset : -arOffset) * CHARACTER_OFFSET_FACTOR;
 
 
     for(i=0; i<_numLabels; ++i)
