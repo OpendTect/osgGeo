@@ -163,6 +163,8 @@ class OSGGEO_EXPORT TrackballManipulator : public osgGA::MultiTouchTrackballMani
 
 	int getMappedMouseButton(MouseButton);	// will be const in next version
 	void notifyMappedMouseButtonEvents(const osgGA::GUIEventAdapter& ea);
+	bool getPolyIntersectionPoint(osg::View* view, const osg::Vec2d& zoomcenter,osg::Vec3d& intersection,float radius) const;
+
 };
 
 
