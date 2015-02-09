@@ -300,6 +300,7 @@ int main( int argc, char** argv )
     usage->setCommandLineUsage( "textureplane [options]" );
     usage->setDescription( "3D view of tiled plane with layered set of textures or one default texture" );
     usage->addCommandLineOption( "--bricksize <n>", "Brick size [1,->]" );
+    usage->addCommandLineOption( "--quads <n>", "Quads per brick side [1,->]" );
     usage->addCommandLineOption( "--sizepolicy <n>", "Texture size policy [0,2]" );
     usage->addCommandLineOption( "--dim <n>", "Thin dimension [0,2]" );
     usage->addCommandLineOption( "--angle <phi>", "Rotation angle [deg]" );
@@ -315,6 +316,7 @@ int main( int argc, char** argv )
     usage->addCommandLineOption( "--udfimage <R> <B> <G> <A>", "Image RGBA undef area [-1=void,255]" );
     usage->addCommandLineOption( "--udfcolor <R> <B> <G> <A>", "New RGBA undef color [0,255]" );
     usage->addCommandLineOption( "--udfstack <R> <B> <G> <A>", "Stack RGBA undef area [0,255]" );
+    usage->addCommandLineOption( "--vertexoffset <channel>", "Offset channel with(out) undef area [0,7]" );
     usage->addCommandLineOption( "--border <R> <B> <G> <A>", "Image RGBA border color [-1=edge,255]" );
     usage->addCommandLineOption( "--seampower <x> <y>", "Seam power [0,->]" );
     usage->addCommandLineOption( "--shift <x> <y>", "Texture shift" );
@@ -359,6 +361,16 @@ int main( int argc, char** argv )
 	}
     }
 
+    int nrQuadsPerBrickSide = 1;
+    while ( args.read("--quads", nrQuadsPerBrickSide) )
+    {
+	if ( nrQuadsPerBrickSide < 1 )
+	{
+	    args.reportError( "Quads per brick side must be at least 1" );
+	    nrQuadsPerBrickSide = 1;
+	}
+    }
+
     bool scene = false;
     while ( args.read("--scene") )
 	scene = true;
@@ -376,8 +388,21 @@ int main( int argc, char** argv )
 	udfStack = osg::Vec4f( I/255.0f, J/255.0f, K/255.0f, L/255.0f );
     }
 
+    bool useVertexOffset = false;
+    int offsetChannel = 0;
 
     osg::ref_ptr<osgGeo::LayeredTexture> laytex = new osgGeo::LayeredTexture();
+
+    while ( args.read("--vertexoffset", offsetChannel) )
+    {
+	if ( offsetChannel<0 || offsetChannel>=8 )
+	{
+	    args.reportError( "Offset channel with(out) undef area not in [0,7]" );
+	    offsetChannel = 0;
+	}
+
+	useVertexOffset = true;
+    }
 
     int texSizePolicy = 0;
     while ( args.read("--sizepolicy", texSizePolicy) )
@@ -601,7 +626,7 @@ int main( int argc, char** argv )
 	pos++;
     }
 
-    if ( udfStack != osg::Vec4f(-1.0f,-1.0f,-1.0f,-1.0f) )
+    if ( udfStack!=osg::Vec4f(-1.0f,-1.0f,-1.0f,-1.0f) && !useVertexOffset )
     {
 	const int id = laytex->addDataLayer();
 	osg::ref_ptr<const osg::Image> img = laytex->getDataLayerImage( firstId );
@@ -626,6 +651,64 @@ int main( int argc, char** argv )
 	laytex->setStackUndefLayerID( id );
 	laytex->setStackUndefChannel( 0 );
 	laytex->setStackUndefColor( udfStack );
+    }
+
+
+    if ( useVertexOffset )
+    {
+	// Offsets are generated from test image
+	osg::ref_ptr<const osg::Image> img = laytex->getDataLayerImage( firstId );
+	const int id = laytex->addDataLayer();
+	osg::ref_ptr<osg::Image> offsetImage = new osg::Image;
+
+	const bool useFloatDataType = true;
+	if ( useFloatDataType )
+	{
+	    offsetImage->setInternalTextureFormat( GL_LUMINANCE32F_ARB );
+	    offsetImage->allocateImage( img->s(), img->t(), img->r(), GL_LUMINANCE, GL_FLOAT );
+	}
+	else
+	    offsetImage->allocateImage( img->s(), img->t(), img->r(), GL_LUMINANCE, GL_UNSIGNED_BYTE );
+
+	int udfId = -1;
+	osg::ref_ptr<osg::Image> udfImage = new osg::Image;
+	if ( offsetChannel/4 )
+	{
+	    udfId = laytex->addDataLayer();
+	    udfImage->allocateImage( img->s(), img->t(), img->r(), GL_LUMINANCE, GL_UNSIGNED_BYTE );
+	}
+
+	laytex->setDataLayerImage( id, offsetImage.get() );
+	laytex->setDataLayerImageUndefColor( id, osg::Vec4f(1.0f,1.0f,1.0f,1.0f) );
+	laytex->setVertexOffsetLayerID( id );
+	laytex->setVertexOffsetChannel( 0 );
+	laytex->setVertexOffsetFactor( 1.0f );
+	laytex->setVertexOffsetBias( -0.5f );
+
+	if ( udfId>=0 )
+	{
+	    laytex->setDataLayerImage( udfId, udfImage.get() );
+	    laytex->setDataLayerBorderColor( udfId, osg::Vec4f(1.0f,1.0f,1.0f,1.0f) );
+	    laytex->setDataLayerUndefLayerID( id, udfId );
+	    laytex->setDataLayerUndefChannel( id, 0 );
+	    laytex->setStackUndefLayerID( udfId );
+	    laytex->setStackUndefChannel( 0 );
+	    laytex->setStackUndefColor( osg::Vec4f(0.0f,0.0f,0.0f,0.0f) );
+	}
+
+	for ( int s=img->s()-1; s>=0; s-- )
+	{
+	    for( int t=img->t()-1; t>=0; t-- )
+	    {
+		const bool inCircle = (t-img->t()/2)*(t-img->t()/2) + (s-img->s()/2)*(s-img->s()/2) < 0.05*img->s()*img->t();
+
+		const float udfVal = useFloatDataType ? 1e30f : 1.0f;
+		const float val = udfId>=0 && inCircle ? udfVal : img->getColor(s,t)[offsetChannel%4];
+		laytex->setVertexOffsetValue( val, udfVal, s, t );
+		if ( val != laytex->getVertexOffsetValue(udfVal,s,t) )
+		    std::cerr << "Vertex offset value functionality is failing" << std::endl;
+	    }
+	}
     }
 
     args.reportRemainingOptionsAsUnrecognized(); 
@@ -670,6 +753,9 @@ int main( int argc, char** argv )
     //root->setCenter( center );  // Move texture origin to center of screen
     root->setWidth( width );
     root->setTextureBrickSize( brickSize, texSizePolicy%2 );
+    root->setQuadsPerBrickSide( nrQuadsPerBrickSide );
+
+    laytex->setVertexOffsetTexelSpanVectors( root->getTexelSpanVector(0), root->getTexelSpanVector(1) );
 
     osg::ref_ptr<osg::Geode> geode = new osg::Geode;
     osg::ref_ptr<osg::ShapeDrawable> sphere = new osg::ShapeDrawable;

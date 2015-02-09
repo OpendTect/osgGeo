@@ -83,7 +83,8 @@ public:
 					  int nrPowerChannels=0);
 			/*!Preferred image formats: GL_LUMINANCE, GL_ALPHA,
 			   GL_LUMINANCE_ALPHA, GL_RGB, GL_RGBA, GL_BGR, GL_BGRA
-			   Preferred data types: GL_UNSIGNED_BYTE, GL_BYTE.
+			   Preferred data types: GL_UNSIGNED_BYTE,
+						 GL_FLOAT (vertex offset only).
 			   Option to freeze display updates as long as image=0
 			   yields a smooth transition on screen. */
 
@@ -135,6 +136,44 @@ public:
 
     void		setDataLayerSliceNr(int id,int nr);
     int			getDataLayerSliceNr(int id) const;
+
+    struct VertexOffsetCutoutInfo
+    {
+			VertexOffsetCutoutInfo()
+			    : _lod( 0.0 )
+			    , _offsetIfUndef( 0.0 )
+			{}
+
+			float _lod;
+			float _offsetIfUndef;
+    };
+
+    bool		canDoVertexOffsetNow(bool usingFloat) const;
+    void		useNormalizedTexCoords(bool);
+			/* Enables repeated use of one single tile geometry at
+			   the cost of a few extra computations in the shader */
+
+    void		setVertexOffsetLayerID(int id);
+    int			getVertexOffsetLayerID() const;
+    void		setVertexOffsetChannel(int channel);
+    int			getVertexOffsetChannel() const;
+    void		setVertexOffsetFactor(float);
+    float		getVertexOffsetFactor() const;
+    void		setVertexOffsetBias(float);
+    float		getVertexOffsetBias() const;
+    void		setVertexOffsetTexelSpanVectors(const osg::Vec3f& v0,
+							const osg::Vec3f& v1);
+    const osg::Vec3f&	getVertexOffsetTexelSpanVector(int dim) const;
+
+			/* Vertex offset convenience functions. Doing it 
+			   yourself with no checks will maximize speed. */
+    void		setVertexOffsetValue(float val,float undefVal,
+					     int s,int t,int r=0);
+    float		getVertexOffsetValue(float undefVal,
+					     int s,int t,int r=0) const;
+    template<class T>
+    void		setVertexOffsetValues(T* start,T* stop,float undefVal,
+					      int s,int t,int r=0);
 
     void		setStackUndefLayerID(int id);
     int			getStackUndefLayerID() const;
@@ -191,7 +230,8 @@ public:
 
     osg::StateSet*	createCutoutStateSet(const osg::Vec2f& origin,
 			    const osg::Vec2f& opposite,
-			    std::vector<TextureCoordData>&) const;
+			    std::vector<TextureCoordData>&,
+			    const VertexOffsetCutoutInfo* info=0) const;
 			/*!If needsRetiling() is true, call reInitTiling(.)
 			   first, followed by the optional planTiling(.),
 			   and next (re)create your CutoutStateSets. */
@@ -328,10 +368,18 @@ protected:
     mutable TilingInfo*			_tilingInfo;
     mutable TextureInfo*		_texInfo;
 
+    bool				_useNormalizedTexCoords;
+    int					_vertexOffsetLayerId;
+    int					_vertexOffsetChannel;
+    float				_vertexOffsetFactor;
+    float				_vertexOffsetBias;
+    osg::Vec3f				_vertexOffsetSpanVec0;
+    osg::Vec3f				_vertexOffsetSpanVec1;
+
     int					_stackUndefLayerId;
     int					_stackUndefChannel;
     osg::Vec4f				_stackUndefColor;
-    bool				_stackUndefBordered;
+
     bool				_invertUndefLayers;
 
     bool				_allowShaders;

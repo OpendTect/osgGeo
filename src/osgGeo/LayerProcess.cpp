@@ -502,14 +502,6 @@ void LayerProcess::processFooter( osg::Vec4f& fragColor, osg::Vec4f col, float u
 }
 
 
-void LayeredTexture::invertUndefLayers( bool yn )
-{ _invertUndefLayers = yn; }
-
-
-bool LayeredTexture::areUndefLayersInverted() const
-{ return _invertUndefLayers; }
-
-
 //============================================================================
 
 
