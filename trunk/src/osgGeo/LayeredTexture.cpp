@@ -162,10 +162,7 @@ static TransparencyType getImageTransparencyType( const osg::Image* image, int t
     if ( imageChannel==ONE_CHANNEL )
 	return Opaque;
 
-    GLenum dataType = image->getDataType();                               
-    bool isByte = dataType==GL_UNSIGNED_BYTE || dataType==GL_BYTE;
-
-    if ( isByte && imageChannel>=0 )
+    if ( image->getDataType()==GL_UNSIGNED_BYTE && imageChannel>=0 )
     {
 	const int step = image->getPixelSizeInBits()/8;
 	const unsigned char* start = image->data()+imageChannel;
@@ -208,7 +205,7 @@ static int encodeBaseChannelPower( osg::Image& image, int nrPowerChannels )
     const int pixelSizeInBytes  = image.getPixelSizeInBits()/8;
 
     int maxPowerChannels = pixelSizeInBytes>2 ? 2 : pixelSizeInBytes-1;
-    if ( image.getDataType()!=GL_UNSIGNED_BYTE && image.getDataType()!=GL_BYTE )
+    if ( image.getDataType()!=GL_UNSIGNED_BYTE )
 	maxPowerChannels = 0;
 
     if ( nrPowerChannels>maxPowerChannels )
@@ -473,7 +470,6 @@ void LayeredTextureData::adaptColors()
 }
 
 
-
 #define GET_PIXEL_INDEX( idx, image, x, y, z, order ) \
     const int idx = order==STR ? x+(y+z*image->t())*image->s() : \
 		    order==SRT ? x+(z+y*image->r())*image->s() : \
@@ -637,6 +633,8 @@ struct TextureInfo
 				    , _maxSize( 65536 )
 				    , _nonPowerOf2Support( false )
 				    , _shadingSupport( false )
+				    , _floatSupport( false )
+				    , _nrVertexUnits( 256 )
 				{}
 
     bool			_isValid;
@@ -645,6 +643,8 @@ struct TextureInfo
     int				_maxSize;
     bool			_nonPowerOf2Support;
     bool			_shadingSupport;
+    bool			_floatSupport;
+    int				_nrVertexUnits;
 };
 
 
@@ -662,6 +662,13 @@ LayeredTexture::LayeredTexture()
     , _externalTexelSizeRatio( 1.0 )
     , _tilingInfo( new TilingInfo )
     , _texInfo( new TextureInfo )
+    , _useNormalizedTexCoords( false )
+    , _vertexOffsetLayerId( -1 )
+    , _vertexOffsetChannel( 0 )
+    , _vertexOffsetFactor( 1.0f )
+    , _vertexOffsetBias( 0.0f )
+    , _vertexOffsetSpanVec0( 1.0f, 0.0f, 0.0f )
+    , _vertexOffsetSpanVec1( 0.0f, 1.0f, 0.0f )
     , _stackUndefLayerId( -1 )
     , _stackUndefChannel( 0 )
     , _stackUndefColor( 0.0f, 0.0f, 0.0f, 0.0f )
@@ -693,6 +700,13 @@ LayeredTexture::LayeredTexture( const LayeredTexture& lt,
     , _externalTexelSizeRatio( lt._externalTexelSizeRatio )
     , _tilingInfo( new TilingInfo(*lt._tilingInfo) )
     , _texInfo( new TextureInfo(*lt._texInfo) )
+    , _useNormalizedTexCoords( lt._useNormalizedTexCoords )
+    , _vertexOffsetLayerId( lt._vertexOffsetLayerId )
+    , _vertexOffsetChannel( lt._vertexOffsetChannel )
+    , _vertexOffsetFactor( lt._vertexOffsetFactor )
+    , _vertexOffsetBias( lt._vertexOffsetBias )
+    , _vertexOffsetSpanVec0( lt._vertexOffsetSpanVec0 )
+    , _vertexOffsetSpanVec1( lt._vertexOffsetSpanVec1 )
     , _stackUndefLayerId( lt._stackUndefLayerId )
     , _stackUndefChannel( lt._stackUndefChannel )
     , _stackUndefColor( lt._stackUndefColor )
@@ -849,6 +863,9 @@ void LayeredTexture::removeDataLayer( int id )
 	_id2idxTable[id] = -1;
 	while ( idx < (int)_dataLayers.size() )
 	    _id2idxTable[_dataLayers[idx++]->_id]--;
+
+	if (  id==_vertexOffsetLayerId )
+	    _vertexOffsetLayerId = -1;
     }
 
     _lock.writeUnlock();
@@ -1145,6 +1162,216 @@ void LayeredTexture::setDataLayerSliceNr( int id, int nr )
 }
 
 
+bool LayeredTexture::canDoVertexOffsetNow( bool usingFloat ) const
+{
+    const bool isDataTypeOk = !usingFloat || _texInfo->_floatSupport;
+    return _useShaders && _texInfo->_nrVertexUnits>1 && isDataTypeOk;
+}
+
+
+void LayeredTexture::useNormalizedTexCoords( bool yn )
+{
+    if ( _useNormalizedTexCoords != yn )
+    {
+	setUpdateVar( _tilingInfo->_retilingNeeded, true );
+	_useNormalizedTexCoords = yn;
+    }
+}
+
+
+void LayeredTexture::setVertexOffsetLayerID( int id )
+{
+    setUpdateVar( _updateSetupStateSet, true );
+    _vertexOffsetLayerId = id;
+}
+
+
+void LayeredTexture::setVertexOffsetChannel( int channel )
+{
+    if ( channel>=0 && channel<4 )
+    {
+	setUpdateVar( _updateSetupStateSet, true );
+	_vertexOffsetChannel = channel;
+    }
+}
+
+
+void LayeredTexture::setVertexOffsetFactor( float factor )
+{
+    setUpdateVar( _updateSetupStateSet, true );
+    _vertexOffsetFactor = factor;
+}
+
+
+void LayeredTexture::setVertexOffsetBias( float bias )
+{
+    setUpdateVar( _updateSetupStateSet, true );
+    _vertexOffsetBias = bias;
+}
+
+
+void LayeredTexture::setVertexOffsetTexelSpanVectors( const osg::Vec3f& v0, const osg::Vec3f& v1 )
+{
+    if ( !(v0^v1).length2() )
+	return;
+
+    setUpdateVar( _updateSetupStateSet, true );
+    _vertexOffsetSpanVec0 = v0;
+    _vertexOffsetSpanVec1 = v1;
+}
+
+
+int LayeredTexture::getVertexOffsetLayerID() const
+{ return _vertexOffsetLayerId; }
+
+
+int LayeredTexture::getVertexOffsetChannel() const
+{ return _vertexOffsetChannel; }
+
+
+float LayeredTexture::getVertexOffsetFactor() const
+{ return _vertexOffsetFactor; }
+
+
+float LayeredTexture::getVertexOffsetBias() const
+{ return _vertexOffsetBias; }
+
+
+const osg::Vec3f& LayeredTexture::getVertexOffsetTexelSpanVector( int dim ) const
+{
+    return dim<1 ? _vertexOffsetSpanVec0 : _vertexOffsetSpanVec1;
+}
+
+
+void LayeredTexture::setVertexOffsetValue( float val, float undefVal, int s, int t, int r )
+{
+    const osg::Image* img = getDataLayerImage( _vertexOffsetLayerId );
+
+    if ( img && img->getDataType()==GL_UNSIGNED_BYTE )
+    {
+	unsigned char byte = (unsigned char) (val*255.0f);
+	setVertexOffsetValues( &byte, &byte, undefVal, s, t, r );
+    }
+    else
+	setVertexOffsetValues( &val, &val, undefVal, s, t, r );
+}
+
+
+template<class T> void LayeredTexture::setVertexOffsetValues( T* start, T* stop, float undefVal, int s, int t, int r )
+{
+    if ( start>stop )
+	return;
+
+    const int idx = getDataLayerIndex( _vertexOffsetLayerId );
+    if ( idx<0 || _dataLayers[idx]->hasRescaledImage() )
+	return;
+
+    osg::Image* img = _dataLayers[idx]->_imageSource;
+    if ( !img )
+	return;
+
+    const bool imgIsFloat = img->getDataType()==GL_FLOAT;
+    if ( !imgIsFloat && img->getDataType()!=GL_UNSIGNED_BYTE )
+	return;
+
+    const int imgChannel = texture2ImageChannel( _vertexOffsetChannel, img->getPixelFormat() );
+    if ( imgChannel<0 || imgChannel>3 )
+	return;
+
+    if ( s<0 || t<0 || r<0 || s>=img->s() || t>=img->t() || r>=img->r() )
+	return;
+
+    const int imgDataTypeInBits = imgIsFloat ? 32 : 8;
+    const int imgStep = img->getPixelSizeInBits() / imgDataTypeInBits; 
+    if ( imgStep < 1 )
+	return;
+
+    T* imgStart = (T*) img->data(s,t,r);
+    const T* imgStop = (const T*) img->data( img->s()-1, img->t()-1, img->r()-1 );
+
+    if ( (imgStop-imgStart)/imgStep < stop-start )
+	stop = start + (imgStop-imgStart)/imgStep;
+
+    imgStart += imgChannel;
+
+
+    const int udfIdx = getDataLayerIndex( _dataLayers[idx]->_undefLayerId  );
+    osg::Image* udfImg = udfIdx<0 ? 0 : _dataLayers[udfIdx]->_imageSource;
+
+    int udfImgChannel = -1;
+    if ( udfImg )
+    {
+	if ( udfImg->getDataType()!=GL_UNSIGNED_BYTE )
+	    udfImg = 0;
+	else if ( udfImg->s()!=img->s() || udfImg->t()!=img->t() || udfImg->r()!=img->r() )
+	    udfImg = 0;
+	else
+	{
+	    udfImgChannel = texture2ImageChannel( _dataLayers[idx]->_undefChannel, udfImg->getPixelFormat() );
+	    if ( udfImgChannel<0 || udfImgChannel>3 )
+		udfImg = 0;
+	}
+    }
+
+    if ( udfImg )
+    {
+	const int udfImgStep = udfImg->getPixelSizeInBits()/8; 
+	unsigned char* udfImgStart = udfImg->data(s,t,r) + udfImgChannel;
+
+	const float imgUdfVal = _dataLayers[idx]->_undefColor[_vertexOffsetChannel];
+
+	const T undefValT = (T) (imgIsFloat ? undefVal : undefVal*255.0f);
+	const T imgUdfValT = (T) (imgIsFloat ? imgUdfVal : imgUdfVal*255.0f);
+
+	const unsigned char udf = _invertUndefLayers ? 0 : 255;
+	const unsigned char notUdf = 255 - udf;
+
+	while ( start<=stop )
+	{
+	    if ( *start==undefValT )
+	    {
+		*udfImgStart = udf;
+		*imgStart = imgUdfVal<0.0f ? *start : imgUdfValT;
+		start++;
+	    }
+	    else
+	    {
+		*udfImgStart = notUdf;
+		*imgStart = *start++;
+	    }
+
+	    udfImgStart += udfImgStep;
+	    imgStart += imgStep;
+	}
+    }
+    else while ( start<=stop )
+    {
+	*imgStart = *start++; 
+	imgStart += imgStep;
+    }
+}
+
+
+float LayeredTexture::getVertexOffsetValue( float undefVal, int s, int t, int r ) const
+{
+    const osg::Image* img = getDataLayerImage( _vertexOffsetLayerId );
+    if ( !img )
+	return undefVal;
+
+    const int udfId = getDataLayerUndefLayerID( _vertexOffsetLayerId );
+    const osg::Image* udfImg = getDataLayerImage( udfId );
+    if ( udfImg )
+    {
+	const int udfChannel = getDataLayerUndefChannel( _vertexOffsetLayerId );
+	const osg::Vec4f color = udfImg->getColor( s, t, r );
+	if ( _invertUndefLayers == (color[udfChannel]<0.5f) )
+	    return undefVal;
+    }
+
+    return img->getColor(s,t,r)[_vertexOffsetChannel];
+}
+
+
 void LayeredTexture::setStackUndefLayerID( int id )
 {
     raiseUndefChannelRefCount( false );
@@ -1370,6 +1597,13 @@ void LayeredTexture::updateTextureInfoIfNeeded() const
 
 	if ( !_texInfo->_isValid || _texInfo->_shadingSupport )
 	    _texInfo->_shadingSupport = vertExt->isVertexProgramSupported() && fragExt->isFragmentProgramSupported() && _texInfo->_nrUnits>0;
+
+	if ( !_texInfo->_isValid || _texInfo->_floatSupport )
+	    _texInfo->_floatSupport = osg::isGLExtensionOrVersionSupported(contextID,"GL_ARB_texture_float",3.0); 
+
+	if ( !_texInfo->_isValid || _texInfo->_nrVertexUnits>_texInfo->_nrUnits )
+	    // TODO: Should get GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS from OSG
+	    _texInfo->_nrVertexUnits = _texInfo->_nrUnits;
 
 	_texInfo->_isValid = true;
 	_tilingInfo->_retilingNeeded = true;
@@ -1734,7 +1968,7 @@ osg::Vec2 LayeredTexture::tilingPlanResolution() const
 }
 
 
-osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, const osg::Vec2f& opposite, std::vector<LayeredTexture::TextureCoordData>& tcData ) const
+osg::StateSet* LayeredTexture::createCutoutStateSet( const osg::Vec2f& origin, const osg::Vec2f& opposite, std::vector<LayeredTexture::TextureCoordData>& tcData, const VertexOffsetCutoutInfo* vertexOffsetInfo ) const
 {
     tcData.clear();
     osg::ref_ptr<osg::StateSet> stateset = new osg::StateSet;
@@ -1906,6 +2140,28 @@ osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, co
 	tc00.y() = (localOrigin.y() - tileOrigin.y()) / tileSize.y();
 	tc11.x() = (localOpposite.x()-tileOrigin.x()) / tileSize.x();
 	tc11.y() = (localOpposite.y()-tileOrigin.y()) / tileSize.y();
+
+	char uniformName[20];
+	if ( _useNormalizedTexCoords )
+	{
+	    const osg::Vec4f texCrdBias( tc00.x(), tc00.y(), 0.0f, 0.0f );
+	    osg::Vec4f texCrdFactor( tc11.x(), tc11.y(), 1.0f, 1.0f );
+	    texCrdFactor -= texCrdBias;
+
+	    tc00.x() = 0.0f;
+	    tc00.y() = 0.0f;
+	    tc11.x() = (globalOpposite.x()-globalOrigin.x()) / _tilingInfo->_envelopeSize.x();
+	    tc11.y() = (globalOpposite.y()-globalOrigin.y()) / _tilingInfo->_envelopeSize.y();
+
+	    texCrdFactor.x() /= tc11.x();
+	    texCrdFactor.y() /= tc11.y();
+
+	    snprintf( uniformName, 20, "texcrdfactor%d", layer->_textureUnit );
+	    stateset->addUniform( new osg::Uniform(uniformName,texCrdFactor) );
+	    snprintf( uniformName, 20, "texcrdbias%d", layer->_textureUnit );
+	    stateset->addUniform( new osg::Uniform(uniformName,texCrdBias) );
+	}
+
 	tc01 = osg::Vec2f( tc11.x(), tc00.y() );
 	tc10 = osg::Vec2f( tc00.x(), tc11.y() );
 
@@ -1927,10 +2183,33 @@ osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, co
 	texture->setBorderColor( layer->_borderColor );
 
 	stateset->setTextureAttributeAndModes( layer->_textureUnit, texture.get() );
-	char texSizeName[20];
-	snprintf( texSizeName, 20, "texsize%d", layer->_textureUnit );
+	snprintf( uniformName, 20, "texsize%d", layer->_textureUnit );
 	const osg::Vec2 texSize( tileSize.x(), tileSize.y() );
-	stateset->addUniform( new osg::Uniform(texSizeName,texSize) );
+	stateset->addUniform( new osg::Uniform(uniformName,texSize) );
+
+	if ( isDataLayerOK(_vertexOffsetLayerId) )
+	{
+	    const int udfId = getDataLayerUndefLayerID( _vertexOffsetLayerId );
+	    if ( layer->_id==_vertexOffsetLayerId || layer->_id==udfId )
+	    {
+		float lod = vertexOffsetInfo ? vertexOffsetInfo->_lod : 0.0f;
+		if ( layer->_id!=_vertexOffsetLayerId )
+		{
+		    const osg::Vec2f refScale = getDataLayerScale(_vertexOffsetLayerId);
+		    const float xRatio = refScale.x()/layer->_scale.x();
+		    const float yRatio = refScale.y()/layer->_scale.y();
+		    lod += xRatio>yRatio ? log2(xRatio) : log2(yRatio);
+		}
+		else 
+		    stateset->addUniform( new osg::Uniform("offsetifudf",(vertexOffsetInfo ? vertexOffsetInfo->_offsetIfUndef : 0.0f)) );
+
+		if ( lod<0.0f )
+		    lod = 0.0f;
+
+		snprintf( uniformName, 20, "lod%d", layer->_textureUnit );
+		stateset->addUniform( new osg::Uniform(uniformName,lod) );
+	    }
+	}
     }
 
     return stateset.release();
@@ -2129,6 +2408,14 @@ int LayeredTexture::getProcessInfo( std::vector<int>& layerIDs, int& nrUsedLayer
     else if ( _stackUndefLayerId>0 )
 	skippedIDs.push_back( _stackUndefLayerId );
 
+    if ( _vertexOffsetLayerId != _stackUndefLayerId )
+    {
+	if ( isDataLayerOK(_vertexOffsetLayerId) )
+	    layerIDs.push_back( _vertexOffsetLayerId );
+	else if ( _vertexOffsetLayerId>0 )
+	    skippedIDs.push_back( _vertexOffsetLayerId ); 
+    }
+
     std::vector<LayerProcess*>::const_reverse_iterator it = _processes.rbegin();
     for ( ; _isOn && it!=_processes.rend(); it++ )
     {
@@ -2290,6 +2577,14 @@ void LayeredTexture::createColSeqTexture()
 
     const osg::Vec2 texSize( 256, nrRows );
     _setupStateSet->addUniform( new osg::Uniform("texsize0",texSize) );
+
+    if ( _useNormalizedTexCoords )
+    {
+	const osg::Vec4 texCrdFactor( 1.0f, 1.0f, 1.0f, 1.0f );
+	_setupStateSet->addUniform( new osg::Uniform("texcrdfactor",texCrdFactor) );
+	const osg::Vec4 texCrdBias( 0.0f, 0.0f, 0.0f, 0.0f );
+	_setupStateSet->addUniform( new osg::Uniform("texcrdbias",texCrdBias) );
+    }
 }
 
 
@@ -2336,11 +2631,220 @@ void LayeredTexture::assignTextureUnits()
 
 void LayeredTexture::getVertexShaderCode( std::string& code, const std::vector<int>& activeUnits ) const
 {
-    code =
+    code.clear();
+    char line[100];
 
-"void main(void)\n"
-"{\n"
-"    vec3 fragNormal = normalize(gl_NormalMatrix * gl_Normal);\n"
+    if ( _useNormalizedTexCoords )
+    {
+	std::vector<int>::const_iterator iit = activeUnits.begin();
+	for ( ; iit!=activeUnits.end(); iit++ )
+	{
+	    snprintf( line, 100, "uniform vec4 texcrdfactor%d;\n", *iit );
+	    code += line;
+	    snprintf( line, 100, "uniform vec4 texcrdbias%d;\n", *iit );
+	    code += line;
+	}
+	code += "\n";
+    }
+
+    const int udfId = getDataLayerUndefLayerID(_vertexOffsetLayerId);
+    const int offsetUnit = getDataLayerTextureUnit(_vertexOffsetLayerId);
+
+    if ( isDataLayerOK(_vertexOffsetLayerId) )
+    {
+	const int udfUnit = getDataLayerTextureUnit(udfId);
+
+	std::vector<int>::const_iterator iit = activeUnits.begin();
+	for ( ; iit!=activeUnits.end(); iit++ )
+	{
+	    if ( *iit!=offsetUnit && *iit!=udfUnit )
+		continue;
+
+	    snprintf( line, 100, "uniform sampler2D texture%d;\n", *iit );
+	    code += line;
+	    snprintf( line, 100, "uniform vec2 texsize%d;\n", *iit );
+	    code += line;
+
+	    snprintf( line, 100, "uniform float lod%d;\n", *iit );
+	    code += line;
+	}
+
+	code += "uniform float offsetifudf;\n"
+		"\n"
+		"float offset( vec2 delta )\n"
+		"{\n"
+		"    vec2 texcrd;\n"
+		"\n";
+
+	if ( isDataLayerOK(udfId) )
+	{
+	    snprintf( line, 100, "    texcrd = gl_TexCoord[%d].st + delta/texsize%d;\n", udfUnit, udfUnit );
+	    code += line;
+	    const int udfChannel = getDataLayerUndefChannel( _vertexOffsetLayerId );
+	    snprintf( line, 100, "    float udf = texture2DLod( texture%d, texcrd, lod%d )[%d];\n", udfUnit, udfUnit, udfChannel );
+	    code += line;
+	    if ( _invertUndefLayers )
+		code += "    udf = 1.0 - udf;\n";
+
+	    code += "\n"
+		    "    if ( udf >= 1.0 )\n"
+		    "        return 1e30;\n"
+		    "\n";
+
+	    if ( udfId!=_vertexOffsetLayerId )
+	    {
+		snprintf( line, 100, "    texcrd = gl_TexCoord[%d].st + delta/texsize%d;\n", offsetUnit, offsetUnit );
+		code += line;
+	    }
+	    snprintf( line, 100, "    float offset = texture2DLod( texture%d, texcrd, lod%d )[%d];\n", offsetUnit, offsetUnit, _vertexOffsetChannel );
+	    code += line;
+
+	    const osg::Vec4f& udfColor = getDataLayerImageUndefColor(_vertexOffsetLayerId);
+
+	    if ( udfColor[_vertexOffsetChannel]>=0.0 )
+	    {
+		code += "    if ( udf > 0.0 )\n";
+		snprintf( line, 100, "        offset = (offset - udf*%.6f) / (1.0-udf);\n", udfColor[_vertexOffsetChannel] );
+		code += line;
+	    }
+	}
+	else
+	{
+	    snprintf( line, 100, "    texcrd = gl_TexCoord[%d].st + delta/texsize%d;\n", offsetUnit, offsetUnit );
+	    code += line;
+	    snprintf( line, 100, "    float offset = texture2DLod( texture%d, texcrd, lod%d )[%d];\n", offsetUnit, offsetUnit, _vertexOffsetChannel );
+	    code += line;
+	}
+
+	code += "\n"
+		"    return offset;\n"
+		"}\n"
+		"\n";
+    }
+
+    code += "void main(void)\n"
+	    "{\n"
+	    "    vec3 normal;\n"
+	    "\n";
+
+    std::vector<int>::const_iterator it = activeUnits.begin();
+    for ( ; it!=activeUnits.end(); it++ )
+    {
+	snprintf( line, 100, "    gl_TexCoord[%d] = gl_TextureMatrix[%d] * gl_MultiTexCoord%d;\n", *it, *it, *it );
+	code += line;
+
+	if ( _useNormalizedTexCoords )
+	{
+	    snprintf( line, 100, "    gl_TexCoord[%d] = texcrdbias%d + texcrdfactor%d * gl_TexCoord[%d];\n", *it, *it, *it, *it );
+	    code += line;
+	}
+    }
+
+    if ( activeUnits.size() )
+	code += "\n";
+
+    if ( isDataLayerOK(_vertexOffsetLayerId) )
+    {
+	code += "    float pivot = offset( vec2(0.0,0.0) );\n";
+	snprintf( line, 100, "    float delta = exp2( lod%d );\n", offsetUnit );
+	code += line;
+	code += "    vec4 connect4;\n"
+		"    connect4[0] = offset( vec2(-delta,0.0) );\n"
+		"    connect4[1] = offset( vec2( delta,0.0) );\n"
+		"    connect4[2] = offset( vec2(0.0,-delta) );\n"
+		"    connect4[3] = offset( vec2(0.0, delta) );\n"
+		"\n";
+
+	if ( isDataLayerOK(udfId) )
+	{
+	    code += "    if ( pivot > 1e29 )\n"
+		    "    {\n"
+		    "        int count = 0;\n"
+		    "        float sum = 0.0;\n"
+		    "        for ( int idx=0; idx<=3; idx++ )\n"
+		    "        {\n"
+		    "            if ( connect4[idx] < 1e29 )\n"
+		    "            {\n"
+		    "                count++;\n"
+		    "                sum += connect4[idx];\n"
+		    "            }\n"
+		    "        }\n"
+		    "        if ( count == 0 )\n"
+		    "        {\n"
+		    "            vec4 connect8;\n"
+		    "            connect8[0] = offset( vec2(-delta, delta) );\n"
+		    "            connect8[1] = offset( vec2( delta,-delta) );\n"
+		    "            connect8[2] = offset( vec2(-delta,-delta) );\n"
+		    "            connect8[3] = offset( vec2( delta, delta) );\n"
+		    "            for ( int idx=0; idx<=3; idx++ )\n"
+		    "            {\n"
+		    "                if ( connect8[idx] < 1e29 )\n"
+		    "                {\n"
+		    "                    count++;\n"
+		    "                    sum += connect8[idx];\n"
+		    "                }\n"
+		    "            }\n"
+		    "        }\n"
+		    "        if ( count > 0 )\n"
+		    "            pivot = sum / float(count);\n"
+		    "    }\n"
+		    "\n"
+		    "    for ( int idx=0; idx<=3; idx++ )\n"
+		    "    {\n"
+		    "        if ( connect4[idx] > 1e29 )\n"
+		    "            connect4[idx] = pivot;\n"
+		    "    }\n"
+		    "\n";
+	}
+
+	osg::Vec3f normal = _vertexOffsetSpanVec0 ^ _vertexOffsetSpanVec1;
+	normal.normalize();
+
+	snprintf( line, 100, "    normal = vec3(%.6f,%.6f,%.6f);\n", normal[0], normal[1], normal[2] );
+	code += line;
+
+	code += "    pivot = ";
+	if ( isDataLayerOK(udfId) )
+	    code += "pivot>1e29 ? offsetifudf : ";
+	if ( _vertexOffsetBias != 0.0f )
+	{
+	    snprintf( line, 100, "%e + ", _vertexOffsetBias );
+	    code += line;
+	}
+	if ( _vertexOffsetFactor != 1.0f )
+	{
+	    snprintf( line, 100, "%e * ", _vertexOffsetFactor );
+	    code += line;
+	}
+	code += "pivot;\n";
+
+	code += "    vec4 vertex = vec4(normal*pivot, 0.0) + gl_Vertex;\n"
+		"    gl_Position = gl_ModelViewProjectionMatrix * vertex;\n"
+		"\n";
+
+	const osg::Vec2f scale = getDataLayerScale( _vertexOffsetLayerId );
+	const osg::Vec3f v0 = _vertexOffsetSpanVec0 * scale[0];
+	const osg::Vec3f v1 = _vertexOffsetSpanVec1 * scale[1];
+
+	snprintf( line, 100, "    vec3 v0 = vec3(%.6f,%.6f,%.6f);\n", v0[0], v0[1], v0[2] );
+	code += line;
+	snprintf( line, 100, "    vec3 v1 = vec3(%.6f,%.6f,%.6f);\n", v1[0], v1[1], v1[2] );
+	code += line;
+	snprintf( line, 100, "    v0 += normal * (connect4[1]-connect4[0]) * %.6f/delta;\n",  _vertexOffsetFactor*0.5 );
+	code += line;
+	snprintf( line, 100, "    v1 += normal * (connect4[3]-connect4[2]) * %.6f/delta;\n",  _vertexOffsetFactor*0.5 );
+	code += line;
+
+	code += "    normal = normalize( cross(v0,v1) );\n";
+    }
+    else
+	code += "    gl_Position = ftransform();\n"
+		"    normal = gl_Normal;\n";
+
+    code +=
+
+"\n"
+"    vec3 fragNormal = normalize(gl_NormalMatrix * normal);\n"
 "\n"
 "    vec4 diffuse = vec4(0.0,0.0,0.0,0.0);\n"
 "    vec4 ambient = vec4(0.0,0.0,0.0,0.0);\n"
@@ -2367,18 +2871,7 @@ void LayeredTexture::getVertexShaderCode( std::string& code, const std::vector<i
 "        gl_FrontLightModelProduct.sceneColor +\n"
 "        ambient  * gl_FrontMaterial.ambient +\n"
 "        diffuse  * gl_FrontMaterial.diffuse +\n"
-"        specular * gl_FrontMaterial.specular;\n"
-"\n"
-"    gl_Position = ftransform();\n"
-"\n";
-
-    char line[100];
-    std::vector<int>::const_iterator it = activeUnits.begin();
-    for ( ; it!=activeUnits.end(); it++ )
-    {
-	snprintf( line, 100, "    gl_TexCoord[%d] = gl_TextureMatrix[%d] * gl_MultiTexCoord%d;\n", *it, *it, *it );
-	code += line;
-    }
+"        specular * gl_FrontMaterial.specular;\n";
 
     code += "}\n";
 
@@ -2390,13 +2883,34 @@ void LayeredTexture::getFragmentShaderCode( std::string& code, const std::vector
 {
     code.clear();
     char line[100];
+
+    const bool useLOD = isDataLayerOK(_vertexOffsetLayerId)
+	&& _stackUndefLayerId==getDataLayerUndefLayerID(_vertexOffsetLayerId)
+	&& _stackUndefChannel==getDataLayerUndefChannel(_vertexOffsetLayerId);
+
+    const int udfUnit = getDataLayerTextureUnit( _stackUndefLayerId );
+
     std::vector<int>::const_iterator iit = activeUnits.begin();
     for ( ; iit!=activeUnits.end(); iit++ )
     {
+	if ( _useNormalizedTexCoords )
+	{
+	    snprintf( line, 100, "uniform vec4 texcrdfactor%d;\n", *iit );
+	    code += line;
+	    snprintf( line, 100, "uniform vec4 texcrdbias%d;\n", *iit );
+	    code += line;
+	}
+
 	snprintf( line, 100, "uniform sampler2D texture%d;\n", *iit );
 	code += line;
 	snprintf( line, 100, "uniform vec2 texsize%d;\n", *iit );
 	code += line;
+
+	if ( useLOD && *iit==udfUnit )
+	{
+	    snprintf( line, 100, "uniform float lod%d;\n", *iit );
+	    code += line;
+	}
     }
 
     code += "\n";
@@ -2444,44 +2958,67 @@ void LayeredTexture::getFragmentShaderCode( std::string& code, const std::vector
 	    "{\n"
 	    "    if ( gl_FrontMaterial.diffuse.a <= 0.0 )\n"
 	    "        discard;\n"
+	    "\n"
+	    "    gl_FragColor = vec4(1.0,1.0,1.0,1.0);\n"
 	    "\n";
 
     if ( stackUdf )
     {
-	const int udfUnit = getDataLayerTextureUnit( _stackUndefLayerId );
 	snprintf( line, 100, "    vec2 texcrd = gl_TexCoord[%d].st;\n", udfUnit );
 	code += line;
-	snprintf( line, 100, "    float udf = texture2D( texture%d, texcrd )[%d];\n", udfUnit, _stackUndefChannel );
-	code += line;
-	code += "\n"
-		"    if ( udf < 1.0 )\n"
-		"        process( udf );\n"
-		"\n";
 
-	snprintf( line, 100, "    vec4 udfcol = vec4(%.6f,%.6f,%.6f,%.6f);\n", _stackUndefColor[0], _stackUndefColor[1], _stackUndefColor[2], _stackUndefColor[3] );
-	code += line;
+	if ( useLOD )
+	{
+	    snprintf( line, 100, "    float udf = texture2DLod( texture%d, texcrd, lod%d )[%d];\n", udfUnit, udfUnit, _stackUndefChannel );
+	}
+	else
+	    snprintf( line, 100, "    float udf = texture2D( texture%d, texcrd )[%d];\n", udfUnit, _stackUndefChannel );
 
-	code += "\n"
-		"    if ( udf >= 1.0 )\n"
-	    	"        gl_FragColor = udfcol;\n"
-		"    else if ( udf > 0.0 )\n";
+	code += line;
+	if ( _invertUndefLayers )
+	    code += "        udf = 1.0 - udf;\n";
 
 	if ( _stackUndefColor[3]<=0.0f )
-	    code += "        gl_FragColor.a *= 1.0-udf;\n";
-	else if ( _stackUndefColor[3]>=1.0f && stackIsOpaque )
-	    code += "        gl_FragColor = mix( gl_FragColor, udfcol, udf );\n";
+	{
+	    code += "\n"
+		    "    if ( udf >= 1.0 )\n"
+    		    "        discard;\n"
+		    "\n"
+		    "    process( udf );\n"
+		    "\n"
+		    "    if ( udf > 0.0 )\n"
+		    "        gl_FragColor.a *= 1.0-udf;\n";
+	}
 	else
-	    code += "    {\n"
-		    "        if ( gl_FragColor.a > 0.0 )\n"
-		    "        {\n"
-		    "            vec4 col = gl_FragColor;\n"
-		    "            gl_FragColor.a = mix( col.a, udfcol.a, udf );\n"
-		    "            col.rgb = mix( col.a*col.rgb, udfcol.a*udfcol.rgb, udf );\n"
-		    "            gl_FragColor.rgb = col.rgb / gl_FragColor.a;\n"
-		    "        }\n"
-		    "        else\n"
-		    "            gl_FragColor = vec4( udfcol.rgb, udf*udfcol.a );\n"
-		    "    }\n";
+	{
+	    code += "\n"
+		    "    if ( udf < 1.0 )\n"
+		    "        process( udf );\n"
+		    "\n";
+
+	    snprintf( line, 100, "    vec4 udfcol = vec4(%.6f,%.6f,%.6f,%.6f);\n", _stackUndefColor[0], _stackUndefColor[1], _stackUndefColor[2], _stackUndefColor[3] );
+	    code += line;
+
+	    code += "\n"
+		    "    if ( udf >= 1.0 )\n"
+		    "        gl_FragColor = udfcol;\n"
+		    "    else if ( udf > 0.0 )\n";
+
+	    if ( _stackUndefColor[3]>=1.0f && stackIsOpaque )
+		code += "        gl_FragColor = mix( gl_FragColor, udfcol, udf );\n";
+	    else
+		code += "    {\n"
+			"        if ( gl_FragColor.a > 0.0 )\n"
+			"        {\n"
+			"            vec4 col = gl_FragColor;\n"
+			"            gl_FragColor.a = mix( col.a, udfcol.a, udf );\n"
+			"            col.rgb = mix( col.a*col.rgb, udfcol.a*udfcol.rgb, udf );\n"
+			"            gl_FragColor.rgb = col.rgb / gl_FragColor.a;\n"
+			"        }\n"
+			"        else\n"
+			"            gl_FragColor = vec4( udfcol.rgb, udf*udfcol.a );\n"
+			"    }\n";
+	}
     }
     else
 	 code += "    process();\n";
@@ -2538,6 +3075,14 @@ void LayeredTexture::setMaxTextureCopySize( unsigned int width_x_height )
 	    (*it)->_imageModifiedCount = -1;
     }
 }
+
+
+void LayeredTexture::invertUndefLayers( bool yn )
+{ _invertUndefLayers = yn; }
+
+
+bool LayeredTexture::areUndefLayersInverted() const
+{ return _invertUndefLayers; }
 
 
 //============================================================================
@@ -2613,7 +3158,11 @@ void CompositeTextureTask::run()
 	osg::Vec4f fragColor( -1.0f, -1.0f, -1.0f, -1.0f );
 
 	if ( udfLayer && !_dummyTexture )
+	{
 	    udf = udfLayer->getTextureVec(globalCoord)[udfChannel];
+	    if ( _lt._invertUndefLayers )
+		udf = 1.0-udf;
+	}
 
 	if ( udf<1.0 )
 	{

@@ -128,6 +128,7 @@ TexturePlaneNode::TexturePlaneNode()
     , _frozen( false )
     , _isRedrawing( false )
     , _disperseFactor( 0 )
+    , _nrQuadsPerBrickSide( 1 )
 {
     setUpdateVar( _needsUpdate, true );
 
@@ -157,6 +158,7 @@ TexturePlaneNode::TexturePlaneNode( const TexturePlaneNode& node, const osg::Cop
     , _frozen( false )
     , _isRedrawing( false )
     , _disperseFactor( node._disperseFactor )
+    , _nrQuadsPerBrickSide( node._nrQuadsPerBrickSide )
 {
     setUpdateVar( _needsUpdate, true );
     setUpdateVar( _frozen, node._frozen );
@@ -243,13 +245,18 @@ void TexturePlaneNode::traverse( osg::NodeVisitor& nv )
 	if ( _texture && _texture->getSetupStateSet() )
 	    cv->pushStateSet( _texture->getSetupStateSet() );
 
-	for ( unsigned int idx=0; idx<_geometries.size(); idx++ )
+	int geometryIdx = 0;
+	for ( unsigned int idx=0; idx<_statesets.size(); idx++ )
 	{
 	    cv->pushStateSet( _statesets[idx] );
 
-	    const osg::BoundingBox bb = _geometries[idx]->getBound();
-	    const float depth = cv->getDistanceFromEyePoint(bb.center(),false);
-	    cv->addDrawableAndDepth( _geometries[idx], cv->getModelViewMatrix(), depth );
+	    for ( unsigned int count=_nrQuadsPerBrickSide*_nrQuadsPerBrickSide; count>0; count-- )
+	    {
+		const osg::BoundingBox bb = _geometries[geometryIdx]->getBound();
+		const float depth = cv->getDistanceFromEyePoint(bb.center(),false);
+		cv->addDrawableAndDepth( _geometries[geometryIdx], cv->getModelViewMatrix(), depth );
+		geometryIdx++;
+	    }
 
 	    cv->popStateSet();
 	}
@@ -415,41 +422,76 @@ bool TexturePlaneNode::updateGeometry()
 		(*coords)[idx] = rotMat.preMult((*coords)[idx]) + _center;
 	    }
 
-	    osg::ref_ptr<osg::Geometry> geometry = new osg::Geometry;
-	    geometry->ref();
-
-	    geometry->setVertexArray( coords.get() );
-	    geometry->setNormalArray( normals.get() );
-	    geometry->setNormalBinding( osg::Geometry::BIND_OVERALL );
-	    geometry->setColorArray( colors.get() );
-	    geometry->setColorBinding( osg::Geometry::BIND_OVERALL );
-
 	    std::vector<LayeredTexture::TextureCoordData> tcData;
-
 	    osg::Vec2f origin( sOrigins[ids], tOrigins[idt] );
 	    osg::Vec2f opposite( sOrigins[ids+1], tOrigins[idt+1] );
 	    osg::ref_ptr<osg::StateSet> stateset = _texture->createCutoutStateSet( origin, opposite, tcData );
 	    stateset->ref();
-
-	    for ( std::vector<LayeredTexture::TextureCoordData>::iterator it = tcData.begin();
-		  it!=tcData.end();
-		  it++ )
-	    {
-		osg::ref_ptr<osg::Vec2Array> tCoords = new osg::Vec2Array( 4 );
-		(*tCoords)[0] = it->_tc00;
-		(*tCoords)[1] = it->_tc01;
-		(*tCoords)[2] = it->_tc11;
-		(*tCoords)[3] = it->_tc10;
-		geometry->setTexCoordArray( it->_textureUnit, tCoords.get() );
-	    }
-		    
-	    geometry->addPrimitiveSet( new osg::DrawArrays(GL_QUADS,0,4) );
-
-	    // Precalculate bounding sphere for (multi-threaded) cull traversal
-	    geometry->getBound();
-
-	    _geometries.push_back( geometry );
 	    _statesets.push_back( stateset );
+
+	    for ( int i=0; i<_nrQuadsPerBrickSide; i++ )
+	    {
+		for ( int j=0; j<_nrQuadsPerBrickSide; j++ )
+		{
+		    osg::ref_ptr<osg::Geometry> geometry = new osg::Geometry;
+		    geometry->ref();
+
+		    if ( _nrQuadsPerBrickSide>1 )
+		    {
+			osg::ref_ptr<osg::Vec3Array> crds = new osg::Vec3Array( 4 );
+
+#define SET_COORD(idx,i,j,n) \
+    (*crds)[idx] = ((*coords)[0]*(n-i)*(n-j)+(*coords)[1]*i*(n-j)+(*coords)[2]*i*j+(*coords)[3]*(n-i)*j)/(n*n);
+			SET_COORD(0,i,j,_nrQuadsPerBrickSide); i++;
+			SET_COORD(1,i,j,_nrQuadsPerBrickSide); j++;
+			SET_COORD(2,i,j,_nrQuadsPerBrickSide); i--;
+			SET_COORD(3,i,j,_nrQuadsPerBrickSide); j--;
+			geometry->setVertexArray( crds.get() );
+
+			for ( std::vector<LayeredTexture::TextureCoordData>::iterator it = tcData.begin();
+			      it!=tcData.end();
+			      it++ )
+			{
+			    osg::ref_ptr<osg::Vec2Array> tCoords = new osg::Vec2Array( 4 );
+
+#define SET_TEX_COORD(idx,i,j,n) \
+    (*tCoords)[idx] = (it->_tc00*(n-i)*(n-j)+it->_tc01*i*(n-j)+it->_tc11*i*j+it->_tc10*(n-i)*j)/(n*n);
+			    SET_TEX_COORD(0,i,j,_nrQuadsPerBrickSide); i++;
+			    SET_TEX_COORD(1,i,j,_nrQuadsPerBrickSide); j++;
+			    SET_TEX_COORD(2,i,j,_nrQuadsPerBrickSide); i--;
+			    SET_TEX_COORD(3,i,j,_nrQuadsPerBrickSide); j--;
+			    geometry->setTexCoordArray( it->_textureUnit, tCoords.get() );
+			}
+		    }
+		    else
+		    {
+			geometry->setVertexArray( coords.get() );
+
+			for ( std::vector<LayeredTexture::TextureCoordData>::iterator it = tcData.begin();
+			      it!=tcData.end();
+			      it++ )
+			{
+			    osg::ref_ptr<osg::Vec2Array> tCoords = new osg::Vec2Array( 4 );
+			    (*tCoords)[0] = it->_tc00;
+			    (*tCoords)[1] = it->_tc01;
+			    (*tCoords)[2] = it->_tc11;
+			    (*tCoords)[3] = it->_tc10;
+			    geometry->setTexCoordArray( it->_textureUnit, tCoords.get() );
+			}
+		    }
+
+		    geometry->setNormalArray( normals.get() );
+		    geometry->setNormalBinding( osg::Geometry::BIND_OVERALL );
+		    geometry->setColorArray( colors.get() );
+		    geometry->setColorBinding( osg::Geometry::BIND_OVERALL );
+		    geometry->addPrimitiveSet( new osg::DrawArrays(GL_QUADS,0,4) );
+
+		    // Precalculate bounding sphere for (multi-threaded) cull traversal
+		    geometry->getBound();
+
+		    _geometries.push_back( geometry );
+		}
+	    }
 	}
     }
 
@@ -607,6 +649,37 @@ void TexturePlaneNode::setTextureGrowth( const osg::Vec2& growth )
 
 const osg::Vec2& TexturePlaneNode::getTextureGrowth() const
 { return _textureGrowth; }
+
+
+osg::Vec3f TexturePlaneNode::getTexelSpanVector( int texdim )
+{
+    osg::Vec3f vec( 1.0f, 0.0f, 0.0f );
+    if ( _swapTextureAxes == (texdim<1) )
+	vec = osg::Vec3f( 0.0f, 1.0f,  0.0f );
+
+    if ( _texture )
+    {
+	const osg::Vec2f sz = _texture->textureEnvelopeSize() + _textureGrowth;
+	if ( sz.x() > 0.0f )
+	    vec.x() /= sz.x();
+	if ( sz.y() > 0.0f )
+	    vec.y() /= sz.y();
+    }
+
+    if ( getThinDim()==0 )
+	vec = osg::Vec3( 0.0f, vec.x(), vec.y() );
+    else if ( getThinDim()==1 )
+	vec = osg::Vec3( vec.x(), 0.0f, vec.y() );
+
+    vec.x() *= _width.x();
+    vec.y() *= _width.y();
+    vec.z() *= _width.z();
+
+    osg::Matrix rotMat;
+    rotMat.makeRotate( _rotation );
+    vec = rotMat.preMult( vec );
+    return vec;
+}
 
 
 } //namespace osgGeo

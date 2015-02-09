@@ -103,6 +103,8 @@ public:
 
     void			forceRedraw(bool=true);
 
+    osg::Vec3f			getTexelSpanVector(int texdim);
+
 protected:
     virtual			~TexturePlaneNode();
 
@@ -153,6 +155,21 @@ public:
 			}
     int			getDisperseFactor() const
 			{ return _disperseFactor; }
+
+    int			_nrQuadsPerBrickSide;
+    void		setQuadsPerBrickSide( int nr )
+			{
+			    if ( nr>0 )
+			    {
+				_nrQuadsPerBrickSide = nr;
+				setUpdateVar( _needsUpdate, true );
+			    }
+			}
+			// TODO: Needs more efficient GL primitives if used
+			// for real high-resolution vertex offset shading
+
+    int			getQuadsPerBrickSide() const
+			{ return _nrQuadsPerBrickSide; }
 };
 
 
