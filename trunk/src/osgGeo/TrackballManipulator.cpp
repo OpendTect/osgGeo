@@ -20,6 +20,7 @@ $Id$
 #include <osgGeo/TrackballManipulator>
 
 #include <osgUtil/LineSegmentIntersector>
+#include <osgUtil/PolytopeIntersector>
 #include <osgGeo/ComputeBoundsVisitor>
 #include <osg/Timer>
 #include <osg/Version>
@@ -172,7 +173,7 @@ void TrackballManipulator::updateCamera(osg::Camera& camera)
 	const double y = _distance * _fovy/90.;
 	const double x = y*aspectRatio;
 
-	camera.setProjectionMatrixAsOrtho(-x, x, -y, y, zNear, zFar);
+	camera.setProjectionMatrixAsOrtho(-x, x, -y, y, 1, 1000);
     }
 
     _projectionSwitched = false;
@@ -690,7 +691,23 @@ bool TrackballManipulator::getZoomCenterIntersectionPoint(osg::View* view, const
 
     // return on no intersections
     if( !picker->containsIntersections() )
+    {
+	if ( _perspectiveProjection )
 	return false;
+
+	bool findIntersection = false;
+	float radius = 1.0f;
+	while ( radius<100.0f )
+	{
+	    findIntersection = getPolyIntersectionPoint(view,zoomcenter,intersection,radius);
+	    if ( findIntersection )
+		break;
+	    else
+		radius += 2.0f;
+	}
+
+	return findIntersection;
+     }
 
     // get all intersections
     osgUtil::LineSegmentIntersector::Intersections& intersections = picker->getIntersections();
@@ -700,6 +717,38 @@ bool TrackballManipulator::getZoomCenterIntersectionPoint(osg::View* view, const
 
 
     return true;
+}
+
+
+bool TrackballManipulator::getPolyIntersectionPoint(osg::View* view,const osg::Vec2d& zoomcenter,
+ osg::Vec3d& intersection,float radius) const
+{
+     osg::ref_ptr<osgUtil::PolytopeIntersector> polyIntersector =
+	    new osgUtil::PolytopeIntersector(osgUtil::Intersector::WINDOW,
+	    zoomcenter.x()-radius,zoomcenter.y()-radius,zoomcenter.x()+radius,
+	    zoomcenter.y()+radius);
+
+     polyIntersector->setDimensionMask(osgUtil::PolytopeIntersector::AllDims);
+
+     osgUtil::IntersectionVisitor iv(polyIntersector.get());
+     view->getCamera()->accept( iv );
+
+     if ( polyIntersector->containsIntersections() )
+     {
+	    const osgUtil::PolytopeIntersector::Intersection polypick =
+	    polyIntersector->getFirstIntersection();
+
+	    osg::Vec3 pickCenter = polypick.localIntersectionPoint;
+	    if ( polypick.matrix->valid() )
+	    {
+	    intersection = pickCenter*( *polypick.matrix );
+	    return true;
+	    }
+	    return false;
+     }
+
+ return false;
+
 }
 
 
