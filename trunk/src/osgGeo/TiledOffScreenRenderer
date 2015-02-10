@@ -51,6 +51,8 @@ public:
     const osg::Image*	getOutput() const;
     void		writeOutputFile(const std::string& fileName);
     static bool		isOutputFormatSupported(const std::string& ext);
+    void		setForegroundTransparency(unsigned char transparency);
+    unsigned char	getForegroundTransparency() const;
 
 protected:
 	class OffscreenTileImageCollector : public osg::Referenced
@@ -70,7 +72,7 @@ protected:
 	    void frame(const osg::FrameStamp* fs);
 	    osg::ref_ptr<osg::Image> getFinalImage(){ return _finalImage; }
 	    void setBackgroundTransparency(unsigned char transparency){_transparency = transparency;}
-
+	    void setForegroundTransparency(unsigned char transparency){_foregroundTransparency = transparency;}
     
 	protected:
 	    void bindCameraToImage( osg::Camera* camera, int row, int col );
@@ -85,6 +87,7 @@ protected:
 	    osg::Vec2 _finalImageSize;
 	    unsigned int _lastBindingFrame;
 	    unsigned char   _transparency;
+	    unsigned char   _foregroundTransparency;
     
 	    osg::Matrixd _currentViewMatrix;
 	    osg::Matrixd _currentProjectionMatrix;
@@ -107,6 +110,7 @@ protected:
     osg::ref_ptr<osg::Switch>			    _cameraSwitch;
     osg::ref_ptr<OffscreenTileImageCollector>	    _imageCollector;
     unsigned char				    _transparency;
+    unsigned char				    _foregroundTransparency;
 
     void			    createImageCollectorCamera();
     void			    setupImageCollector();

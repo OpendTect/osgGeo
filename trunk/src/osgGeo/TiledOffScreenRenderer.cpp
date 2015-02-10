@@ -40,6 +40,7 @@ TiledOffScreenRenderer::TiledOffScreenRenderer(osgViewer::View* view,
     ,_height(1)
     ,_collectorCamera(0)
     ,_transparency(NOTRANSPARENCY)
+    ,_foregroundTransparency(NOTRANSPARENCY)
     ,_orientationCamera(view->getCamera())
     ,_cameraSwitch(dynamic_cast<osg::Switch*>(view->getSceneData()))
 {
@@ -115,6 +116,7 @@ void TiledOffScreenRenderer::setupImageCollector()
     finalImage->allocateImage(_width, _height , 1, GL_RGBA, GL_UNSIGNED_BYTE);
     _imageCollector->setFinalImage(finalImage.get());
     _imageCollector->setBackgroundTransparency(_transparency);
+    _imageCollector->setForegroundTransparency(getForegroundTransparency());
 }
 
 
@@ -190,6 +192,18 @@ void TiledOffScreenRenderer::setOutputBackgroundTransparency(unsigned char trans
 }
 
 
+unsigned char TiledOffScreenRenderer::getForegroundTransparency() const
+{
+     return _foregroundTransparency;
+}
+
+
+void TiledOffScreenRenderer::setForegroundTransparency(unsigned char transparency)
+{
+    _foregroundTransparency = transparency;
+}
+
+
 TiledOffScreenRenderer::OffscreenTileImageCollector::OffscreenTileImageCollector()
     :_isRunning(true)
     ,_isFinishing(false)
@@ -199,6 +213,7 @@ TiledOffScreenRenderer::OffscreenTileImageCollector::OffscreenTileImageCollector
     ,_camera(0)
     ,_finalImage(0)
     ,_transparency(NOTRANSPARENCY)
+    ,_foregroundTransparency(NOTRANSPARENCY)
 {
 }
 
@@ -351,6 +366,10 @@ void TiledOffScreenRenderer::OffscreenTileImageCollector
 	{
 	    if ( *depthImageData == BACKGROUNDDEPTH )
 		imageData[3] = _transparency;
+	}
+	else if ( _foregroundTransparency != NOTRANSPARENCY )
+	{
+	    imageData[3] = _foregroundTransparency;
 	}
 	
     }
