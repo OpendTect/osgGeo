@@ -2198,7 +2198,7 @@ osg::StateSet* LayeredTexture::createCutoutStateSet( const osg::Vec2f& origin, c
 		    const osg::Vec2f refScale = getDataLayerScale(_vertexOffsetLayerId);
 		    const float xRatio = refScale.x()/layer->_scale.x();
 		    const float yRatio = refScale.y()/layer->_scale.y();
-		    lod += xRatio>yRatio ? log2(xRatio) : log2(yRatio);
+		    lod += xRatio>yRatio ? log(xRatio)/log(2.0f) : log(yRatio)/log(2.0f);
 		}
 		else 
 		    stateset->addUniform( new osg::Uniform("offsetifudf",(vertexOffsetInfo ? vertexOffsetInfo->_offsetIfUndef : 0.0f)) );
