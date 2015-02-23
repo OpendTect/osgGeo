@@ -19,6 +19,10 @@
 
 set( LIB_NAME osgGeo )
 
+if ( WIN32 )
+    add_definitions( "/EHsc" "-DWIN32" )
+endif()
+
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/.. )
 include_directories( SYSTEM ${OSG_DIR}/include )
 
