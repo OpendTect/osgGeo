@@ -37,8 +37,11 @@ Translate1DDragger::Translate1DDragger(const osg::Vec3d& s, const osg::Vec3d& e)
 
 bool Translate1DDragger::handle(const osgManipulator::PointerInfo& pointer, const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa)
 {
-    if ( ea.getModKeyMask() & _inactivationModKeyMask )
-	return false;
+    if ( ea.getEventType()==osgGA::GUIEventAdapter::PUSH )
+    {
+	if ( ea.getModKeyMask() & _inactivationModKeyMask )
+	    return false;
+    }
 
     return osgManipulator::Translate1DDragger::handle( pointer, ea, aa );
 }
@@ -73,8 +76,11 @@ Translate2DDragger::Translate2DDragger(const osg::Plane& plane)
 
 bool Translate2DDragger::handle(const osgManipulator::PointerInfo& pointer, const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa)
 {
-    if ( ea.getModKeyMask() & _inactivationModKeyMask )
-	return false;
+    if ( ea.getEventType()==osgGA::GUIEventAdapter::PUSH )
+    {
+	if ( ea.getModKeyMask() & _inactivationModKeyMask )
+	    return false;
+    }
 
     return osgManipulator::Translate2DDragger::handle( pointer, ea, aa );
 }
