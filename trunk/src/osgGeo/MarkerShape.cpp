@@ -52,30 +52,30 @@ void MarkerShape::setHeightRatio(float heightRatio)
 }
 
 
-void MarkerShape::setDetail(float ratio)
+void MarkerShape::setDetail(float ratio) 
 {
     _hints->setDetailRatio(ratio);
 }
 
 
-const float MarkerShape::getDetail()
+float MarkerShape::getDetail() const
 {
     return _hints->getDetailRatio();
 }
 
 
-void MarkerShape::setColor(const osg::Vec4f color)
+void MarkerShape::setColor(const osg::Vec4f& color)
 {
     _color = color;
 }
 
 
-void MarkerShape::setType(const ShapeType type)
+void MarkerShape::setType(ShapeType type)
 {
     _shapeType = type;
 }
 
-void MarkerShape::setCenter(const osg::Vec3 center)
+void MarkerShape::setCenter(const osg::Vec3& center)
 {
     _center = center;
 }

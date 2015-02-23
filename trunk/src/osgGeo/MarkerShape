@@ -41,23 +41,23 @@ class OSGGEO_EXPORT MarkerShape
         enum			ShapeType { None=-1,Box=0, Cone, Cylinder, 
 						 Sphere, Plane, Cross, Arrow };
 
-	void			setType(const ShapeType);
-	const ShapeType		getType() { return _shapeType; }
+	void			setType(ShapeType);
+	ShapeType		getType() { return _shapeType; }
 
-	void			setColor(const osg::Vec4f);
-	const osg::Vec4f	getColor() { return _color; }
+	void			setColor(const osg::Vec4f&);
+	const osg::Vec4f&	getColor() const { return _color; }
 
-	void			setSize(const float);
-	const float		getSize() { return _size; }
+	void			setSize(float);
+	float			getSize() const { return _size; }
 
-	void			setHeightRatio(const float);
-	const float		getHeightRatio() { return _heightRatio; }
+	void			setHeightRatio(float);
+	float			getHeightRatio() const { return _heightRatio; }
 
-	void			setDetail(const float);
-	const float		getDetail();
+	void			setDetail(float);
+	float			getDetail() const;
 
-	void			setCenter(const osg::Vec3f);
-	const osg::Vec3f	getCenter() { return _center; }
+	void			setCenter(const osg::Vec3f&);
+	const osg::Vec3f&	getCenter() const { return _center; }
 
 	void			setRotation(const osg::Quat&);
 	const osg::Quat&	getRotation() const { return _rotation; }
@@ -69,17 +69,12 @@ class OSGGEO_EXPORT MarkerShape
 	osg::ref_ptr<osg::Drawable>       createArrowDrawable();
 
 	osg::ref_ptr<osg::TessellationHints>	_hints;
-	osg::Vec3f		_center;
-	osg::Vec4		_color;
-	float			_size;
-	float			_heightRatio;
-	ShapeType   		_shapeType;
-	osg::Quat		_rotation;
-
-    private:
-
-    
-
+	osg::Vec3f				_center;
+	osg::Vec4				_color;
+	float					_size;
+	float					_heightRatio;
+	ShapeType   				_shapeType;
+	osg::Quat				_rotation;
 };
 
 }
