@@ -255,7 +255,7 @@ osgGeo::MarkerShape::ShapeType MarkerSet::getShape()
 }
 
 
-const float MarkerSet::getMarkerSize()
+float MarkerSet::getMarkerSize()
 {
     return _useScreenSize ? _markerShape.getSize() : -1;
 }
@@ -268,7 +268,7 @@ void MarkerSet::setMarkerHeightRatio(float markerHeightRatio)
 }
 
 
-const float MarkerSet::getMarkerHeightRatio()
+float MarkerSet::getMarkerHeightRatio()
 {
     return _markerShape.getHeightRatio();
 }
@@ -302,7 +302,7 @@ void MarkerSet::setDetail(float ratio)
 }
 
 
-const float MarkerSet::getDetail()
+float MarkerSet::getDetail()
 {
     return _markerShape.getDetail();
 }

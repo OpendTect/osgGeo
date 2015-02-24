@@ -64,14 +64,14 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 
 	void				setDetail(float ratio);
 						//!<Between 0 and 1.
-	const float			getDetail();
+	float				getDetail();
 
 	void				setMarkerSize(float, bool useScreensize = true);
-	const float			getMarkerSize();
+	float				getMarkerSize();
 	bool				isScreenSize() const { return _useScreenSize; }
 
 	void				setMarkerHeightRatio(float);
-	const float			getMarkerHeightRatio(); 
+	float				getMarkerHeightRatio(); 
 	
 	void				setRotationForAllMarkers(const osg::Quat&);
 	const osg::Quat&		getRotationForAllMarkers() const;
