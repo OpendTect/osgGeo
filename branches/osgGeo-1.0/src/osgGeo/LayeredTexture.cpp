@@ -2030,7 +2030,7 @@ void LayeredTexture::buildShaders()
 	setUpdateVar( _retileCompositeLayer, false );
 
 	if ( create )
-	    createCompositeTexture( !_texInfo->_isValid );
+	    createCompositeTexture( !_texInfo->_isValid, true );
 
 	if ( !_retileCompositeLayer )
 	{
@@ -2677,11 +2677,16 @@ void CompositeTextureTask::run()
 
 
 void LayeredTexture::createCompositeTexture( bool dummyTexture )
+{ createCompositeTexture( dummyTexture, false ); }
+
+
+void LayeredTexture::createCompositeTexture( bool dummyTexture, bool triggerProgress )
 {
     if ( !_compositeLayerUpdate )
 	return;
 
-    triggerStartWorkInProgress();
+    if ( triggerProgress )
+	triggerStartWorkInProgress();
 
     _compositeLayerUpdate = false;
     updateTilingInfoIfNeeded();
@@ -2781,7 +2786,8 @@ void LayeredTexture::createCompositeTexture( bool dummyTexture )
     setUpdateVar( _tilingInfo->_needsUpdate, false );
     setUpdateVar( _tilingInfo->_retilingNeeded, retilingNeededAlready );
 
-    triggerStopWorkInProgress();
+    if ( triggerProgress )
+	triggerStopWorkInProgress();
 }
 
 

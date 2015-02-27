@@ -342,6 +342,9 @@ protected:
     int					_compositeSubsampleSteps;
     bool				_compositeLayerUpdate;
     bool				_reInitTiling;
+
+    void		createCompositeTexture(bool dummyTexture,
+					       bool triggerProgress);
 };
 
 
