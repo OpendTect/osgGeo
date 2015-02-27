@@ -329,7 +329,8 @@ protected:
 				const std::vector<int>& activeUnits,
 				int nrProc,bool stackIsOpaque) const;
 
-    void		createCompositeTexture(bool dummyTexture=false);
+    void		createCompositeTexture(bool dummyTexture=false,
+					       bool triggerProgress=false);
     void		setRenderingHint(bool stackIsOpaque);
 
     void		setUpdateVar(bool& var,bool yn);
