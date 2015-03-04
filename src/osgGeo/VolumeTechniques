@@ -84,6 +84,8 @@ class OSGGEO_EXPORT RayTracedTechnique : public osgVolume::RayTracedTechnique
 
     public:
 	static bool isShadingSupported();
+
+	static const char* volumeTfUndefFragDepthCode();
 };
 
 
