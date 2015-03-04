@@ -141,6 +141,11 @@ RayTracedTechnique::RayTracedTechnique( bool dynamicFragShading )
     : osgVolume::RayTracedTechnique()
     , _dynamicFragShader(0)
     , _fragShaderType(ColTab)
+    , _colTabValueChannel(3)
+    , _colTabUndefChannel(-1)
+    , _colTabUndefValue(-1.0f)
+    , _colTabUndefColor(1.0f,1.0f,1.0f,1.0f)
+    , _invertColTabUndefChannel(false)
 {
     for ( int idx=0; idx<4; idx++)
     {
@@ -161,6 +166,11 @@ RayTracedTechnique::RayTracedTechnique(const RayTracedTechnique& rtt,const osg::
     , _boundingGeometry( rtt._boundingGeometry )
     , _dynamicFragShader(0)
     , _fragShaderType(rtt._fragShaderType)
+    , _colTabValueChannel(rtt._colTabValueChannel)
+    , _colTabUndefChannel(rtt._colTabUndefChannel)
+    , _colTabUndefValue(rtt._colTabUndefValue)
+    , _colTabUndefColor(rtt._colTabUndefColor)
+    , _invertColTabUndefChannel(rtt._invertColTabUndefChannel)
 {
     for ( unsigned int idx=0; idx<rtt._customShaders.size(); idx++ )
     {
@@ -320,6 +330,78 @@ const osg::Vec4f& RayTracedTechnique::getChannelDefaults()
 {
     static osg::Vec4f rgba( 0.0f, 0.0f, 0.0f, 1.0f );
     return rgba;
+}
+
+
+void RayTracedTechnique::setColTabValueChannel( int channel )
+{
+    if ( channel>=0 && channel<=3 )
+    {
+	_colTabValueChannel = channel;
+	updateFragShaderCode();
+    }
+}
+
+
+int RayTracedTechnique::getColTabValueChannel() const
+{
+    return _colTabValueChannel;
+}
+
+
+void RayTracedTechnique::setColTabUndefChannel( int channel )
+{
+    _colTabUndefChannel = channel>=0 && channel<=3 ? channel : -1;
+    updateFragShaderCode();
+}
+
+
+int RayTracedTechnique::getColTabUndefChannel() const
+{
+    return _colTabUndefChannel;
+}
+
+
+void RayTracedTechnique::setColTabUndefValue( float undefVal )
+{
+    _colTabUndefValue = undefVal>=0.0f && undefVal<=1.0f ? undefVal : -1.0f;
+    updateFragShaderCode();
+}
+
+
+float RayTracedTechnique::getColTabUndefValue() const
+{
+    return _colTabUndefValue;
+}
+
+
+void RayTracedTechnique::setColTabUndefColor( const osg::Vec4f& undefColor )
+{
+    for ( int idx=0; idx<4; idx++ )
+    {
+	_colTabUndefColor[idx] = undefColor[idx]<=0.0f ? 0.0f :
+	    			 undefColor[idx]>=1.0f ? 1.0f : undefColor[idx];
+    }
+    updateFragShaderCode();
+}
+
+
+const osg::Vec4f& RayTracedTechnique::getColTabUndefColor() const
+{
+    return _colTabUndefColor;
+}
+
+
+void RayTracedTechnique::invertColTabUndefChannel( bool yn )
+{
+    _invertColTabUndefChannel = yn;
+    updateFragShaderCode();
+}
+
+
+bool RayTracedTechnique::isColTabUndefChannelInverted() const
+{
+    return _invertColTabUndefChannel;
 }
 
 
@@ -522,7 +604,56 @@ void RayTracedTechnique::updateFragShaderCode()
 
     if ( _fragShaderType==ColTab )
     {
-	code += volume_coltab_frag_body;
+	if ( _colTabUndefChannel<0 )
+	{
+	    snprintf( line, 100, "        float v = texture3D( baseTexture, texcoord)[%d] * tfScale + tfOffset;\n", _colTabValueChannel );
+	    code += line;
+	    code += "        vec4 color = texture1D( tfTexture, v );\n";
+	}
+	else
+	{
+	    code += "        vec4 src = texture3D( baseTexture, texcoord );\n";
+	    snprintf( line, 100, "        float v = src[%d];\n", _colTabValueChannel );
+	    code += line;
+	    snprintf( line, 100, "        float udf = src[%d];\n", _colTabUndefChannel );
+	    code += line;
+
+	    if ( _invertColTabUndefChannel )
+		code += "        udf = 1.0 - udf;\n";
+
+	    if ( _colTabUndefValue>0.0f )
+	    {
+		code += "        if ( udf<1.0 )\n";
+		snprintf( line, 100, "            v = (v - udf*%.6f) / (1.0-udf);\n", _colTabUndefValue );
+		code += line;
+	    }
+
+	    code += "\n"
+		    "        vec4 color = texture1D( tfTexture, v*tfScale+tfOffset );\n";
+	    snprintf( line, 100, "        vec4 udfcol = vec4(%.6f,%.6f,%.6f,%.6f);\n", _colTabUndefColor[0], _colTabUndefColor[1], _colTabUndefColor[2], _colTabUndefColor[3] );
+	    code += line;
+
+	    code += "\n"
+		    "        if ( udf >= 1.0 )\n"
+		    "            color = udfcol;\n"
+		    "        else if ( udf > 0.0 )\n";
+
+	    if ( _colTabUndefColor[3]<=0.0f )
+		code += "            color.a *= 1.0-udf;\n";
+	    else
+	    {
+		code += "        {\n"
+			"            if ( color.a > 0.0 )\n"
+			"            {\n"
+			"                float a = color.a;\n"
+			"                color.a = mix( a, udfcol.a, udf );\n"
+			"                color.rgb = mix(a*color.rgb, udfcol.a*udfcol.rgb, udf) / color.a;\n"
+			"            }\n"
+			"            else\n"
+			"                color = vec4( udfcol.rgb, udf*udfcol.a );\n"
+			"        }\n";
+	    }
+	}
     }
     else if ( getFragShaderType()==RGBA )
     {
