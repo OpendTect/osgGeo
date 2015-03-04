@@ -90,6 +90,17 @@ class OSGGEO_EXPORT RayTracedTechnique : public osgVolume::RayTracedTechnique
 
 	static const osg::Vec4f& getChannelDefaults();
 
+	void setColTabValueChannel(int channel);
+	int getColTabValueChannel() const;
+	void setColTabUndefChannel(int undefChannel);
+	int getColTabUndefChannel() const;
+	void setColTabUndefValue(float undefValue);
+	float getColTabUndefValue() const;
+        void setColTabUndefColor(const osg::Vec4f& undefColor);
+	const osg::Vec4f& getColTabUndefColor() const;
+	void invertColTabUndefChannel(bool yn);
+	bool isColTabUndefChannelInverted() const;
+
 	static bool isShadingSupported();
 
     protected:
@@ -102,6 +113,12 @@ class OSGGEO_EXPORT RayTracedTechnique : public osgVolume::RayTracedTechnique
 	FragShaderType			_fragShaderType;
 	bool				_dstEnabled[4];
 	int				_srcChannel[4];
+
+	int				_colTabValueChannel;
+	int				_colTabUndefChannel;
+	float				_colTabUndefValue;
+	osg::Vec4f			_colTabUndefColor;
+	bool				_invertColTabUndefChannel;
 };
 
 
