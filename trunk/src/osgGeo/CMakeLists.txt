@@ -23,7 +23,8 @@ if ( WIN32 )
     add_definitions( "/EHsc" "-DWIN32" )
 endif()
 
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/.. )
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/..
+		     ${CMAKE_CURRENT_BINARY_DIR}/.. )
 include_directories( SYSTEM ${OSG_DIR}/include )
 
 configure_file(
@@ -61,17 +62,6 @@ set ( LIB_PUBLIC_HEADERS
     Vec2i
     VolumeTechniques
     WellLog) 
-
-if ( NOT ( ${CMAKE_CURRENT_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_BINARY_DIR} ) )
-    foreach ( HEADER ${LIB_PUBLIC_HEADERS} )
-	if ( NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/${HEADER} )
-	    configure_file(
-		    ${CMAKE_CURRENT_SOURCE_DIR}/${HEADER}
-		    ${CMAKE_CURRENT_BINARY_DIR}/${HEADER} )
-	endif()
-    endforeach()
-
-endif()
 
 add_library( ${LIB_NAME} SHARED
     ${LIB_PUBLIC_HEADERS}
