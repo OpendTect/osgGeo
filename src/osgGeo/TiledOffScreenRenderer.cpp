@@ -28,7 +28,7 @@ $Id: TiledOffScreenRenderer.cpp 346 2014-02-07 09:31:17Z ding.zheng@dgbes.com $
 
 using namespace osgGeo;
 
-static unsigned char NOTRANSPARENCY = 255; 
+static unsigned char NOTRANSPARENCY = 255;
 
 TiledOffScreenRenderer::TiledOffScreenRenderer(osgViewer::View* view,
 					       osgViewer::CompositeViewer* viewer)
@@ -168,7 +168,7 @@ bool TiledOffScreenRenderer::doRender()
 
 void TiledOffScreenRenderer::writeOutputFile(const std::string& fileName)
 {
-  if( !_imageCollector ) 
+  if( !_imageCollector )
 	return;
 
     osg::ref_ptr<osg::Image> outputImage = _imageCollector->getFinalImage();
@@ -179,7 +179,7 @@ void TiledOffScreenRenderer::writeOutputFile(const std::string& fileName)
 
 const osg::Image* TiledOffScreenRenderer::getOutput() const
 {
-    if( !_imageCollector  ) 
+    if( !_imageCollector  )
 	return 0;
 
     return _imageCollector->getFinalImage();
@@ -292,7 +292,7 @@ void TiledOffScreenRenderer::OffscreenTileImageCollector::bindCameraToImage(
     camera->setProjectionMatrix(_currentProjectionMatrix * offsetMatrix);
 
     // Reattach cameras and new allocated images
-    camera->setRenderingCache( NULL );  
+    camera->setRenderingCache( NULL );
     camera->detach(osg::Camera::COLOR_BUFFER);
     camera->attach(osg::Camera::COLOR_BUFFER, image.get(), 0, 0);
 
@@ -304,7 +304,7 @@ void TiledOffScreenRenderer::OffscreenTileImageCollector::bindCameraToImage(
 	camera->detach(osg::Camera::DEPTH_BUFFER);
 	camera->attach(osg::Camera::DEPTH_BUFFER, depthImage.get(), 0, 0);
     }
-    
+
 }
 
 
@@ -329,7 +329,7 @@ void TiledOffScreenRenderer::OffscreenTileImageCollector::recordImages()
 		}
 
 		unsigned char* source = image->data(0, t);
-		unsigned char* target = _finalImage->data( 
+		unsigned char* target = _finalImage->data(
 		    col*(int)_tileSize.x(), t + row*(int)_tileSize.y());
 		memcpy(target, source, image->s() * 4 * sizeof(unsigned char));
 	    }
@@ -354,7 +354,7 @@ void TiledOffScreenRenderer::OffscreenTileImageCollector
 
     if ( !image || !depthImage )
 	return;
-    
+
     for ( int s=0; s<image->s();++s)
     {
 	const int imageOffset = (row * image->s() + s) * 4;
@@ -371,7 +371,7 @@ void TiledOffScreenRenderer::OffscreenTileImageCollector
 	{
 	    imageData[3] = _foregroundTransparency;
 	}
-	
+
     }
 }
 
