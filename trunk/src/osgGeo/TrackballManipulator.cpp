@@ -904,13 +904,24 @@ void  TrackballManipulator::applyAnimationStep( const double currentProgress, co
 
     const double prevMovementProgress = 0.5 * (1 - cos(prevProgress*M_PI));
     const double currentMovementProgress = 0.5 * (1 - cos(currentProgress*M_PI));
+    if ( prevMovementProgress >= 1.0 )
+	return;
 
-    const double progress = (currentMovementProgress - prevMovementProgress);
+    const double progress = currentMovementProgress - prevMovementProgress;
+    const double frac = progress / (1.0 - prevMovementProgress);
 
-    // compute new center
-    _center += ad->_centerMovement * progress;
-    _rotation += ad->_rotationMovement * progress;
-    _distance += ad->_distanceMovement * progress;
+    const osg::Vec3d newCenter = _center + ad->_centerMovement*frac;
+    ad->_centerMovement -= newCenter - _center;
+    _center = newCenter;
+
+    osg::Quat newRotation;
+    newRotation.slerp( frac, _rotation, _rotation+ad->_rotationMovement );
+    ad->_rotationMovement -= newRotation - _rotation;
+    _rotation = newRotation;
+
+    const double newDistance = _distance + ad->_distanceMovement*frac;
+    ad->_distanceMovement -= newDistance - _distance;
+    _distance = newDistance;
 }
 
 
