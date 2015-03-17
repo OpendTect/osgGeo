@@ -61,6 +61,9 @@ public:
     void		    clear();
     void		    accept(osg::NodeVisitor&);
 
+    void		    setMinRadiusInPixels(float mr) { _minRadius = mr; }
+    float		    getMinRadiusInPixels() const { return _minRadius; }
+
 protected:
 
     friend class	    PolygonSelectionEventHandler;
@@ -91,6 +94,7 @@ protected:
     bool                                _ison;
     bool                                _isDrawing;
     osg::BoundingBox	                _bbox;
+    float				_minRadius;
 };
 
 } // osgGeo

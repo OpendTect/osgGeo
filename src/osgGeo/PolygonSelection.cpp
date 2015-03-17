@@ -79,6 +79,7 @@ PolygonSelection::PolygonSelection()
     , _eventHandler(0) 
     , _isDrawing(false)
     , _hudCamera(0)
+    , _minRadius(2.5)
 {
     _lineGeometry->setVertexArray(_coords);
     _lineGeometry->addPrimitiveSet(_coordsList);
@@ -251,6 +252,13 @@ bool PolygonSelection::handleEvent(const osgGA::GUIEventAdapter& ea)
     {
 	_isDrawing = false;
 
+	const float radius = _bbox.valid() ? _bbox.radius() : 0.0;
+	if ( radius<_minRadius )
+	{
+	    clear();
+	    return false;
+	}
+
 	if (_callback)
 	{
 	    osg::NodeVisitor nv;
@@ -376,5 +384,6 @@ void PolygonSelection::removeCallBack(osg::NodeCallback *nc)
     else
 	_callback->removeNestedCallback(nc);
 }
+
 
 } // osgGeo
