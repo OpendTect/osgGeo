@@ -251,6 +251,14 @@ bool PolygonSelection::handleEvent(const osgGA::GUIEventAdapter& ea)
     {
 	_isDrawing = false;
 
+	const float minRadius = 2.5;	// in pixels
+	const float radius = _bbox.valid() ? _bbox.radius() : 0.0;
+	if ( radius<minRadius )
+	{
+	    clear();
+	    return false;
+	}
+
 	if (_callback)
 	{
 	    osg::NodeVisitor nv;
