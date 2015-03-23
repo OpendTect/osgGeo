@@ -345,6 +345,9 @@ protected:
 
     void		createCompositeTexture(bool dummyTexture,
 					       bool triggerProgress);
+
+public:
+    static void				enableMipmapping(bool yn);
 };
 
 
