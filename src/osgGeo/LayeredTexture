@@ -266,6 +266,9 @@ public:
     bool		areShadersAllowed() const   { return _allowShaders; }
     bool		areShadersUsedNow() const   { return _useShaders; }
 
+    void		enableMipmapping(bool yn);
+    bool		isMipmappingEnabled() const;
+
     enum TextureSizePolicy { PowerOf2, AnySize };
 
     void		setTextureSizePolicy(TextureSizePolicy);
@@ -386,6 +389,7 @@ protected:
     bool				_allowShaders;
     bool				_useShaders;
     bool				_maySkipEarlyProcesses;
+    bool				_enableMipmapping;
 
     int					_compositeLayerId;
     int					_compositeSubsampleSteps;
