@@ -676,6 +676,7 @@ LayeredTexture::LayeredTexture()
     , _allowShaders( true )
     , _maySkipEarlyProcesses( false )
     , _useShaders( false )
+    , _enableMipmapping( true )
     , _compositeLayerUpdate( true )
     , _retileCompositeLayer( false )
     , _reInitTiling( false )
@@ -713,6 +714,7 @@ LayeredTexture::LayeredTexture( const LayeredTexture& lt,
     , _allowShaders( lt._allowShaders )
     , _maySkipEarlyProcesses( lt._maySkipEarlyProcesses )
     , _useShaders( lt._useShaders )
+    , _enableMipmapping( lt._enableMipmapping )
     , _compositeLayerId( lt._compositeLayerId )
     , _compositeLayerUpdate( lt._compositeLayerUpdate )
     , _retileCompositeLayer( false )
@@ -2177,7 +2179,9 @@ osg::StateSet* LayeredTexture::createCutoutStateSet( const osg::Vec2f& origin, c
 	osg::Texture::FilterMode filterMode = layer->_filterType==Nearest ? osg::Texture::NEAREST : osg::Texture::LINEAR;
 	texture->setFilter( osg::Texture::MAG_FILTER, filterMode );
 
-	filterMode = layer->_filterType==Nearest ? osg::Texture::NEAREST_MIPMAP_NEAREST : osg::Texture::LINEAR_MIPMAP_LINEAR;
+	if ( _enableMipmapping )
+	    filterMode = layer->_filterType==Nearest ? osg::Texture::NEAREST_MIPMAP_NEAREST : osg::Texture::LINEAR_MIPMAP_LINEAR;
+
 	texture->setFilter( osg::Texture::MIN_FILTER, filterMode );
 
 	texture->setBorderColor( layer->_borderColor );
@@ -3042,6 +3046,20 @@ void LayeredTexture::allowShaders( bool yn, bool maySkipEarlyProcs )
 	setUpdateVar( _tilingInfo->_retilingNeeded, true );
     }
 }
+
+
+void LayeredTexture::enableMipmapping( bool yn )
+{
+    if ( _enableMipmapping!=yn )
+    {
+	_enableMipmapping = yn;
+	setUpdateVar( _tilingInfo->_retilingNeeded, true );
+    }
+}
+
+
+bool LayeredTexture::isMipmappingEnabled() const
+{ return _enableMipmapping; }
 
 
 void LayeredTexture::setTextureSizePolicy( TextureSizePolicy policy )
