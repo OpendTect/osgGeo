@@ -1734,6 +1734,11 @@ osg::Vec2 LayeredTexture::tilingPlanResolution() const
 }
 
 
+static bool _enableMipmapping = true;
+void LayeredTexture::enableMipmapping( bool yn )
+{ _enableMipmapping = yn; }
+
+
 osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, const osg::Vec2f& opposite, std::vector<LayeredTexture::TextureCoordData>& tcData ) const
 {
     tcData.clear();
@@ -1921,7 +1926,9 @@ osg::StateSet* LayeredTexture::createCutoutStateSet(const osg::Vec2f& origin, co
 	osg::Texture::FilterMode filterMode = layer->_filterType==Nearest ? osg::Texture::NEAREST : osg::Texture::LINEAR;
 	texture->setFilter( osg::Texture::MAG_FILTER, filterMode );
 
-	filterMode = layer->_filterType==Nearest ? osg::Texture::NEAREST_MIPMAP_NEAREST : osg::Texture::LINEAR_MIPMAP_LINEAR;
+	if ( _enableMipmapping )
+	    filterMode = layer->_filterType==Nearest ? osg::Texture::NEAREST_MIPMAP_NEAREST : osg::Texture::LINEAR_MIPMAP_LINEAR;
+
 	texture->setFilter( osg::Texture::MIN_FILTER, filterMode );
 
 	texture->setBorderColor( layer->_borderColor );
