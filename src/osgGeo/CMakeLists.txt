@@ -29,7 +29,7 @@ include_directories( SYSTEM ${OSG_DIR}/include )
 
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/Config.cmake
-    ${CMAKE_CURRENT_BINARY_DIR}/Config )
+    ${CMAKE_CURRENT_SOURCE_DIR}/Config )
 
 
 set ( LIB_PUBLIC_HEADERS 
