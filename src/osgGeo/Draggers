@@ -69,6 +69,54 @@ class OSGGEO_EXPORT Translate2DDragger : public osgManipulator::Translate2DDragg
 };
 
 
+//===== TEMPORARY CLASSES TO PRESERVE BINARY COMPATIBILITY ====================
+
+
+// FastTranslate1DDragger with extra activation constraint functionality
+
+class OSGGEO_EXPORT FastTranslate1DDragger : public osgManipulator::Translate1DDragger
+{
+    public :
+
+	FastTranslate1DDragger();
+	FastTranslate1DDragger(const osg::Vec3d& s, const osg::Vec3d& e);
+
+	virtual void traverse(osg::NodeVisitor& nv);
+	virtual bool handle(const osgManipulator::PointerInfo& pi, const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa);
+
+	void setInactivationModKeyMask(unsigned int mask);
+	unsigned int getInactivationModKeyMask() const;
+
+    protected:
+	unsigned int	_inactivationModKeyMask;
+};
+
+
+//=============================================================================
+
+
+// FastTranslate2DDragger with extra activation constraint functionality
+
+class OSGGEO_EXPORT FastTranslate2DDragger : public osgManipulator::Translate2DDragger
+{
+    public :
+
+	FastTranslate2DDragger();
+	FastTranslate2DDragger(const osg::Plane& plane);
+
+	virtual void traverse(osg::NodeVisitor& nv);
+	virtual bool handle(const osgManipulator::PointerInfo& pi, const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa);
+
+	void setInactivationModKeyMask(unsigned int mask);
+	unsigned int getInactivationModKeyMask() const;
+
+    protected:
+	unsigned int	_inactivationModKeyMask;
+};
+
+
+
+
 } // namespace osgGeo
 
 #endif //OSGGEO_DRAGGERS_H
