@@ -18,6 +18,8 @@ $Id: TrackballManipulator.cpp 231 2013-04-16 12:35:57Z kristofer.tingdahl@dgbes.
 */
 
 #include <osgGeo/Draggers>
+#include <osgViewer/View>
+#include <osg/Version>
 
 
 namespace osgGeo
@@ -33,6 +35,39 @@ Translate1DDragger::Translate1DDragger(const osg::Vec3d& s, const osg::Vec3d& e)
     : osgManipulator::Translate1DDragger( s,e )
     , _inactivationModKeyMask( 0 )
 {}
+
+
+void Translate1DDragger::traverse(osg::NodeVisitor& nv)
+{
+    if (_handleEvents && nv.getVisitorType()==osg::NodeVisitor::EVENT_VISITOR)
+    {
+	osgGA::EventVisitor* ev = dynamic_cast<osgGA::EventVisitor*>(&nv);
+	if (ev)
+	{
+	    for(osgGA::EventQueue::Events::iterator itr = ev->getEvents().begin(); itr != ev->getEvents().end(); ++itr)
+	    {
+#if OSG_MIN_VERSION_REQUIRED(3,3,0)
+		osgGA::GUIEventAdapter* ea = itr->asGUIEventAdapter();
+#else
+		osgGA::GUIEventAdapter* ea = itr->get();
+#endif
+		// begin modification
+		if ( ea && ea->getEventType()==osgGA::GUIEventAdapter::PUSH )
+		{
+		    osgViewer::View* view = dynamic_cast<osgViewer::View*>(ev->getActionAdapter());
+		    if ( view )
+		    {
+			osgUtil::LineSegmentIntersector::Intersections intersections;
+			if ( !view->computeIntersections(*ea,nv.getNodePath(),intersections,_intersectionMask) ) continue;
+		    }
+		}
+		// end modification
+		if (Dragger::handle(*ea, *(ev->getActionAdapter()))) ea->setHandled(true);
+	    }
+	}
+    }
+    MatrixTransform::traverse(nv);
+}
 
 
 bool Translate1DDragger::handle(const osgManipulator::PointerInfo& pointer, const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa)
@@ -72,6 +107,39 @@ Translate2DDragger::Translate2DDragger(const osg::Plane& plane)
     : osgManipulator::Translate2DDragger( plane )
     , _inactivationModKeyMask( 0 )
 {}
+
+
+void Translate2DDragger::traverse(osg::NodeVisitor& nv)
+{
+    if (_handleEvents && nv.getVisitorType()==osg::NodeVisitor::EVENT_VISITOR)
+    {
+	osgGA::EventVisitor* ev = dynamic_cast<osgGA::EventVisitor*>(&nv);
+	if (ev)
+	{
+	    for(osgGA::EventQueue::Events::iterator itr = ev->getEvents().begin(); itr != ev->getEvents().end(); ++itr)
+	    {
+#if OSG_MIN_VERSION_REQUIRED(3,3,0)
+		osgGA::GUIEventAdapter* ea = itr->asGUIEventAdapter();
+#else
+		osgGA::GUIEventAdapter* ea = itr->get();
+#endif
+		// begin modification
+		if ( ea && ea->getEventType()==osgGA::GUIEventAdapter::PUSH )
+		{
+		    osgViewer::View* view = dynamic_cast<osgViewer::View*>(ev->getActionAdapter());
+		    if ( view )
+		    {
+			osgUtil::LineSegmentIntersector::Intersections intersections;
+			if ( !view->computeIntersections(*ea,nv.getNodePath(),intersections,_intersectionMask) ) continue;
+		    }
+		}
+		// end modification
+		if (Dragger::handle(*ea, *(ev->getActionAdapter()))) ea->setHandled(true);
+	    }
+	}
+    }
+    MatrixTransform::traverse(nv);
+}
 
 
 bool Translate2DDragger::handle(const osgManipulator::PointerInfo& pointer, const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa)
