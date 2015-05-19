@@ -103,6 +103,7 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 
 	osg::ref_ptr<osg::Vec3Array>		_vertexArr;
 	osg::ref_ptr<osg::Vec4Array>		_colorArr;
+	std::vector<char>			_onoffArr;
 	osg::ref_ptr<osg::Vec3Array>		_normalArr;
 	osg::ref_ptr<osg::Switch>		_nonShadingSwitch;
 	std::vector<osg::Quat>		 	_rotationSet;

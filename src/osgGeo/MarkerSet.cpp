@@ -102,9 +102,8 @@ void MarkerSet::traverse( osg::NodeVisitor& nv )
 
 bool MarkerSet::updateShapes()
 {
-    if (!_vertexArr ) return false;
+    if ( !_vertexArr ) return false;
 
-    osg::Switch::ValueList valuelist = _nonShadingSwitch->getValueList();
     _nonShadingSwitch->removeChildren(0, _nonShadingSwitch->getNumChildren());
 
     osg::ref_ptr<osg::Material> material = new osg::Material;
@@ -112,23 +111,19 @@ bool MarkerSet::updateShapes()
 
     for (unsigned int idx=0;idx<_vertexArr->size();idx++)
     {
-	if( !_applySingleColor && _colorArr )
-	{
-	    if (idx<_colorArr->size())
-		_markerShape.setColor(_colorArr->at( idx ));
-	    else if ( _colorArr->size() >0 )
-		_markerShape.setColor(*(_colorArr->end()-1));
-	}
-	else if ( _applySingleColor )
-	    _markerShape.setColor( _singleColor );
+	const osg::Vec4 color = _applySingleColor || !_colorArr
+	    ? _singleColor
+	    : idx<_colorArr->size()
+	        ? _colorArr->at( idx )
+		: _colorArr->back();
 
-	const osg::Quat& rot = _applyRotationForAll ? _rotationForAllMarkers
-						    : idx < _rotationSet.size()
-						    ? _rotationSet.at(idx)
-						    : osg::Quat();
-	_markerShape.setRotation( rot );
+	const osg::Quat& rot = _applyRotationForAll
+	    ? _rotationForAllMarkers
+	    : idx < _rotationSet.size()
+		? _rotationSet.at(idx)
+		: osg::Quat();
 
-	osg::ref_ptr<osg::Drawable> drwB = _markerShape.createShape();
+	osg::ref_ptr<osg::Drawable> drwB = _markerShape.createShape( color, rot );
 
 	osg::ref_ptr<osg::Geode> geode = new osg::Geode;
 	geode->addDrawable(drwB);
@@ -154,19 +149,9 @@ bool MarkerSet::updateShapes()
 	    autotrans->setMinimumScale(_minScale);
 	    autotrans->setMaximumScale(_maxScale);
 	}
-
+	const bool ison = idx < _onoffArr.size() ? _onoffArr[idx] : true;
 	autotrans->addChild(geode);
-	_nonShadingSwitch->addChild(autotrans);
-
-	if ( idx >= valuelist.size() )
-	    valuelist.push_back(true);
-    }
-
-    if ( _vertexArr->size() < valuelist.size() )
-    {
-	int diff = valuelist.size() - _vertexArr->size();
-	for ( int i = 0; i < diff; i++ )
-	    valuelist.pop_back();
+	_nonShadingSwitch->addChild( autotrans, ison );
     }
 
     // In case of autoscale to screen, new AutoTransforms cannot compute
@@ -178,26 +163,31 @@ bool MarkerSet::updateShapes()
 	_nonShadingSwitch->setCullingActive(false);
     }
 
-    _nonShadingSwitch->setValueList(valuelist);
-
     return true;
 }
 
 
 void MarkerSet::turnMarkerOn(unsigned int idx,bool yn)
 {
-    if ( idx >= _nonShadingSwitch->getNumChildren() )
-	return;
-    _nonShadingSwitch->setChildValue(_nonShadingSwitch->getChild(idx), yn);
-    forceRedraw(true);
+    if( idx>=_onoffArr.size())
+	_onoffArr.resize(idx+1);
+
+    _onoffArr[idx] = yn;
+
+    if ( idx<_nonShadingSwitch->getNumChildren() )
+	_nonShadingSwitch->setChildValue(_nonShadingSwitch->getChild(idx), yn);
+    else
+	forceRedraw( true );
 }
 
 
 void MarkerSet::turnAllMarkersOn(bool yn)
 {
-    yn = true ? _nonShadingSwitch->setAllChildrenOn() :
-	       _nonShadingSwitch->setAllChildrenOff() ;
-    forceRedraw(true);
+    memset( &_onoffArr[0], yn, _onoffArr.size()*sizeof(bool) );
+    if ( yn )
+	_nonShadingSwitch->setAllChildrenOn();
+    else
+	_nonShadingSwitch->setAllChildrenOff() ;
 }
 
 
@@ -218,8 +208,9 @@ void MarkerSet::forceRedraw(bool yn)
 {
     if ( yn == _forceRedraw )
 	return;
+
     setNumChildrenRequiringUpdateTraversal(
-    _nonShadingSwitch->getNumChildrenRequiringUpdateTraversal() + ((int) yn));
+        _nonShadingSwitch->getNumChildrenRequiringUpdateTraversal()+((int) yn));
     _forceRedraw = yn;
 }
 

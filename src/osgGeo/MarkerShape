@@ -44,9 +44,6 @@ class OSGGEO_EXPORT MarkerShape
 	void			setType(ShapeType);
 	ShapeType		getType() { return _shapeType; }
 
-	void			setColor(const osg::Vec4f&);
-	const osg::Vec4f&	getColor() const { return _color; }
-
 	void			setSize(float);
 	float			getSize() const { return _size; }
 
@@ -59,22 +56,19 @@ class OSGGEO_EXPORT MarkerShape
 	void			setCenter(const osg::Vec3f&);
 	const osg::Vec3f&	getCenter() const { return _center; }
 
-	void			setRotation(const osg::Quat&);
-	const osg::Quat&	getRotation() const { return _rotation; }
-
-	osg::ref_ptr<osg::Drawable>		createShape();
+	osg::ref_ptr<osg::Drawable>	createShape(const osg::Vec4& color,
+						    const osg::Quat& rot) const;
 
     protected:
-	osg::ref_ptr<osg::Drawable>       createCrossDrawable();
-	osg::ref_ptr<osg::Drawable>       createArrowDrawable();
+	osg::ref_ptr<osg::Drawable>     createCrossDrawable(const osg::Vec4& col) const;
+	osg::ref_ptr<osg::Drawable>     createArrowDrawable(const osg::Vec4& color,
+							    const osg::Quat& rot) const;
 
 	osg::ref_ptr<osg::TessellationHints>	_hints;
 	osg::Vec3f				_center;
-	osg::Vec4				_color;
 	float					_size;
 	float					_heightRatio;
 	ShapeType   				_shapeType;
-	osg::Quat				_rotation;
 };
 
 }

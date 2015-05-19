@@ -30,7 +30,6 @@ MarkerShape::MarkerShape()
     , _shapeType(Box)
 {
     _center = osg::Vec3(0.0f,0.0f,0.0f);
-    _color =  osg::Vec4f(1.0f,1.0f,0.0f,1.0f);
     _hints->setDetailRatio(0.5f);
 }
 
@@ -64,12 +63,6 @@ float MarkerShape::getDetail() const
 }
 
 
-void MarkerShape::setColor(const osg::Vec4f& color)
-{
-    _color = color;
-}
-
-
 void MarkerShape::setType(ShapeType type)
 {
     _shapeType = type;
@@ -81,13 +74,8 @@ void MarkerShape::setCenter(const osg::Vec3& center)
 }
 
 
-void MarkerShape::setRotation(const osg::Quat& quat)
-{
-    _rotation = quat;
-}
-
-
-osg::ref_ptr<osg::Drawable> MarkerShape::createShape()
+osg::ref_ptr<osg::Drawable> MarkerShape::createShape( const osg::Vec4& color,
+						      const osg::Quat& rot ) const
 {
     osg::ref_ptr<osg::Drawable> drwB(0);
     osg::ref_ptr<osg::ShapeDrawable> shapeDrwB(0);
@@ -100,14 +88,14 @@ osg::ref_ptr<osg::Drawable> MarkerShape::createShape()
     case Box:
 	{
 	    osg::ref_ptr<osg::Box> box = new osg::Box( _center, _size, _size, height );
-	    box->setRotation( _rotation );
+	    box->setRotation( rot );
 	    shapeDrwB = new osg::ShapeDrawable( box, _hints );
 	    break;
 	}
     case Cone:
 	{
 	    osg::ref_ptr<osg::Cone> cone = new osg::Cone( _center, radius, height );
-	    cone->setRotation( _rotation );
+	    cone->setRotation( rot );
 	    shapeDrwB = new osg::ShapeDrawable( cone,  _hints );
 	    break;
 	}
@@ -120,7 +108,7 @@ osg::ref_ptr<osg::Drawable> MarkerShape::createShape()
     case Cylinder:
 	{
 	    osg::ref_ptr<osg::Cylinder> cyl = new osg::Cylinder( _center, radius, height );
-	    cyl->setRotation( _rotation );
+	    cyl->setRotation( rot );
 	    shapeDrwB = new osg::ShapeDrawable( cyl, _hints );
 	    break;
 	}
@@ -128,18 +116,18 @@ osg::ref_ptr<osg::Drawable> MarkerShape::createShape()
 	{
 	    osg::ref_ptr<osg::Box> plane =
 			    new osg::Box( _center, 3*_size, 2*_size, _size/2 );
-	    plane->setRotation( _rotation );
+	    plane->setRotation( rot );
 	    shapeDrwB = new osg::ShapeDrawable( plane, _hints );
 	    break;
 	}
     case Cross:
 	{
-	    drwB = createCrossDrawable();
+	    drwB = createCrossDrawable( color );
 	    break;
 	}
     case Arrow:
 	{
-	    drwB = createArrowDrawable();
+	    drwB = createArrowDrawable( color, rot );
 	    break;
 	}
     default:
@@ -148,7 +136,7 @@ osg::ref_ptr<osg::Drawable> MarkerShape::createShape()
 
     if ( _shapeType < Cross && shapeDrwB )
     {
-	shapeDrwB->setColor(_color);
+	shapeDrwB->setColor( color );
 	drwB = shapeDrwB;
     }
     
@@ -156,7 +144,7 @@ osg::ref_ptr<osg::Drawable> MarkerShape::createShape()
 }
 
 
-osg::ref_ptr<osg::Drawable>  MarkerShape::createCrossDrawable()
+osg::ref_ptr<osg::Drawable>  MarkerShape::createCrossDrawable(const osg::Vec4& col) const
 {
     osg::ref_ptr<osg::Geometry> crossGeometry = new osg::Geometry;
     osg::ref_ptr<osg::Vec3Array> vertices = new osg::Vec3Array(6);
@@ -180,7 +168,7 @@ osg::ref_ptr<osg::Drawable>  MarkerShape::createCrossDrawable()
     crossGeometry->addPrimitiveSet(
 	new osg::DrawArrays(osg::PrimitiveSet::LINES,0,6));
     osg::ref_ptr<osg::Vec4Array> colors = new osg::Vec4Array;
-    colors->push_back(_color);
+    colors->push_back(col);
     crossGeometry->setColorArray(colors);
     crossGeometry->setColorBinding(osg::Geometry::BIND_OVERALL);
 
@@ -197,13 +185,14 @@ osg::ref_ptr<osg::Drawable>  MarkerShape::createCrossDrawable()
 }
 
 
-osg::ref_ptr<osg::Drawable>  MarkerShape::createArrowDrawable()
+osg::ref_ptr<osg::Drawable>  MarkerShape::createArrowDrawable( const osg::Vec4& col,
+							       const osg::Quat& rot ) const
 {
     osg::ref_ptr<osg::Vec3Array> coords = new osg::Vec3Array;
     osg::ref_ptr<osg::Vec3Array> normals = new osg::Vec3Array;
     const int resolution = 4;
     osg::Vec3 curu,curv;
-    const osg::Vec3 dir = _rotation * osg::Vec3(1,0,0);
+    const osg::Vec3 dir = rot * osg::Vec3(1,0,0);
     
     osg::Vec3 anyvec(1,1,1); 
     curu = dir ^ anyvec;
@@ -290,7 +279,7 @@ osg::ref_ptr<osg::Drawable>  MarkerShape::createArrowDrawable()
     arrowgeometry->setNormalArray( normals.get() );
     arrowgeometry->setNormalBinding( osg::Geometry::BIND_PER_VERTEX );
     osg::ref_ptr<osg::Vec4Array> colors = new osg::Vec4Array; 
-    colors->push_back( _color );
+    colors->push_back( col );
     arrowgeometry->setColorArray( colors );
     arrowgeometry->setColorBinding(osg::Geometry::BIND_OVERALL);
     return arrowgeometry;
