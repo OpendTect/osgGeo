@@ -1,0 +1,58 @@
+#ifndef OSGGEO_TEXT_H
+#define OSGGEO_TEXT_H
+
+/* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
+Copyright 2011 dGB Beheer B.V.
+
+osgGeo is free software; you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>
+
+$Id: TrackballManipulator 489 2015-02-24 12:56:56Z kristofer.tingdahl@dgbes.com $
+
+*/
+
+#include <osgGeo/Common>
+#include <osgText/Text>
+
+namespace osgGeo
+{
+
+class OSGGEO_EXPORT Text : public osgText::Text
+{ 
+    public :
+	Text();
+	Text(const Text& text,const osg::CopyOp& copyop=osg::CopyOp::SHALLOW_COPY);
+
+	~Text();
+
+	void useRotateToScreenElevation(bool);
+	bool isRotateToScreenElevationUsed() const; 
+	void setRotateToScreenElevationAngle(float);
+	float getRotateToScreenElevationAngle() const;
+	void setRotateToScreenElevationPlane(const osg::Vec3& refPlaneNormal);
+	const osg::Vec3& getRotateToScreenElevationPlane() const;
+	
+    protected:
+
+	virtual void computePositions(unsigned int contextID) const;
+
+	osg::Matrix getElevationMatrix(unsigned int contextID) const;
+	
+	bool		_useRotateToScreenElevation;
+	float		_elevationAngle;
+	osg::Vec3	_elevationPlane;
+};
+
+}
+
+#endif //OSGGEO_TEXT_H
