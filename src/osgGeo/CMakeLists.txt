@@ -47,6 +47,7 @@ set ( LIB_PUBLIC_HEADERS
     ScalarBar
     TabBoxDragger
     TabPlaneDragger
+    Text
     TexturePlane
     TexturePanelStrip
     ThumbWheel
@@ -89,6 +90,7 @@ add_library( ${LIB_NAME} SHARED
     ScalarBar.cpp
     TabPlaneDragger.cpp
     TabBoxDragger.cpp
+    Text.cpp
     TexturePlane.cpp
     TexturePanelStrip.cpp
     ThumbWheel.cpp
