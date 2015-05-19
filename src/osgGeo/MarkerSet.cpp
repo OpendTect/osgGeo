@@ -27,6 +27,8 @@ $Id$
 
 using namespace osgGeo;
 
+static std::vector<std::pair< MarkerSet*,std::vector<char> > > _onoffArr;
+
 
 MarkerSet::MarkerSet()
     : _rotateMode(osg::AutoTransform::ROTATE_TO_SCREEN)
@@ -44,11 +46,22 @@ MarkerSet::MarkerSet()
     setNumChildrenRequiringUpdateTraversal(0);
     _singleColor = osg::Vec4(0.1f, 0.1f, 0.1f, 1.0f);
     _bbox.init();
+    std::vector<char> onoff;
+    onoff.push_back(true);
+   _onoffArr.push_back( std::pair<MarkerSet*,std::vector<char> >(this,onoff) );
 }
 
 
 MarkerSet::~MarkerSet()
 {
+    for ( int idx=_onoffArr.size()-1; idx>=0; idx-- )
+    {
+	if ( this == _onoffArr[idx].first )
+	{
+	    _onoffArr[idx].second.empty();
+	    _onoffArr.erase(_onoffArr.begin()+idx);
+	}
+    }
 }
 
 
@@ -100,11 +113,24 @@ void MarkerSet::traverse( osg::NodeVisitor& nv )
 }
 
 
+#define mGetOnOffArrayInfo()\
+ unsigned int onoffsize = 0;\
+ unsigned int arridx = 0;\
+ for ( int idy = 0; idy<_onoffArr.size(); idy++ ) \
+ { \
+    if ( this==_onoffArr[idy].first )\
+    {\
+	onoffsize = _onoffArr[idy].second.size();\
+	arridx = idy;\
+	break; \
+    }\
+ }\
+
+
 bool MarkerSet::updateShapes()
 {
     if (!_vertexArr ) return false;
 
-    osg::Switch::ValueList valuelist = _nonShadingSwitch->getValueList();
     _nonShadingSwitch->removeChildren(0, _nonShadingSwitch->getNumChildren());
 
     osg::ref_ptr<osg::Material> material = new osg::Material;
@@ -112,20 +138,17 @@ bool MarkerSet::updateShapes()
 
     for (unsigned int idx=0;idx<_vertexArr->size();idx++)
     {
-	if( !_applySingleColor && _colorArr )
-	{
-	    if (idx<_colorArr->size())
-		_markerShape.setColor(_colorArr->at( idx ));
-	    else if ( _colorArr->size() >0 )
-		_markerShape.setColor(*(_colorArr->end()-1));
-	}
-	else if ( _applySingleColor )
-	    _markerShape.setColor( _singleColor );
+	const osg::Vec4 color = _applySingleColor || !_colorArr
+	    ? _singleColor
+	    : idx<_colorArr->size()
+	        ? _colorArr->at(idx)
+		: _colorArr->back();
 
 	const osg::Quat& rot = _applyRotationForAll ? _rotationForAllMarkers
 						    : idx < _rotationSet.size()
 						    ? _rotationSet.at(idx)
 						    : osg::Quat();
+	_markerShape.setColor( color );
 	_markerShape.setRotation( rot );
 
 	osg::ref_ptr<osg::Drawable> drwB = _markerShape.createShape();
@@ -155,20 +178,12 @@ bool MarkerSet::updateShapes()
 	    autotrans->setMaximumScale(_maxScale);
 	}
 
+	mGetOnOffArrayInfo();
+	const bool ison = ( idx < onoffsize ) ? _onoffArr[arridx].second[idx] : true;
 	autotrans->addChild(geode);
-	_nonShadingSwitch->addChild(autotrans);
+	_nonShadingSwitch->addChild( autotrans, ison );
 
-	if ( idx >= valuelist.size() )
-	    valuelist.push_back(true);
     }
-
-    if ( _vertexArr->size() < valuelist.size() )
-    {
-	int diff = valuelist.size() - _vertexArr->size();
-	for ( int i = 0; i < diff; i++ )
-	    valuelist.pop_back();
-    }
-
     // In case of autoscale to screen, new AutoTransforms cannot compute
     // their bounding spheres till after their first cull traversal.
     if ( _useScreenSize )
@@ -178,7 +193,6 @@ bool MarkerSet::updateShapes()
 	_nonShadingSwitch->setCullingActive(false);
     }
 
-    _nonShadingSwitch->setValueList(valuelist);
 
     return true;
 }
@@ -186,18 +200,37 @@ bool MarkerSet::updateShapes()
 
 void MarkerSet::turnMarkerOn(unsigned int idx,bool yn)
 {
-    if ( idx >= _nonShadingSwitch->getNumChildren() )
-	return;
-    _nonShadingSwitch->setChildValue(_nonShadingSwitch->getChild(idx), yn);
+    mGetOnOffArrayInfo();
+    if( idx>= onoffsize )
+	_onoffArr[arridx].second.resize(idx+1);
+    _onoffArr[arridx].second[idx] = yn;
+
+    if ( idx<_nonShadingSwitch->getNumChildren() )
+	_nonShadingSwitch->setChildValue(_nonShadingSwitch->getChild(idx), yn);
+    else
+	forceRedraw(true);
+}
+
+
+void MarkerSet::removeMarker(unsigned int idx)
+{
+    mGetOnOffArrayInfo();
+    if ( idx<=onoffsize )
+	_onoffArr[arridx].second.erase(_onoffArr[arridx].second.begin()+idx);
     forceRedraw(true);
 }
 
 
 void MarkerSet::turnAllMarkersOn(bool yn)
 {
-    yn = true ? _nonShadingSwitch->setAllChildrenOn() :
-	       _nonShadingSwitch->setAllChildrenOff() ;
-    forceRedraw(true);
+    mGetOnOffArrayInfo();
+    for ( unsigned int idx=0; idx<onoffsize; idx++ )
+	_onoffArr[arridx].second[idx] = yn;
+
+    if ( yn )
+	_nonShadingSwitch->setAllChildrenOn();
+    else
+	_nonShadingSwitch->setAllChildrenOff() ;
 }
 
 
@@ -216,10 +249,10 @@ osg::BoundingSphere MarkerSet::computeBound() const
 
 void MarkerSet::forceRedraw(bool yn)
 {
-    if ( yn == _forceRedraw )
+   if ( yn == _forceRedraw )
 	return;
     setNumChildrenRequiringUpdateTraversal(
-    _nonShadingSwitch->getNumChildrenRequiringUpdateTraversal() + ((int) yn));
+	_nonShadingSwitch->getNumChildrenRequiringUpdateTraversal() + ((int) yn));
     _forceRedraw = yn;
 }
 

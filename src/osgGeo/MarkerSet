@@ -91,6 +91,7 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 
 	void				turnMarkerOn(unsigned int idx,bool);
 	void				turnAllMarkersOn(bool);
+	void				removeMarker(unsigned int idx);
 	void				forceRedraw(bool);
 
     protected:
