@@ -26,7 +26,7 @@ $Id: TrackballManipulator.cpp 499 2015-03-13 10:03:51Z jaap.glas@dgbes.com $
 namespace osgGeo
 {
 
-#define MAX_ELEVATION_ANGLE	75.0*M_PI/180.0 
+#define MAX_ELEVATION_ANGLE	(75.0*M_PI/180.0) 
 
 Text::Text()
     : osgText::Text()
@@ -292,7 +292,9 @@ bool Text::isRotateToScreenElevationUsed() const
 
 
 void Text::setRotateToScreenElevationAngle( float angle )
-{ _elevationAngle = osg::minimum( fabs(angle), MAX_ELEVATION_ANGLE ); }
+{
+    _elevationAngle = osg::minimum( (float) fabs(angle), (float) MAX_ELEVATION_ANGLE );
+}
 
 
 float Text::getRotateToScreenElevationAngle() const
