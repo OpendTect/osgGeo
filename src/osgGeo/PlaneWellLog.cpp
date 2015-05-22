@@ -549,7 +549,7 @@ void PlaneWellLog::updateFilledLogColor()
 	return ;
     }
     
-    if ( !_shapeLog->size() || !_isFilled)
+    if ( !_shapeLog->size() || !_isFilled )
 	return;
 
     const float clrStep = ( _maxFillValue - _minFillValue ) / 255;
@@ -557,23 +557,31 @@ void PlaneWellLog::updateFilledLogColor()
 
     const int nrSamples = _logPath->size();
     _outFillIndex.clear();
+    float minfillz = 0.0;
+    float maxfillz = 0.0;
 
-    const osg::FloatArray::iterator itmin = std::min_element(
-	_fillLogDepths->begin(), _fillLogDepths->end());
-    const float minfillz = *itmin;
+    if ( _fillLogDepths->getNumElements() )
+    {
+	const osg::FloatArray::iterator itmin = std::min_element(
+			    _fillLogDepths->begin(), _fillLogDepths->end());
+	minfillz = *itmin;
 
-    const osg::FloatArray::iterator itmax = std::max_element(
-	_fillLogDepths->begin(), _fillLogDepths->end());
-    const float maxfillz = *itmax;
+	const osg::FloatArray::iterator itmax = std::max_element(
+			    _fillLogDepths->begin(), _fillLogDepths->end());
+	maxfillz = *itmax;
+    }
 
     for ( int idx=0; idx<nrSamples; idx++ )
     {
 	const osg::Vec3f pos = _logPath->at(idx);
 
-	if( pos[2] < minfillz || pos[2] > maxfillz )
+	if ( _fillLogDepths->getNumElements() )
 	{
-	    _outFillIndex.push_back(idx);
-	    continue;
+	    if( pos[2] < minfillz || pos[2] > maxfillz )
+	    {
+		_outFillIndex.push_back(idx);
+		continue;
+	    }
 	}
 
 	const int fillIndex = getClosestIndex(*_fillLogDepths, pos[2]);
