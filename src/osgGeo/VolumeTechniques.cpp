@@ -501,8 +501,10 @@ static char volume_frag_depth_header[] =
 "    te = te * texgen;\n"
 "\n"
 "    const float max_iteratrions = 2048.0;\n"
-"    float num_iterations = ceil(length((te-t0).xyz)/SampleDensityValue);\n"
-"    if (num_iterations<2.0) num_iterations = 2.0;\n"
+// begin modified (nVidia bug: length() & sqrt() may return NaN close to 0.0)
+"    vec3 difvec = (te-t0).xyz/SampleDensityValue;\n"
+"    float num_iterations = ceil( sqrt( max(4.0,dot(difvec,difvec)) ) );\n"
+// end modified
 "\n"
 "    if (num_iterations>max_iteratrions) \n"
 "    {\n"

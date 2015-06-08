@@ -639,8 +639,11 @@ void ColTabLayerProcess::getShaderCode( std::string& code, int stage ) const
 	const int unit = _layTex.getDataLayerTextureUnit( _id[0] );
 	snprintf( line, 100, "    texcrd *= texsize%d;\n", unit );
 	code += line;
-
-	code += "    mip = log2( max(1.0, max(length(dFdx(texcrd)),length(dFdy(texcrd)))) );\n";
+	
+	// Avoiding nVidia bug: length() & sqrt() may return NaN close to 0.0
+	code += "    a = sqrt( max(1.0, dot(dFdx(texcrd),dFdx(texcrd))) );\n";
+	code += "    b = sqrt( max(1.0, dot(dFdy(texcrd),dFdy(texcrd))) );\n";
+	code += "    mip = log2( max(a,b) );\n";
 
 	code += "    var = col[1]";
 	code += nrChannels>2 ? " + col[2]/255.0" : "";
