@@ -215,7 +215,7 @@ void MarkerSet::turnMarkerOn(unsigned int idx,bool yn)
 void MarkerSet::removeMarker(unsigned int idx)
 {
     mGetOnOffArrayInfo();
-    if ( idx<=onoffsize )
+    if ( idx<onoffsize )
 	_onoffArr[arridx].second.erase(_onoffArr[arridx].second.begin()+idx);
     forceRedraw(true);
 }
