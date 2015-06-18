@@ -45,40 +45,75 @@ $Id$
 #endif
 
 
+typedef uintptr_t pixel_int;
+
+
 namespace osgGeo
 {
 
 
-int LayeredTexture::powerOf2Ceil( unsigned short nr )
+int LayeredTexture::powerOf2Ceil( unsigned int nr )
 {
-    if ( nr<=256 )
+    if ( nr<=65536 )
     {
-	if ( nr<=16 )
+	if ( nr<=256 )
 	{
-	    if ( nr<=4 )
-		return nr<=2 ? nr : 4;
+	    if ( nr<=16 )
+	    {
+		if ( nr<=4 )
+		    return nr<=2 ? nr : 4;
 
-	    return nr<=8 ? 8 : 16;
+		return nr<=8 ? 8 : 16;
+	    }
+
+	    if ( nr<=64 )
+		return nr<=32 ? 32 : 64;
+
+	    return nr<=128 ? 128 : 256;
 	}
 
-	if ( nr<=64 )
-	    return nr<=32 ? 32 : 64;
+	if ( nr<=4096 )
+	{
+	    if ( nr<=1024 )
+		return nr<=512 ? 512 : 1024;
 
-	return nr<=128 ? 128 : 256;
+	    return nr<=2048 ? 2048 : 4096;
+	}
+
+	if ( nr<=16384 )
+	    return nr<=8192 ? 8192 : 16384;
+
+	return nr<=32768 ? 32768 : 65536;
     }
 
-    if ( nr<=4096 )
+    if ( nr<=16777216 )
     {
-	if ( nr<=1024 )
-	    return nr<=512 ? 512 : 1024;
+	if ( nr<=1048576 )
+	{
+	    if ( nr<=262144 )
+		return nr<=131072 ? 131072 : 262144;
 
-	return nr<=2048 ? 2048 : 4096;
+	    return nr<=524288 ? 524288 : 1048576;
+	}
+
+	if ( nr<=4194304 )
+	    return nr<=2097152 ? 2097152 : 4194304;
+
+	return nr<=8388608 ? 8388608 : 16777216;
     }
 
-    if ( nr<=16384 )
-	return nr<=8192 ? 8192 : 16384;
+    if ( nr<=268435456 )
+    {
+	if ( nr<=67108864 )
+	    return nr<=33554432 ? 33554432 : 67108864; 
 
-    return nr<=32768 ? 32768 : 65536;
+	return nr<=134217728 ? 134217728 : 268435456;
+    }
+
+    if ( nr<=1073741824 )
+	return nr<=536870912 ? 536870912 : 1073741824; 
+
+    return -1;	// larger than 2^30 not supported
 }
 
 
@@ -471,12 +506,30 @@ void LayeredTextureData::adaptColors()
 
 
 #define GET_PIXEL_INDEX( idx, image, x, y, z, order ) \
-    const int idx = order==STR ? x+(y+z*image->t())*image->s() : \
-		    order==SRT ? x+(z+y*image->r())*image->s() : \
-		    order==TRS ? z+(x+y*image->s())*image->r() : \
-		    order==TSR ? y+(x+z*image->s())*image->t() : \
-		    order==RST ? y+(z+x*image->r())*image->t() : \
-		  /*order==RTS*/ z+(y+x*image->t())*image->r();
+    const pixel_int idx = order==STR ? x+(y+z*image->t())*image->s() : \
+			  order==SRT ? x+(z+y*image->r())*image->s() : \
+			  order==TRS ? z+(x+y*image->s())*image->r() : \
+			  order==TSR ? y+(x+z*image->s())*image->t() : \
+			  order==RST ? y+(z+x*image->r())*image->t() : \
+			/*order==RTS*/ z+(y+x*image->t())*image->r();
+
+#define GET_COLOR_WITHOUT_OVERFLOW( color, image, idx ) \
+			  /* OSG multiplies idx by number of BITS per pixel */ \
+    if ( idx < 33554432 ) /* (2^32)/128 (upper bound for GL_RGBA+GL_DOUBLE) */ \
+	color = image->getColor( pixelIdx ); \
+    else if ( image->t() > image->r() ) \
+    { \
+	const unsigned int size = image->getRowStepInBytes(); \
+	const unsigned int blocks = (unsigned int) (idx/size); \
+	color = image->getColor( (unsigned int) (idx-blocks*size), blocks ); \
+    } \
+    else \
+    { \
+	const unsigned int size = image->getImageSizeInBytes(); \
+	const unsigned int blocks = (unsigned int) (idx/size); \
+	color = image->getColor( (unsigned int)(idx-blocks*size), 0, blocks ); \
+    }
+
 
 #define GET_COLOR( color, image, x, y, z, order ) \
 \
@@ -484,14 +537,14 @@ void LayeredTextureData::adaptColors()
     if ( x>=0 && x<image->s() && y>=0 && y<image->t() ) \
     { \
 	GET_PIXEL_INDEX( pixelIdx, image, x, y, z, order ); \
-	color = image->getColor( pixelIdx ); \
+	GET_COLOR_WITHOUT_OVERFLOW( color, image, pixelIdx ); \
     } \
     else if ( _borderColor[0]<0.0f ) \
     { \
 	const int xClamp = x<=0 ? 0 : ( x>=image->s() ? image->s()-1 : x ); \
 	const int yClamp = y<=0 ? 0 : ( y>=image->t() ? image->t()-1 : y ); \
 	GET_PIXEL_INDEX( pixelIdx, image, xClamp, yClamp, z, order ); \
-	color = image->getColor( pixelIdx ); \
+	GET_COLOR_WITHOUT_OVERFLOW( color, image, pixelIdx ); \
     }
 
 osg::Vec4f LayeredTextureData::getTextureVec( const osg::Vec2f& globalCoord ) const
@@ -3114,7 +3167,7 @@ public:
 				    osg::Image& image,osg::Vec4f& borderCol,
 				    const std::vector<LayerProcess*>& procs,
 				    float minOpacity,bool dummyTexture,
-				    int startNr,int stopNr,
+				    pixel_int startNr,pixel_int stopNr,
 				    OpenThreads::BlockCount& ready)
 			    : _lt( lt )
 			    , _image( image )
@@ -3143,8 +3196,8 @@ protected:
     osg::Vec4f&				_borderColor;
     const std::vector<LayerProcess*>&	_processList;
     float				_minOpacity;
-    int					_start;
-    int					_stop;
+    pixel_int				_start;
+    pixel_int				_stop;
     OpenThreads::BlockCount&		_readyCount;
 };
 
@@ -3167,9 +3220,9 @@ void CompositeTextureTask::run()
     std::vector<LayerProcess*>::const_reverse_iterator it;
     unsigned char* imagePtr = _image.data() + _start*4;
     const int width = _image.s();
-    const int nrImagePixels = width * _image.t();
+    const pixel_int nrImagePixels = width * _image.t();
 
-    for ( int pixelNr=_start; pixelNr<=_stop; pixelNr++ ) 
+    for ( pixel_int pixelNr=_start; pixelNr<=_stop; pixelNr++ ) 
     {
 	osg::Vec2f globalCoord( origin.x()+scale.x()*(pixelNr%width+0.5),
 				origin.y()+scale.y()*(pixelNr/width+0.5) );
@@ -3293,7 +3346,7 @@ void LayeredTexture::createCompositeTexture( bool dummyTexture, bool triggerProg
 	    minOpacity = (*it)->getOpacity();
     }
 
-    int nrPixels = height*width;
+    pixel_int nrPixels = height*width;
 
     /* Cannot cover mixed use of uniform and extended-edge-pixel borders
        without shaders (trick with extra one-pixel wide border is screwed
@@ -3312,12 +3365,12 @@ void LayeredTexture::createCompositeTexture( bool dummyTexture, bool triggerProg
     OpenThreads::BlockCount readyCount( nrTasks );
     readyCount.reset();
 
-    int remainder = nrPixels%nrTasks;
-    int start = 0;
+    pixel_int remainder = nrPixels%nrTasks;
+    pixel_int start = 0;
 
     while ( start<nrPixels )
     {
-	int stop = start + nrPixels/nrTasks;
+	pixel_int stop = start + nrPixels/nrTasks;
 	if ( remainder )
 	    remainder--;
 	else

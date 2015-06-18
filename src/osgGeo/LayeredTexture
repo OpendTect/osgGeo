@@ -299,7 +299,7 @@ public:
     int			getCompositeSubsampleSteps() const; 
 
     static int		image2TextureChannel(int channel,GLenum format);
-    static int		powerOf2Ceil(unsigned short nr);
+    static int		powerOf2Ceil(unsigned int nr);	// nr<=2^30 supported
 
 protected:
 			~LayeredTexture();
