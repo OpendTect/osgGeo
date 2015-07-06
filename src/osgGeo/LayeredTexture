@@ -28,6 +28,7 @@ $Id$
 #include <osg/Object>
 #include <osg/Vec2f>
 #include <osg/Vec4f>
+#include <osg/Matrix>
 #include <osg/GL>
 #include <OpenThreads/ReadWriteMutex>
 #include <vector>
@@ -114,6 +115,9 @@ public:
     const osg::Vec4f&	getDataLayerBorderColor(int id) const;
 
     int			getDataLayerTextureUnit(int id) const;
+    int			getTextureUnitNrDims(int unit) const;
+    void		addAssignTexCrdLine(std::string& code,int unit) const;
+
     TransparencyType	getDataLayerTransparencyType(int id,
 						     int channel=3) const;
     osg::Vec4f		getDataLayerTextureVec(int id,
@@ -136,6 +140,10 @@ public:
 
     void		setDataLayerSliceNr(int id,int nr);
     int			getDataLayerSliceNr(int id) const;
+
+    void		setDataLayerVertex2TextureTransform(int id,
+							const osg::Matrixf*);
+    const osg::Matrixf*	getDataLayerVertex2TextureTransform(int id) const;
 
     struct VertexOffsetCutoutInfo
     {
@@ -315,6 +323,10 @@ protected:
     int			getTileOverlapUpperBound(int dim) const;
     TextureSizePolicy	usedTextureSizePolicy() const;
     bool		isDisplayFrozen() const;
+
+    void		add3DTextureToStateSet(const LayeredTextureData&,
+				std::vector<LayeredTexture::TextureCoordData>&,
+				osg::StateSet&) const;
 
     int /* nrProc */	getProcessInfo(std::vector<int>& orderedLayerIDs,
 				       int& nrUsedLayers,bool& useShaders,

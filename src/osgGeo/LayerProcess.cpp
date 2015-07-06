@@ -201,6 +201,7 @@ void LayerProcess::assignOrgCol3IfNeeded( std::string& code, int toIdx ) const
 void LayerProcess::getHeaderCode( std::string& code, int& nrUdf, int id, int toIdx, int fromIdx ) const
 {
     const int unit = _layTex.getDataLayerTextureUnit(id);
+    const int nrDims = _layTex.getTextureUnitNrDims(unit);
     const int udfId = _layTex.getDataLayerUndefLayerID(id);
 
     char line[100];
@@ -224,10 +225,12 @@ void LayerProcess::getHeaderCode( std::string& code, int& nrUdf, int id, int toI
 	    code += "        oldudf = udf;\n";
 
 	const int udfUnit = _layTex.getDataLayerTextureUnit( udfId );
-	snprintf( line, 100, "        texcrd = gl_TexCoord[%d].st;\n", udfUnit );
-	code += line;
+	code += "        ";
+	_layTex.addAssignTexCrdLine( code, udfUnit );
+
 	const int udfChannel = _layTex.getDataLayerUndefChannel(id);
-	snprintf( line, 100, "        udf = texture2D( texture%d, texcrd )[%d];\n", udfUnit, udfChannel );
+	const int udfDims = _layTex.getTextureUnitNrDims( udfUnit );
+	snprintf( line, 100, "        udf = texture%dD( texture%d, texcrd.%.*s )[%d];\n", udfDims, udfUnit, udfDims, "stp", udfChannel );
 	code += line;
 	if ( _layTex.areUndefLayersInverted() )
 	    code += "        udf = 1.0 - udf;\n";
@@ -238,10 +241,10 @@ void LayerProcess::getHeaderCode( std::string& code, int& nrUdf, int id, int toI
 
 	if ( udfId!=id )
 	{
-	    snprintf( line, 100, "            texcrd = gl_TexCoord[%d].st;\n", unit );
-	    code += line;
+	    code += "            ";
+	    _layTex.addAssignTexCrdLine( code, unit );
 	}
-	snprintf( line, 100, "            col%s = texture2D( texture%d, texcrd )%s;\n", to, unit, from );
+	snprintf( line, 100, "            col%s = texture%dD( texture%d, texcrd.%.*s )%s;\n", to, nrDims, unit, nrDims, "stp", from );
 	code += line;
 
 	const osg::Vec4f& udfColor = _layTex.getDataLayerImageUndefColor(id);
@@ -314,9 +317,9 @@ void LayerProcess::getHeaderCode( std::string& code, int& nrUdf, int id, int toI
     }
     else
     {
-	snprintf( line, 100, "        texcrd = gl_TexCoord[%d].st;\n", unit );
-	code += line;
-	snprintf( line, 100, "        col%s = texture2D( texture%d, texcrd )%s;\n", to, unit, from );
+	code += "        ";
+	_layTex.addAssignTexCrdLine( code, unit );
+	snprintf( line, 100, "        col%s = texture%dD( texture%d, texcrd.%.*s )%s;\n", to, nrDims, unit, nrDims, "stp", from );
 	code += line;
 	assignOrgCol3IfNeeded( code, toIdx );
     }
@@ -637,12 +640,15 @@ void ColTabLayerProcess::getShaderCode( std::string& code, int stage ) const
     if ( nrChannels>1 )
     {
 	const int unit = _layTex.getDataLayerTextureUnit( _id[0] );
-	snprintf( line, 100, "    texcrd *= texsize%d;\n", unit );
+	const int nrDims = _layTex.getTextureUnitNrDims( unit );
+	snprintf( line, 100, "    texcrd.%.*s *= texsize%d;\n", nrDims, "stp", unit );
 	code += line;
 	
 	// Avoiding nVidia bug: length() & sqrt() may return NaN close to 0.0
-	code += "    a = sqrt( max(1.0, dot(dFdx(texcrd),dFdx(texcrd))) );\n";
-	code += "    b = sqrt( max(1.0, dot(dFdy(texcrd),dFdy(texcrd))) );\n";
+	snprintf( line, 100, "    a = sqrt( max(1.0, dot(dFdx(texcrd.%.*s),dFdx(texcrd.%.*s))) );\n", nrDims, "stp", nrDims, "stp" );
+	code += line;
+	snprintf( line, 100, "    b = sqrt( max(1.0, dot(dFdy(texcrd.%.*s),dFdy(texcrd.%.*s))) );\n", nrDims, "stp", nrDims, "stp" );
+	code += line;
 	code += "    mip = log2( max(a,b) );\n";
 
 	code += "    var = col[1]";
@@ -660,7 +666,7 @@ void ColTabLayerProcess::getShaderCode( std::string& code, int stage ) const
 	code += "    scale = stddev>0.5 ? log2(stddev)+2.0 : stddev*2.0;\n";
     }
 
-    code += "\n    texcrd = vec2( 0.996093*col[0]+0.001953, ";
+    code += "\n    texcrd.st = vec2( 0.996093*col[0]+0.001953, ";
     if ( nrChannels>1 )
     {
 	 snprintf( line, 100, "%.6f*scale+", _colSeqTexSamplingStep );
@@ -669,7 +675,7 @@ void ColTabLayerProcess::getShaderCode( std::string& code, int stage ) const
     snprintf( line, 100, "%.6f );\n", _colSeqTexSamplingStart );
     code += line;
 
-    code += "    col = texture2D( texture0, texcrd );\n"
+    code += "    col = texture2D( texture0, texcrd.st );\n"
 	    "\n";
 
     getFooterCode( code, nrUdf, stage );

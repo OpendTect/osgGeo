@@ -26,6 +26,7 @@ $Id$
 #include <osg/Geometry>
 #include <osg/State>
 #include <osg/Texture2D>
+#include <osg/Texture3D>
 #include <osg/Version>
 #include <osg/VertexProgram>
 #include <osgUtil/CullVisitor>
@@ -352,6 +353,7 @@ struct LayeredTextureData : public osg::Referenced
 			    , _imageScale( 1.0f, 1.0f )
 			    , _imageDataOrder( STR )
 			    , _sliceNr( 0 )
+			    , _vertex2TextureTrans( 0 )
 			    , _freezeDisplay( false )
 			    , _nrPowerChannels( 0 )
 			    , _textureUnit( -1 )
@@ -379,6 +381,7 @@ struct LayeredTextureData : public osg::Referenced
     void		updateTileImagesIfNeeded() const;
     bool		hasRescaledImage() const;
     void		rescaleImage(int sNew,int tNew,bool inPlace=false);
+    bool		do3D() const;
 
     const int					_id;
     osg::Vec2f					_origin;
@@ -392,6 +395,7 @@ struct LayeredTextureData : public osg::Referenced
     bool					_imageModifiedFlag;
     ImageDataOrder				_imageDataOrder;
     int						_sliceNr;
+    osg::Matrixf*				_vertex2TextureTrans;
     bool					_freezeDisplay;
     bool					_nrPowerChannels;
     int						_textureUnit;
@@ -414,6 +418,9 @@ struct LayeredTextureData : public osg::Referenced
 LayeredTextureData::~LayeredTextureData()
 {
     cleanUp();
+
+    if ( _vertex2TextureTrans )
+	delete _vertex2TextureTrans;
 }
 
 
@@ -430,6 +437,7 @@ LayeredTextureData* LayeredTextureData::clone() const
     res->_imageDataOrder = _imageDataOrder; 
     res->_sliceNr = _sliceNr; 
     res->_imageSource = _imageSource.get();
+    res->_vertex2TextureTrans = _vertex2TextureTrans ? new osg::Matrixf(*_vertex2TextureTrans) : 0;
 
     if ( _image.get()==_imageSource.get() )
 	res->_image = _image.get();
@@ -549,7 +557,7 @@ void LayeredTextureData::adaptColors()
 
 osg::Vec4f LayeredTextureData::getTextureVec( const osg::Vec2f& globalCoord ) const
 {
-    if ( !_image.get() || !_image->s() || !_image->t() || !_image->r() )
+    if ( do3D() || !_image.get() || !_image->s() || !_image->t() || !_image->r() )
 	return _borderColor;
 
     osg::Vec2f local = getLayerCoord( globalCoord );
@@ -648,6 +656,13 @@ void LayeredTextureData::rescaleImage( int sNew, int tNew, bool inPlace )
 	_image->copySubImage( 0, 0, 0, imageToScale ); 
     else
 	_image = imageToScale;
+}
+
+
+bool LayeredTextureData::do3D() const
+{
+    const osg::Image* image = _vertex2TextureTrans ? _imageSource.get() : 0;
+    return image && image->s()>1 && image->t()>1 && image->r()>1;
 }
 
 
@@ -945,6 +960,31 @@ bool LayeredTexture::isDataLayerOK( int id ) const
 }
 
 
+int LayeredTexture::getTextureUnitNrDims( int unit ) const
+{
+    for ( int idx=0; unit>=0 && idx<_dataLayers.size(); idx++ )
+    {
+	if ( _dataLayers[idx]->_textureUnit==unit && _dataLayers[idx]->do3D() )
+	    return 3;
+    }
+
+    return 2;
+}
+
+
+void LayeredTexture::addAssignTexCrdLine( std::string& code, int unit ) const
+{
+    char line[50];
+
+    if ( getTextureUnitNrDims(unit)==3 )
+	snprintf( line, 50, "texcrd = (vertextrans%d*vertexpos).stp;\n", unit );
+    else
+	snprintf( line, 50, "texcrd = gl_TexCoord[%d].stp;\n", unit );
+
+    code += line;
+}
+
+
 void LayeredTexture::setDataLayerOrigin( int id, const osg::Vec2f& origin )
 {
     const int idx = getDataLayerIndex( id );
@@ -1055,7 +1095,7 @@ void LayeredTexture::setDataLayerImage( int id, osg::Image* image, bool freezewh
 	if ( image->s()>=8 && image->t()>=8 && s*t>int(_maxTextureCopySize) )
 	    rescaleImage = false;
 
-	if ( rescaleImage && _textureSizePolicy!=AnySize && id!=_compositeLayerId )
+	if ( rescaleImage && !layer.do3D() && _textureSizePolicy!=AnySize && id!=_compositeLayerId )
 	{
 	    layer.rescaleImage( s, t, !retile );
 	    layer._imageScale.x() = float(image->s()) / float(s);
@@ -1070,7 +1110,7 @@ void LayeredTexture::setDataLayerImage( int id, osg::Image* image, bool freezewh
 	layer._imageModifiedCount = image->getModifiedCount();
 	layer.clearTransparencyType();
 
-	if ( retile )
+	if ( retile || layer.do3D() )
 	{
 	    layer.adaptColors();
 	    setUpdateVar( _tilingInfo->_needsUpdate, true );
@@ -1214,6 +1254,26 @@ void LayeredTexture::setDataLayerSliceNr( int id, int nr )
 	if ( _dataLayers[idx]->_textureUnit>=0 )
 	    setUpdateVar( _tilingInfo->_retilingNeeded, true );
     }
+}
+
+
+void LayeredTexture::setDataLayerVertex2TextureTransform( int id, const osg::Matrixf* trans )
+{
+    const int idx = getDataLayerIndex( id );
+    if ( idx<0 )
+	return;
+
+    const bool did3D = _dataLayers[idx]->do3D();
+
+     if ( _dataLayers[idx]->_vertex2TextureTrans )
+	 delete _dataLayers[idx]->_vertex2TextureTrans;
+
+     _dataLayers[idx]->_vertex2TextureTrans = trans ? new osg::Matrixf(*trans) : 0;
+
+     if ( did3D != _dataLayers[idx]->do3D() )
+	setDataLayerImage( id, _dataLayers[idx]->_imageSource, false, -1 );
+
+     setUpdateVar( _tilingInfo->_needsUpdate, true );
 }
 
 
@@ -1488,6 +1548,7 @@ GET_PROP( UndefLayerID, int, _undefLayerId, -1 )
 GET_PROP( BorderColor, const osg::Vec4f&, _borderColor, osg::Vec4f(1.0f,1.0f,1.0f,1.0f) )
 GET_PROP( ImageUndefColor, const osg::Vec4f&, _undefColor, osg::Vec4f(-1.0f,-1.0f,-1.0f,-1.0f) )
 GET_PROP( SliceNr, int, _sliceNr, -1 )
+GET_PROP( Vertex2TextureTransform, const osg::Matrixf*, _vertex2TextureTrans, 0 );
 GET_PROP( ImageOrder, ImageDataOrder, _imageDataOrder, STR )
 
 
@@ -1684,7 +1745,7 @@ void LayeredTexture::updateTilingInfoIfNeeded() const
 
     for ( ; it!=_dataLayers.end(); it++ )
     {
-	if ( !(*it)->_image.get() || (*it)->_id==_compositeLayerId )
+	if ( !(*it)->_image.get() || (*it)->do3D() || (*it)->_id==_compositeLayerId )
 	    continue;
 
 	const osg::Vec2f scale( (*it)->_scale.x() * (*it)->_imageScale.x(),
@@ -1925,7 +1986,7 @@ int LayeredTexture::getTileOverlapUpperBound( int dim ) const
     for ( int idx=0; idx<nrDataLayers(); idx++ )
     {
 	LayeredTextureData* layer = _dataLayers[idx];
-	if ( !layer->_image.get() || layer->_id==_compositeLayerId )
+	if ( !layer->_image.get() || layer->do3D() || layer->_id==_compositeLayerId )
 	    continue;
 
 	const float scaledWidth = layer->_scale[dim] * getSeamWidth(idx,dim);
@@ -2042,6 +2103,12 @@ osg::StateSet* LayeredTexture::createCutoutStateSet( const osg::Vec2f& origin, c
 	LayeredTextureData* layer = _dataLayers[idx];
 	if ( layer->_textureUnit<0 )
 	    continue;
+
+	if ( layer->do3D() )
+	{
+	    add3DTextureToStateSet( *layer, tcData, *stateset );
+	    continue;
+	}
 
 	const osg::Vec2f localOrigin = layer->getLayerCoord( globalOrigin );
 	const osg::Vec2f localOpposite = layer->getLayerCoord( globalOpposite );
@@ -2270,6 +2337,50 @@ osg::StateSet* LayeredTexture::createCutoutStateSet( const osg::Vec2f& origin, c
     }
 
     return stateset.release();
+}
+
+
+void LayeredTexture::add3DTextureToStateSet( const LayeredTextureData& layer, std::vector<LayeredTexture::TextureCoordData>& tcData, osg::StateSet& stateset ) const
+{
+    osg::Image* image = layer._image;
+    if ( !image || !image->s() || !image->t() || !image->r() )
+	return;
+
+    const osg::Vec2f dummy( 0.0f, 0.0f );
+    tcData.push_back( TextureCoordData( layer._textureUnit, dummy, dummy, dummy, dummy ) );
+
+    osg::ref_ptr<osg::Texture3D> texture = new osg::Texture3D( image );
+    texture->setResizeNonPowerOfTwoHint( false );
+
+    osg::Texture::WrapMode wrapMode = osg::Texture::CLAMP_TO_EDGE;
+    if ( layer._borderColor[0]>=0.0f )
+	wrapMode = osg::Texture::CLAMP_TO_BORDER;
+
+    texture->setWrap( osg::Texture::WRAP_S, wrapMode );
+    texture->setWrap( osg::Texture::WRAP_T, wrapMode );
+    texture->setWrap( osg::Texture::WRAP_R, wrapMode );
+
+    //const int idx = getDataLayerIndex( layer._id );
+    //texture->setMaxAnisotropy( osg::maximum(getMaxAnisotropy(idx),1.0f) );
+
+    osg::Texture::FilterMode filterMode = layer._filterType==Nearest ? osg::Texture::NEAREST : osg::Texture::LINEAR;
+    texture->setFilter( osg::Texture::MAG_FILTER, filterMode );
+
+    //if ( _enableMipmapping )
+    //	filterMode = layer._filterType==Nearest ? osg::Texture::NEAREST_MIPMAP_NEAREST : osg::Texture::LINEAR_MIPMAP_LINEAR;
+
+    texture->setFilter( osg::Texture::MIN_FILTER, filterMode );
+    texture->setBorderColor( layer._borderColor );
+
+    stateset.setTextureAttributeAndModes( layer._textureUnit, texture.get() );
+
+    char uniformName[20];
+    snprintf( uniformName, 20, "texsize%d", layer._textureUnit );
+    const osg::Vec3f texSize( image->s(), image->t(), image->r() );
+    stateset.addUniform( new osg::Uniform(uniformName,texSize) );
+
+    snprintf( uniformName, 20, "vertextrans%d", layer._textureUnit );
+    stateset.addUniform( new osg::Uniform(uniformName,*layer._vertex2TextureTrans) );
 }
 
 
@@ -2638,9 +2749,9 @@ void LayeredTexture::createColSeqTexture()
     if ( _useNormalizedTexCoords )
     {
 	const osg::Vec4 texCrdFactor( 1.0f, 1.0f, 1.0f, 1.0f );
-	_setupStateSet->addUniform( new osg::Uniform("texcrdfactor",texCrdFactor) );
+	_setupStateSet->addUniform( new osg::Uniform("texcrdfactor0",texCrdFactor) );
 	const osg::Vec4 texCrdBias( 0.0f, 0.0f, 0.0f, 0.0f );
-	_setupStateSet->addUniform( new osg::Uniform("texcrdbias",texCrdBias) );
+	_setupStateSet->addUniform( new osg::Uniform("texcrdbias0",texCrdBias) );
     }
 }
 
@@ -2688,8 +2799,9 @@ void LayeredTexture::assignTextureUnits()
 
 void LayeredTexture::getVertexShaderCode( std::string& code, const std::vector<int>& activeUnits ) const
 {
-    code.clear();
     char line[100];
+    code = "varying vec4 vertexpos;\n"
+	   "\n";
 
     if ( _useNormalizedTexCoords )
     {
@@ -2707,7 +2819,9 @@ void LayeredTexture::getVertexShaderCode( std::string& code, const std::vector<i
     const int udfId = getDataLayerUndefLayerID(_vertexOffsetLayerId);
     const int offsetUnit = getDataLayerTextureUnit(_vertexOffsetLayerId);
 
-    if ( isDataLayerOK(_vertexOffsetLayerId) )
+    const bool includeVertexOffset = isDataLayerOK(_vertexOffsetLayerId) &&
+				     getTextureUnitNrDims(offsetUnit)!=3;
+    if ( includeVertexOffset )
     {
 	const int udfUnit = getDataLayerTextureUnit(udfId);
 
@@ -2800,7 +2914,7 @@ void LayeredTexture::getVertexShaderCode( std::string& code, const std::vector<i
     if ( activeUnits.size() )
 	code += "\n";
 
-    if ( isDataLayerOK(_vertexOffsetLayerId) )
+    if ( includeVertexOffset )
     {
 	code += "    float pivot = offset( vec2(0.0,0.0) );\n";
 	snprintf( line, 100, "    float delta = exp2( lod%d );\n", offsetUnit );
@@ -2875,8 +2989,8 @@ void LayeredTexture::getVertexShaderCode( std::string& code, const std::vector<i
 	}
 	code += "pivot;\n";
 
-	code += "    vec4 vertex = vec4(normal*pivot, 0.0) + gl_Vertex;\n"
-		"    gl_Position = gl_ModelViewProjectionMatrix * vertex;\n"
+	code += "    vertexpos = vec4(normal*pivot, 0.0) + gl_Vertex;\n"
+		"    gl_Position = gl_ModelViewProjectionMatrix * vertexpos;\n"
 		"\n";
 
 	const osg::Vec2f scale = getDataLayerScale( _vertexOffsetLayerId );
@@ -2895,7 +3009,8 @@ void LayeredTexture::getVertexShaderCode( std::string& code, const std::vector<i
 	code += "    normal = normalize( cross(v0,v1) );\n";
     }
     else
-	code += "    gl_Position = ftransform();\n"
+	code += "    vertexpos = gl_Vertex;\n"
+		"    gl_Position = ftransform();\n"
 		"    normal = gl_Normal;\n";
 
     code +=
@@ -2939,8 +3054,9 @@ void LayeredTexture::getVertexShaderCode( std::string& code, const std::vector<i
 
 void LayeredTexture::getFragmentShaderCode( std::string& code, const std::vector<int>& activeUnits, int nrProc, bool stackIsOpaque ) const
 {
-    code.clear();
     char line[100];
+    code = "varying vec4 vertexpos;\n"
+	   "\n";
 
     const bool useLOD = isDataLayerOK(_vertexOffsetLayerId)
 	&& _stackUndefLayerId==getDataLayerUndefLayerID(_vertexOffsetLayerId)
@@ -2959,10 +3075,17 @@ void LayeredTexture::getFragmentShaderCode( std::string& code, const std::vector
 	    code += line;
 	}
 
-	snprintf( line, 100, "uniform sampler2D texture%d;\n", *iit );
+	const int nrDims = getTextureUnitNrDims( *iit );
+	snprintf( line, 100, "uniform sampler%dD texture%d;\n", nrDims, *iit );
 	code += line;
-	snprintf( line, 100, "uniform vec2 texsize%d;\n", *iit );
+	snprintf( line, 100, "uniform vec%d texsize%d;\n", nrDims, *iit );
 	code += line;
+
+	if ( nrDims==3 )
+	{
+	    snprintf( line, 100, "uniform mat4 vertextrans%d;\n", *iit );
+	    code += line;
+	}
 
 	if ( useLOD && *iit==udfUnit )
 	{
@@ -2977,7 +3100,7 @@ void LayeredTexture::getFragmentShaderCode( std::string& code, const std::vector
 		       "void process( void )\n";
     code += "{\n"
 	    "    vec4 col, udfcol;\n"
-	    "    vec2 texcrd;\n"
+	    "    vec3 texcrd;\n"
 	    "    float a, b, udf, oldudf, orgcol3, mip, var, stddev, scale;\n"
 	    "\n";
 
@@ -3022,15 +3145,16 @@ void LayeredTexture::getFragmentShaderCode( std::string& code, const std::vector
 
     if ( stackUdf )
     {
-	snprintf( line, 100, "    vec2 texcrd = gl_TexCoord[%d].st;\n", udfUnit );
-	code += line;
+	code += "    vec3 ";
+	addAssignTexCrdLine( code, udfUnit );
+	const int udfDims = getTextureUnitNrDims( udfUnit );
 
 	if ( useLOD )
 	{
-	    snprintf( line, 100, "    float udf = texture2DLod( texture%d, texcrd, lod%d )[%d];\n", udfUnit, udfUnit, _stackUndefChannel );
+	    snprintf( line, 100, "    float udf = texture%dDLod( texture%d, texcrd.%.*s, lod%d )[%d];\n", udfDims, udfUnit, udfDims, "stp", udfUnit, _stackUndefChannel );
 	}
 	else
-	    snprintf( line, 100, "    float udf = texture2D( texture%d, texcrd )[%d];\n", udfUnit, _stackUndefChannel );
+	    snprintf( line, 100, "    float udf = texture%dD( texture%d, texcrd.%.*s )[%d];\n", udfDims, udfUnit, udfDims, "stp", _stackUndefChannel );
 
 	code += line;
 	if ( _invertUndefLayers )
