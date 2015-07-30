@@ -81,7 +81,8 @@ class OSGGEO_EXPORT TrackballManipulator : public osgGA::MultiTouchTrackballMani
 
     protected:
 	void handleMultiTouchDrag(const osgGA::GUIEventAdapter::TouchData* now,
-				  const osgGA::GUIEventAdapter::TouchData* last,				  const double eventTimeDelta);
+				  const osgGA::GUIEventAdapter::TouchData* last,
+                                  const double eventTimeDelta);
 	
     private:
 

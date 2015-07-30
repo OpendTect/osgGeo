@@ -549,7 +549,7 @@ bool TrackballManipulator::handleMouseWheel(const osgGA::GUIEventAdapter& ea, os
 bool TrackballManipulator::handleMouseWheelZoomOut(const osgGA::GUIEventAdapter&,
                                                    osgGA::GUIActionAdapter& us)
 {
-    return zoomOut(us.asView(),_wheelZoomFactor);
+    return zoomOut(us.asView(),fabs(_wheelZoomFactor));
 }
 
 
@@ -561,7 +561,7 @@ bool TrackballManipulator::handleMouseWheelZoomIn(const osgGA::GUIEventAdapter& 
     if ( !getZoomCenterIntersectionPoint(us.asView(),zoomcenter,intersectionPos) )
         return false;
 
-    return zoomIn(intersectionPos,_wheelZoomFactor);
+    return zoomIn(intersectionPos,fabs(_wheelZoomFactor));
 }
 
 
