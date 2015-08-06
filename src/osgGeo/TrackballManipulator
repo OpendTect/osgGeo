@@ -61,6 +61,9 @@ class OSGGEO_EXPORT TrackballManipulator : public osgGA::MultiTouchTrackballMani
     	void removeMovementCallback(osg::NodeCallback *nc);
 
 	bool isThrown() const { return _thrown; }
+	//!<Is the scene auto-rotating?
+        void stopThrow() { _thrown = false; }
+        //!<Stop eventual auto-rotation
 
 	void setProjectionAsPerspective(bool isPerspective);
 

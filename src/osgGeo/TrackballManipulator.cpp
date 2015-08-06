@@ -528,6 +528,8 @@ bool TrackballManipulator::handleMouseWheel(const osgGA::GUIEventAdapter& ea, os
     bool res = false;
     const osgGA::GUIEventAdapter::ScrollingMotion sm = ea.getScrollingMotion();
 
+    stopThrow();
+
     if( ((sm == osgGA::GUIEventAdapter::SCROLL_DOWN && _wheelZoomFactor > 0.)) ||
        ((sm == osgGA::GUIEventAdapter::SCROLL_UP   && _wheelZoomFactor < 0.)) )
     {
