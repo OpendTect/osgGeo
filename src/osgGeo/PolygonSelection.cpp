@@ -259,10 +259,11 @@ bool PolygonSelection::handleEvent(const osgGA::GUIEventAdapter& ea)
 	    return false;
 	}
 
-	if (_callback)
+	osg::NodeCallback* nodecb = dynamic_cast<osg::NodeCallback*>( _callback.get() );
+	if ( nodecb )
 	{
 	    osg::NodeVisitor nv;
-	    ( *_callback )(this,&nv);
+	    (*nodecb)( this, &nv );
 	}
 	return true;
     }

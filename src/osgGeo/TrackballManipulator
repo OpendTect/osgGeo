@@ -82,16 +82,17 @@ class OSGGEO_EXPORT TrackballManipulator : public osgGA::MultiTouchTrackballMani
 
 	void useLeftMouseButtonForAllMovement(bool yn,bool additional=false);
 
+#if OSG_VERSION_LESS_THAN(3,3,2)
     protected:
 	void handleMultiTouchDrag(const osgGA::GUIEventAdapter::TouchData* now,
 				  const osgGA::GUIEventAdapter::TouchData* last,
                                   const double eventTimeDelta);
-	
     private:
 
-    #if OSG_VERSION_LESS_THAN(3,3,0)
 	bool handleTouch( const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa);
-    #endif
+#else
+    private:
+#endif
         static osg::Matrix getInverseMatrix(const osg::Vec3d& center,
         				    const osg::Quat& rotation,
                                             double distance);
@@ -130,7 +131,11 @@ class OSGGEO_EXPORT TrackballManipulator : public osgGA::MultiTouchTrackballMani
 	bool				_keyHandlingEnabled;
         float				_viewallMargin;
         float				_viewAllInitalFactor;
+#if OSG_MIN_VERSION_REQUIRED(3,3,2)
+	osg::ref_ptr<osg::Callback>	_cb;
+#else
         osg::ref_ptr<osg::NodeCallback> _cb;
+#endif
 	bool				_perspectiveProjection;
 	bool				_projectionSwitched;
 	double				_fovy;

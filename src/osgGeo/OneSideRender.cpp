@@ -22,6 +22,7 @@ $Id$
 #include <osgGeo/OneSideRender>
 #include <osgGeo/ComputeBoundsVisitor>
 #include <osgUtil/CullVisitor>
+#include <osg/Version>
 
 osgGeo::OneSideRender::OneSideRender()
 {}
@@ -91,7 +92,11 @@ void osgGeo::OneSideRender::traverse(osg::NodeVisitor& nv)
 	    const osg::Vec3 viewline = eye-_lines[idx]._pos;
 	    if ( viewline*_lines[idx]._dir>=0 )
 	    {
+#if OSG_MIN_VERSION_REQUIRED(3,3,2)
+		const osg::BoundingBox bb = _drawables[idx]->getBoundingBox();
+#else
 		const osg::BoundingBox bb = _drawables[idx]->getBound();
+#endif
 		const float depth = cv->getDistanceFromEyePoint(
 		    bb.center(), false );
 		

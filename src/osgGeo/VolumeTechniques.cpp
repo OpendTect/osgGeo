@@ -410,12 +410,19 @@ bool RayTracedTechnique::isShadingSupported()
     const int maxContextID = (int) osg::GraphicsContext::getMaxContextID();
     for( int contextID=0; contextID<=maxContextID; contextID++ )
     {
+#if OSG_MIN_VERSION_REQUIRED(3,3,3)
+	osg::GLExtensions* ext = osg::GLExtensions::Get( contextID, false );
+	if ( ext && ext->isVertexProgramSupported && ext->isFragmentProgramSupported )
+	    return true;
+#else
 	const osg::VertexProgram::Extensions* vertExt = osg::VertexProgram::getExtensions( contextID, false );
 	 const osg::FragmentProgram::Extensions* fragExt = osg::FragmentProgram::getExtensions( contextID, false );
 
 	 if ( vertExt && vertExt->isVertexProgramSupported() && fragExt && fragExt->isFragmentProgramSupported() )
 	     return true;
+#endif
     }
+
     return false;
 }
 

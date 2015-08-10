@@ -26,6 +26,7 @@ $Id$
 #include <osg/PolygonMode>
 #include <osg/LineWidth>
 #include <osg/Vec3>
+#include <osg/Version>
 
 #define mMAX 1e30
 
@@ -263,9 +264,13 @@ void PlaneWellLog::traverse(osg::NodeVisitor& nv)
 	    repeatTransform.setTrans( normal*idx*getRepeatStep() );
 	    osg::Matrix RMV = repeatTransform * (*modelViewMatrix);
 	    osg::ref_ptr<osg::RefMatrix> rfMx = new osg::RefMatrix(RMV);
-
+#if OSG_MIN_VERSION_REQUIRED(3,3,2)
+	    const osg::BoundingBox bbtri = _triangleGeometry->getBoundingBox();
+	    const osg::BoundingBox bbline = _lineGeometry->getBoundingBox();
+#else
 	    const osg::BoundingBox bbtri = _triangleGeometry->getBound() ;
 	    const osg::BoundingBox bbline = _lineGeometry->getBound();
+#endif
 	    bbox.expandBy( bbtri );
 	    bbox.expandBy( bbline );
 
@@ -422,7 +427,11 @@ void PlaneWellLog::calcCoordinates(const osg::Vec3& normal)
     _lineGeometry->dirtyBound();
     _triangleGeometry->dirtyBound();
 
+#if OSG_MIN_VERSION_REQUIRED(3,3,2)
+    const osg::BoundingBox& bb = _triangleGeometry->getBoundingBox();
+#else
     const osg::BoundingBox& bb = _triangleGeometry->getBound();
+#endif
     _triGeometryWidth = 
 	osg::Vec2(bb.xMax()-bb.xMin(), bb.yMax()-bb.yMin() ).length();
 

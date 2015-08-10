@@ -327,7 +327,9 @@ void TrackballManipulator::notifyMappedMouseButtonEvents(const osgGA::GUIEventAd
     else
 	nv._eventType = TrackballEventNodeVisitor::MoveStop;
 
-    (*_cb)( 0, &nv );
+    osg::NodeCallback* nodecb = dynamic_cast<osg::NodeCallback*>( _cb.get() );
+    if ( nodecb )
+	(*nodecb)( 0, &nv );
 }
 
 
@@ -349,7 +351,7 @@ bool TrackballManipulator::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIAc
     if ( ea.isMultiTouchEvent() )
     {
 	_touchEventView = aa.asView();
-#if OSG_VERSION_LESS_THAN(3,3,0)
+#if OSG_VERSION_LESS_THAN(3,3,2)
 	res = handleTouch( ea, aa );
 #else   
 	res = osgGA::MultiTouchTrackballManipulator::handle(ea, aa);
@@ -396,7 +398,10 @@ bool TrackballManipulator::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIAc
 	if ( horAngle || vertAngle || _distance!=oldDist )
 	{
 	    TrackballEventNodeVisitor nv( horAngle, vertAngle, (_distance-oldDist)/oldDist );
-	    (*_cb)( 0, &nv );
+
+	    osg::NodeCallback* nodecb = dynamic_cast<osg::NodeCallback*>( _cb.get() );
+	    if ( nodecb )
+		(*nodecb)( 0, &nv );
 	}
 
 	notifyMappedMouseButtonEvents( ea );
@@ -754,6 +759,7 @@ bool TrackballManipulator::getPolyIntersectionPoint(osg::View* view,const osg::V
 }
 
 
+#if OSG_VERSION_LESS_THAN(3,3,2)
 void TrackballManipulator::handleMultiTouchDrag(const osgGA::GUIEventAdapter::TouchData* now, 
     const osgGA::GUIEventAdapter::TouchData* last, const double ) 
 {
@@ -803,7 +809,7 @@ void TrackballManipulator::handleMultiTouchDrag(const osgGA::GUIEventAdapter::To
     if (fabs(zoomFactor) > 0.02f)
 	zoomModel(zoomFactor , true);
 }
-
+#endif
 
 void TrackballManipulator::animateTo(const osg::Vec3d& newCenter,
                                      const osg::Quat& newRotation,
@@ -947,7 +953,7 @@ void TrackballManipulator::removeMovementCallback(osg::NodeCallback* nc)
 }
 
 
-#if OSG_VERSION_LESS_THAN(3,3,0)
+#if OSG_VERSION_LESS_THAN(3,3,2)
 
 bool TrackballManipulator::handleTouch(const osgGA::GUIEventAdapter& ea,
 				       osgGA::GUIActionAdapter& aa)

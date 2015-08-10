@@ -99,7 +99,11 @@ protected:
     float _startAngle;
     float _currentAngle;
     short _dim;
+#if OSG_MIN_VERSION_REQUIRED(3,3,2)
+    osg::ref_ptr<osg::Callback> _cb;
+#else
     osg::ref_ptr<osg::NodeCallback> _cb;
+#endif
 
     MouseProximity _mouseProximity;
 

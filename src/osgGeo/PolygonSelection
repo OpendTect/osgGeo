@@ -25,6 +25,7 @@ $Id$
 #include <osg/Geode>
 #include <osg/Node>
 #include <osgGA/GUIEventHandler>
+#include <osg/Version>
 
 namespace osg { class Geode; class NodeVisitor;
 		class Geometry; class Material; class Camera; }
@@ -80,7 +81,11 @@ protected:
     
 
     PolygonSelectionEventHandler*	_eventHandler;
+#if OSG_MIN_VERSION_REQUIRED(3,3,2)
+    osg::ref_ptr<osg::Callback>		_callback;
+#else
     osg::ref_ptr<osg::NodeCallback>	_callback;
+#endif
     osg::ref_ptr<osg::Geode>		_geode;
     osg::Geometry*			_lineGeometry;
     osg::Camera*			_masterCamera;

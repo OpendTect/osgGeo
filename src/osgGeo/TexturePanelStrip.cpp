@@ -48,8 +48,11 @@ public:
     			BoundingGeometry(TexturePanelStripNode& tpsn)
 			    : _tpsn( tpsn )
 			{}
-
-    osg::BoundingBox	computeBound() const    { return _boundingBox; }
+#if OSG_MIN_VERSION_REQUIRED(3,3,2)	
+    osg::BoundingBox	computeBoundingBox() const	{ return _boundingBox; }
+#else
+    osg::BoundingBox	computeBound() const		{ return _boundingBox; }
+#endif
     void		update();
 
 protected:
@@ -468,8 +471,11 @@ void TexturePanelStripNode::traverse( osg::NodeVisitor& nv )
 	for ( unsigned int idx=0; idx<_geometries.size(); idx++ )
 	{
 	    cv->pushStateSet( _statesets[idx] );
-
+#if OSG_MIN_VERSION_REQUIRED(3,3,2)
+	    const osg::BoundingBox bb = _geometries[idx]->getBoundingBox();
+#else
 	    const osg::BoundingBox bb = _geometries[idx]->getBound();
+#endif
 	    const float depth = cv->getDistanceFromEyePoint(bb.center(),false);
 	    cv->addDrawableAndDepth( _geometries[idx], cv->getModelViewMatrix(), depth );
 
@@ -482,8 +488,13 @@ void TexturePanelStripNode::traverse( osg::NodeVisitor& nv )
 	if ( getStateSet() )
 	    cv->popStateSet();
 
+#if OSG_MIN_VERSION_REQUIRED(3,3,2)
+	if ( _boundingGeometry->getBoundingBox().valid() )
+	    cv->updateCalculatedNearFar(*cv->getModelViewMatrix(), _boundingGeometry->getBoundingBox() );
+#else
 	if ( _boundingGeometry->getBound().valid() )
 	    cv->updateCalculatedNearFar(*cv->getModelViewMatrix(), _boundingGeometry->getBound() );
+#endif
     }
     else
     {
@@ -502,7 +513,11 @@ void TexturePanelStripNode::traverse( osg::NodeVisitor& nv )
 	    dynamic_cast<osgGeo::ComputeBoundsVisitor*>( &nv );
 	if ( cbv )
 	{
+#if OSG_MIN_VERSION_REQUIRED(3,3,2)
+	    cbv->applyBoundingBox(_boundingGeometry->getBoundingBox());
+#else
 	    cbv->applyBoundingBox(_boundingGeometry->getBound());
+#endif
 	}
 
     }

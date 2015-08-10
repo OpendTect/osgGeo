@@ -23,6 +23,11 @@ if ( WIN32 )
     add_definitions( "/EHsc" "-DWIN32" )
 endif()
 
+if ( UNIX )
+    add_definitions( "-DGL_HEADER_HAS_GLUINT64" )
+    add_definitions( "-DGL_HEADER_HAS_GLINT64" )
+endif()
+
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/..
 		     ${CMAKE_CURRENT_BINARY_DIR}/.. )
 include_directories( SYSTEM ${OSG_DIR}/include )

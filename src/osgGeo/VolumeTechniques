@@ -25,6 +25,7 @@ $Id: TrackballManipulator 231 2013-04-16 12:35:57Z kristofer.tingdahl@dgbes.com 
 #include <osg/Geometry>
 #include <osgVolume/FixedFunctionTechnique>
 #include <osgVolume/RayTracedTechnique>
+#include <osg/Version>
 
 namespace osgGeo
 {
@@ -42,8 +43,11 @@ class BoundingGeometry : public osg::Geometry
 
 public:
     			BoundingGeometry(osgVolume::VolumeTechnique&);
-
-    osg::BoundingBox	computeBound() const    { return _boundingBox; }
+#if OSG_MIN_VERSION_REQUIRED(3,3,2) 
+    osg::BoundingBox	computeBoundingBox() const	{ return _boundingBox; }
+#else
+    osg::BoundingBox	computeBound() const    	{ return _boundingBox; }
+#endif
 
 protected:
     osg::BoundingBox		_boundingBox;

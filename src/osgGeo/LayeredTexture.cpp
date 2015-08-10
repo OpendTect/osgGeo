@@ -1667,6 +1667,11 @@ void LayeredTexture::updateTextureInfoIfNeeded() const
 	if ( _texInfo->_contextId>=0 && _texInfo->_contextId!=contextID )
 	    continue;
 
+#if OSG_MIN_VERSION_REQUIRED(3,3,3)
+	osg::GLExtensions* ext = osg::GLExtensions::Get(contextID,_texInfo->_contextId>=0);
+	if ( !ext )
+	    continue;
+#else
 	const osg::VertexProgram::Extensions* vertExt = osg::VertexProgram::getExtensions( contextID, _texInfo->_contextId>=0 );
 	const osg::FragmentProgram::Extensions* fragExt = osg::FragmentProgram::getExtensions( contextID, _texInfo->_contextId>=0 );
 
@@ -1674,6 +1679,7 @@ void LayeredTexture::updateTextureInfoIfNeeded() const
 
 	if ( !vertExt || !fragExt || !texExt )
 	    continue;
+#endif
 
 #if OSG_MIN_VERSION_REQUIRED(3,3,1)
 	osg::GraphicsContext::GraphicsContexts contexts = osg::GraphicsContext::getRegisteredGraphicsContexts( contextID );
@@ -1699,6 +1705,22 @@ void LayeredTexture::updateTextureInfoIfNeeded() const
 	    _texInfo->_nrUnits = texExt->numTextureUnits();
 #endif
 
+#if OSG_MIN_VERSION_REQUIRED(3,3,3)
+	if ( !_texInfo->_isValid || _texInfo->_maxSize>ext->maxTextureSize )
+	{
+	    _texInfo->_maxSize = ext->maxTextureSize;
+	    while ( _maxTexSizeOverride>0 && _texInfo->_maxSize>_maxTexSizeOverride && _texInfo->_maxSize>64 )
+	    {
+		_texInfo->_maxSize /= 2;
+	    }
+	}
+
+	if ( !_texInfo->_isValid || _texInfo->_nonPowerOf2Support )
+	    _texInfo->_nonPowerOf2Support = ext->isNonPowerOfTwoTextureSupported( osg::Texture::LINEAR_MIPMAP_LINEAR );;
+
+	if ( !_texInfo->_isValid || _texInfo->_shadingSupport )
+	    _texInfo->_shadingSupport = ext->isVertexProgramSupported && ext->isFragmentProgramSupported && _texInfo->_nrUnits>0;
+#else
 	if ( !_texInfo->_isValid || _texInfo->_maxSize>texExt->maxTextureSize() )
 	{
 	    _texInfo->_maxSize = texExt->maxTextureSize();
@@ -1713,6 +1735,7 @@ void LayeredTexture::updateTextureInfoIfNeeded() const
 
 	if ( !_texInfo->_isValid || _texInfo->_shadingSupport )
 	    _texInfo->_shadingSupport = vertExt->isVertexProgramSupported() && fragExt->isFragmentProgramSupported() && _texInfo->_nrUnits>0;
+#endif
 
 	if ( !_texInfo->_isValid || _texInfo->_floatSupport )
 	    _texInfo->_floatSupport = osg::isGLExtensionOrVersionSupported(contextID,"GL_ARB_texture_float",3.0); 

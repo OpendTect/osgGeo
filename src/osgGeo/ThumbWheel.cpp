@@ -575,10 +575,11 @@ bool ThumbWheel::handleEvent( const osgGA::GUIEventAdapter& ea, osgGA::GUIAction
     const float deltaangle = _currentAngle-newAngle;
     setAngle( newAngle );
 
-    if ( deltaangle && _cb )
+    osg::NodeCallback* nodecb = dynamic_cast<osg::NodeCallback*>( _cb.get() );
+    if ( deltaangle && nodecb )
     {
 	ThumbWheelEventNodeVisitor nv( deltaangle );
-	(*_cb)( this, &nv );
+	(*nodecb)( this, &nv );
     }
 
     return true;

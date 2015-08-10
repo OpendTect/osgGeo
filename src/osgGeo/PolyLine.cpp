@@ -25,6 +25,7 @@ $Id$
 #include <osg/Geometry>
 #include <osgUtil/CullVisitor>
 #include <osgUtil/IntersectionVisitor>
+#include <osg/Version>
 
 
 namespace osgGeo
@@ -134,8 +135,13 @@ void PolyLineNode::traverse(osg::NodeVisitor& nv)
 	if ( getStateSet() )
 	    cv->popStateSet();
 
+#if OSG_MIN_VERSION_REQUIRED(3,3,2)
+	if ( _geometry->getBoundingBox().valid() )
+	    cv->updateCalculatedNearFar(*cv->getModelViewMatrix(), _geometry->getBoundingBox() );
+#else
 	if ( _geometry->getBound().valid() )
 	    cv->updateCalculatedNearFar(*cv->getModelViewMatrix(), _geometry->getBound() );
+#endif
     }
     else
     {

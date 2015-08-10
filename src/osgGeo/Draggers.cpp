@@ -46,8 +46,8 @@ void Translate1DDragger::traverse(osg::NodeVisitor& nv)
 	{
 	    for(osgGA::EventQueue::Events::iterator itr = ev->getEvents().begin(); itr != ev->getEvents().end(); ++itr)
 	    {
-#if OSG_MIN_VERSION_REQUIRED(3,3,0)
-		osgGA::GUIEventAdapter* ea = itr->asGUIEventAdapter();
+#if OSG_MIN_VERSION_REQUIRED(3,3,1)
+		osgGA::GUIEventAdapter* ea = (*itr)->asGUIEventAdapter();
 #else
 		osgGA::GUIEventAdapter* ea = itr->get();
 #endif
@@ -118,8 +118,8 @@ void Translate2DDragger::traverse(osg::NodeVisitor& nv)
 	{
 	    for(osgGA::EventQueue::Events::iterator itr = ev->getEvents().begin(); itr != ev->getEvents().end(); ++itr)
 	    {
-#if OSG_MIN_VERSION_REQUIRED(3,3,0)
-		osgGA::GUIEventAdapter* ea = itr->asGUIEventAdapter();
+#if OSG_MIN_VERSION_REQUIRED(3,3,1)
+		osgGA::GUIEventAdapter* ea = (*itr)->asGUIEventAdapter();
 #else
 		osgGA::GUIEventAdapter* ea = itr->get();
 #endif

@@ -18,6 +18,7 @@ $Id: TrackballManipulator.cpp 499 2015-03-13 10:03:51Z jaap.glas@dgbes.com $
 */
 
 #include <osgGeo/Text>
+#include <osg/Version>
 
 #include <iostream>
 #include <cstdio>
@@ -185,6 +186,19 @@ void Text::computePositions(unsigned int contextID) const
         GlyphQuads::Coords2& coords2 = glyphquad._coords;
         GlyphQuads::Coords3& transformedCoords = glyphquad._transformedCoords[contextID];
 
+#if OSG_MIN_VERSION_REQUIRED(3,3,4)
+        unsigned int numCoords = coords2->size();
+        if (numCoords!=transformedCoords->size())
+        {
+            transformedCoords->resize(numCoords);
+        }
+
+        for(unsigned int i=0;i<numCoords;++i)
+        {
+            (*transformedCoords)[i] = osg::Vec3((*coords2)[i].x(),(*coords2)[i].y(),0.0f)*matrix;
+        }
+	transformedCoords->dirty();
+#else
         unsigned int numCoords = coords2.size();
         if (numCoords!=transformedCoords.size())
         {
@@ -195,6 +209,7 @@ void Text::computePositions(unsigned int contextID) const
         {
             transformedCoords[i] = osg::Vec3(coords2[i].x(),coords2[i].y(),0.0f)*matrix;
         }
+#endif
     }
 
     computeBackdropPositions(contextID);
