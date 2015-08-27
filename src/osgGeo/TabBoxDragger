@@ -46,11 +46,17 @@ class OSGGEO_EXPORT TabBoxDragger : public osgManipulator::CompositeDragger
 	void setPlaneColor(const osg::Vec4& color);
 
 	int getEventHandlingTabPlaneIdx() const;
+	int getCurMouseButtonModKeyIdx() const;
 
-	void set1DTranslateModKeyMaskOfPlanes(int mask);
-	void set2DTranslateModKeyMaskOfPlanes(int mask);
-	int get1DTranslateModKeyMaskOfPlanes() const;
-	int get2DTranslateModKeyMaskOfPlanes() const;
+	void set1DTranslateMouseButtonMaskOfPlanes(int mask,int idx=0);
+	int get1DTranslateMouseButtonMaskOfPlanes(int idx=0) const;
+	void set2DTranslateMouseButtonMaskOfPlanes(int mask,int idx=0);
+	int get2DTranslateMouseButtonMaskOfPlanes(int idx=0) const;
+
+	void set1DTranslateModKeyMaskOfPlanes(int mask,int idx=0);
+	int get1DTranslateModKeyMaskOfPlanes(int idx=0) const;
+	void set2DTranslateModKeyMaskOfPlanes(int mask,int idx=0);
+	int get2DTranslateModKeyMaskOfPlanes(int idx=0) const;
 
     protected:
 

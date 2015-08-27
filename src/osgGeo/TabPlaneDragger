@@ -39,19 +39,33 @@ class OSGGEO_EXPORT TabPlaneDragger : public osgManipulator::TabPlaneDragger
 
         bool isCurrentEventHandler() const;
 
-	void set1DTranslateModKeyMask(int mask)	{ _modKeyMask1D = mask; }
-	void set2DTranslateModKeyMask(int mask)	{ _modKeyMask2D = mask; }
-	int get1DTranslateModKeyMask() const	{ return _modKeyMask1D; }
-	int get2DTranslateModKeyMask() const	{ return _modKeyMask2D; }
+	int getCurMouseButtonModKeyIdx() const;
+	osg::Vec2 getNormalizedPosOnPlane() const;
+	const osg::Vec2& getNormalizedPosOnScreen() const;
+
+	void set1DTranslateMouseButtonMask(int mask,int idx=0);
+	int get1DTranslateMouseButtonMask(int idx=0) const;
+	void set2DTranslateMouseButtonMask(int mask,int idx=0);
+	int get2DTranslateMouseButtonMask(int idx=0) const;
+
+	void set1DTranslateModKeyMask(int mask,int idx=0);
+	int get1DTranslateModKeyMask(int idx=0) const;
+	void set2DTranslateModKeyMask(int mask,int idx=0);
+	int get2DTranslateModKeyMask(int idx=0) const;
 
     protected:
 
 	bool handleInternal(const osgManipulator::PointerInfo& pi, const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa);
 
-	bool convToTranslatePlaneDraggerEvent(osgGA::GUIEventAdapter&) const;
+	bool convToTranslatePlaneDraggerEvent(osgGA::GUIEventAdapter&);
 
-	int	_modKeyMask1D;
-	int	_modKeyMask2D;
+	int			_curMouseButModKeyIdx;
+	osg::Vec2		_normalizedPosOnScreen;
+
+	std::vector<int>	_mouseButMasks1D;
+	std::vector<int>	_mouseButMasks2D;
+	std::vector<int>	_modKeyMasks1D;
+	std::vector<int>	_modKeyMasks2D;
 };
 
 }

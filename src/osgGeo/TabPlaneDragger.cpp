@@ -26,9 +26,14 @@ namespace osgGeo
 
 TabPlaneDragger::TabPlaneDragger( float handleScaleFactor )
     : osgManipulator::TabPlaneDragger( handleScaleFactor )
-    , _modKeyMask1D( osgGA::GUIEventAdapter::NONE )
-    , _modKeyMask2D( osgGA::GUIEventAdapter::MODKEY_SHIFT )
+    , _curMouseButModKeyIdx( -1 )
+    , _normalizedPosOnScreen( 0.0, 0.0 )
 {
+    set1DTranslateMouseButtonMask( osgGA::GUIEventAdapter::LEFT_MOUSE_BUTTON );
+    set1DTranslateModKeyMask( osgGA::GUIEventAdapter::NONE );
+
+    set2DTranslateMouseButtonMask( osgGA::GUIEventAdapter::LEFT_MOUSE_BUTTON );
+    set2DTranslateModKeyMask( osgGA::GUIEventAdapter::MODKEY_SHIFT );
 }
 
 
@@ -97,6 +102,21 @@ bool TabPlaneDragger::isCurrentEventHandler() const
 }
 
 
+int TabPlaneDragger::getCurMouseButtonModKeyIdx() const
+{ return _curMouseButModKeyIdx; }
+
+
+osg::Vec2 TabPlaneDragger::getNormalizedPosOnPlane() const
+{
+    const osg::Vec3 localIntersecPoint = _pointer.getLocalIntersectPoint(); 
+    return osg::Vec2( localIntersecPoint[0]+0.5, localIntersecPoint[2]+0.5 );
+}
+
+
+const osg::Vec2& TabPlaneDragger::getNormalizedPosOnScreen() const
+{ return _normalizedPosOnScreen; }
+
+
 static bool isModKeyMaskMatching( osgGA::GUIEventAdapter& ea, int mask )
 {
     const int ctrl  = osgGA::GUIEventAdapter::MODKEY_CTRL;
@@ -120,28 +140,113 @@ static bool isModKeyMaskMatching( osgGA::GUIEventAdapter& ea, int mask )
 }
 
 
-bool TabPlaneDragger::convToTranslatePlaneDraggerEvent( osgGA::GUIEventAdapter& ea ) const
+bool TabPlaneDragger::convToTranslatePlaneDraggerEvent( osgGA::GUIEventAdapter& ea )
 {
-    if ( ea.getButtonMask() == osgGA::GUIEventAdapter::LEFT_MOUSE_BUTTON )
+    _normalizedPosOnScreen[0] = ea.getXnormalized();
+    _normalizedPosOnScreen[1] = ea.getYnormalized();
+
+    _curMouseButModKeyIdx = -1;
+
+    for ( int idx=0; idx<_mouseButMasks1D.size() || idx<_modKeyMasks1D.size(); idx++ )
     {
-	if ( isModKeyMaskMatching(ea,_modKeyMask1D) )
+	if ( ea.getButtonMask()==get1DTranslateMouseButtonMask(idx) &&
+	     isModKeyMaskMatching(ea,get1DTranslateModKeyMask(idx)) )
 	{
 	    // Perpendicular-to-plane translation
 	    ea.setButtonMask( osgGA::GUIEventAdapter::MIDDLE_MOUSE_BUTTON );
 	    ea.setModKeyMask( osgGA::GUIEventAdapter::NONE );
+	    _curMouseButModKeyIdx = idx;
 	    return true;
 	}
+    }
 
-	if ( isModKeyMaskMatching(ea,_modKeyMask2D) )
+    for ( int idx=0; idx<_mouseButMasks2D.size() || idx<_modKeyMasks2D.size(); idx++ )
+    {
+	if ( ea.getButtonMask()==get2DTranslateMouseButtonMask(idx) &&
+	     isModKeyMaskMatching(ea,get2DTranslateModKeyMask(idx)) )
 	{
 	    // In-plane translation
+	    ea.setButtonMask( osgGA::GUIEventAdapter::LEFT_MOUSE_BUTTON );
 	    ea.setModKeyMask( osgGA::GUIEventAdapter::NONE );
+	    _curMouseButModKeyIdx = idx;
 	    return true;
 	}
     }
 
     // Don't steal RELEASE. Otherwise Translate1DDragger is not deactivated!
     return ea.getEventType()==osgGA::GUIEventAdapter::RELEASE;
+}
+
+
+void TabPlaneDragger::set1DTranslateMouseButtonMask( int mask, int idx )
+{
+    if ( idx>=0 && idx<_mouseButMasks1D.size() )
+	_mouseButMasks1D[idx] = mask;
+    else if ( idx==_mouseButMasks1D.size() )
+	_mouseButMasks1D.push_back( mask );
+}
+
+
+int TabPlaneDragger::get1DTranslateMouseButtonMask( int idx ) const
+{
+    if ( idx>=0 && idx<_mouseButMasks1D.size() )
+	return _mouseButMasks1D[idx];
+
+    return osgGA::GUIEventAdapter::LEFT_MOUSE_BUTTON;
+}
+
+
+void TabPlaneDragger::set2DTranslateMouseButtonMask( int mask, int idx )
+{
+    if ( idx>=0 && idx<_mouseButMasks2D.size() )
+	_mouseButMasks2D[idx] = mask;
+    else if ( idx==_mouseButMasks2D.size() )
+	_mouseButMasks2D.push_back( mask );
+}
+
+
+int TabPlaneDragger::get2DTranslateMouseButtonMask( int idx ) const
+{
+    if ( idx>=0 && idx<_mouseButMasks2D.size() )
+	return _mouseButMasks2D[idx];
+
+    return osgGA::GUIEventAdapter::LEFT_MOUSE_BUTTON;
+}
+
+
+void TabPlaneDragger::set1DTranslateModKeyMask( int mask, int idx )
+{
+    if ( idx>=0 && idx<_modKeyMasks1D.size() )
+	_modKeyMasks1D[idx] = mask;
+    else if ( idx==_modKeyMasks1D.size() )
+	_modKeyMasks1D.push_back( mask );
+}
+
+
+int TabPlaneDragger::get1DTranslateModKeyMask( int idx ) const
+{
+    if ( idx>=0 && idx<_modKeyMasks1D.size() )
+	return _modKeyMasks1D[idx];
+
+    return osgGA::GUIEventAdapter::NONE;
+}
+
+
+void TabPlaneDragger::set2DTranslateModKeyMask( int mask, int idx )
+{
+    if ( idx>=0 && idx<_modKeyMasks2D.size() )
+	_modKeyMasks2D[idx] = mask;
+    else if ( idx==_modKeyMasks2D.size() )
+	_modKeyMasks2D.push_back( mask );
+}
+
+
+int TabPlaneDragger::get2DTranslateModKeyMask( int idx ) const
+{
+    if ( idx>=0 && idx<_modKeyMasks2D.size() )
+	return _modKeyMasks2D[idx];
+
+    return osgGA::GUIEventAdapter::NONE;
 }
 
 

@@ -87,29 +87,55 @@ void TabBoxDragger::setPlaneColor(const osg::Vec4& color)
 }
 
 
-void TabBoxDragger::set1DTranslateModKeyMaskOfPlanes(int mask)
+void TabBoxDragger::set1DTranslateMouseButtonMaskOfPlanes(int mask,int idx)
 {
     for (unsigned int i=0; i<_planeDraggers.size(); ++i)
-        _planeDraggers[i]->set1DTranslateModKeyMask( mask );
+        _planeDraggers[i]->set1DTranslateMouseButtonMask( mask, idx );
 }
 
 
-void TabBoxDragger::set2DTranslateModKeyMaskOfPlanes(int mask)
+int TabBoxDragger::get1DTranslateMouseButtonMaskOfPlanes(int idx) const
+{
+    return _planeDraggers[0]->get1DTranslateMouseButtonMask( idx ); 
+}
+
+
+void TabBoxDragger::set2DTranslateMouseButtonMaskOfPlanes(int mask,int idx)
 {
     for (unsigned int i=0; i<_planeDraggers.size(); ++i)
-        _planeDraggers[i]->set2DTranslateModKeyMask( mask );
+        _planeDraggers[i]->set2DTranslateMouseButtonMask( mask, idx );
 }
 
 
-int TabBoxDragger::get1DTranslateModKeyMaskOfPlanes() const
+int TabBoxDragger::get2DTranslateMouseButtonMaskOfPlanes(int idx) const
 {
-    return _planeDraggers[0]->get1DTranslateModKeyMask(); 
+    return _planeDraggers[0]->get2DTranslateMouseButtonMask( idx );
 }
 
 
-int TabBoxDragger::get2DTranslateModKeyMaskOfPlanes() const
+void TabBoxDragger::set1DTranslateModKeyMaskOfPlanes(int mask,int idx)
 {
-    return _planeDraggers[0]->get2DTranslateModKeyMask();
+    for (unsigned int i=0; i<_planeDraggers.size(); ++i)
+        _planeDraggers[i]->set1DTranslateModKeyMask( mask, idx );
+}
+
+
+int TabBoxDragger::get1DTranslateModKeyMaskOfPlanes(int idx) const
+{
+    return _planeDraggers[0]->get1DTranslateModKeyMask( idx ); 
+}
+
+
+void TabBoxDragger::set2DTranslateModKeyMaskOfPlanes(int mask,int idx)
+{
+    for (unsigned int i=0; i<_planeDraggers.size(); ++i)
+        _planeDraggers[i]->set2DTranslateModKeyMask( mask, idx );
+}
+
+
+int TabBoxDragger::get2DTranslateModKeyMaskOfPlanes(int idx) const
+{
+    return _planeDraggers[0]->get2DTranslateModKeyMask( idx );
 }
 
 
@@ -121,6 +147,13 @@ int TabBoxDragger::getEventHandlingTabPlaneIdx() const
 	    return i;
     }
     return -1;
+}
+
+
+int TabBoxDragger::getCurMouseButtonModKeyIdx() const
+{
+    const int i = getEventHandlingTabPlaneIdx();
+    return i>=0 ? _planeDraggers[i]->getCurMouseButtonModKeyIdx() : -1;
 }
 
 
