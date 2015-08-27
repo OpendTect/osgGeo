@@ -25,7 +25,6 @@ $Id$
 #include <osg/Geode>
 #include <osg/Node>
 #include <osgGA/GUIEventHandler>
-#include <osg/Version>
 
 namespace osg { class Geode; class NodeVisitor;
 		class Geometry; class Material; class Camera; }
@@ -39,7 +38,8 @@ class OSGGEO_EXPORT PolygonSelection : public osg::Node
 {
 public:
 			    PolygonSelection();
-
+			    PolygonSelection(const PolygonSelection&,
+			    const osg::CopyOp& op = osg::CopyOp::DEEP_COPY_ALL);
     bool		    setEventHandlerCamera(osg::Camera*,bool handleAfterScene=true);
 
     void		    setHUDCamera(osg::Camera*);
@@ -62,9 +62,6 @@ public:
     void		    clear();
     void		    accept(osg::NodeVisitor&);
 
-    void		    setMinRadiusInPixels(float mr) { _minRadius = mr; }
-    float		    getMinRadiusInPixels() const { return _minRadius; }
-
 protected:
 
     friend class	    PolygonSelectionEventHandler;
@@ -81,11 +78,7 @@ protected:
     
 
     PolygonSelectionEventHandler*	_eventHandler;
-#if OSG_MIN_VERSION_REQUIRED(3,3,2)
-    osg::ref_ptr<osg::Callback>		_callback;
-#else
     osg::ref_ptr<osg::NodeCallback>	_callback;
-#endif
     osg::ref_ptr<osg::Geode>		_geode;
     osg::Geometry*			_lineGeometry;
     osg::Camera*			_masterCamera;
@@ -99,7 +92,6 @@ protected:
     bool                                _ison;
     bool                                _isDrawing;
     osg::BoundingBox	                _bbox;
-    float				_minRadius;
 };
 
 } // osgGeo

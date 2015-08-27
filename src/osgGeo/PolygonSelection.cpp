@@ -79,13 +79,36 @@ PolygonSelection::PolygonSelection()
     , _eventHandler(0) 
     , _isDrawing(false)
     , _hudCamera(0)
-    , _minRadius(2.5)
 {
     _lineGeometry->setVertexArray(_coords);
     _lineGeometry->addPrimitiveSet(_coordsList);
     _geode->addDrawable(_lineGeometry);
     setColor(osg::Vec4(1,0,0,1));
     _bbox.init();
+}
+
+
+PolygonSelection::PolygonSelection(const PolygonSelection& sel,const osg::CopyOp& op)
+    : _geode(0)
+    , _ison(true)
+    , _lineGeometry(0)
+    , _coords(0)
+    , _coordsList(0)
+    , _shapeType(Polygon)
+    , _callback(0)
+    , _material(0)
+    , _zcoord(0)
+    , _masterCamera(0)
+    , _eventHandler(0)
+    , _isDrawing(false)
+    , _hudCamera(0)
+{
+    _geode = (osg::Geode*)sel._geode->clone(op);
+    _lineGeometry = (osg::Geometry*)sel._lineGeometry->clone(op);
+    _coords = (osg::Vec3Array*)sel._coords->clone(op);
+    _coordsList = (osg::DrawArrays*)sel._coordsList->clone(op);
+    _masterCamera = (osg::Camera*)sel._masterCamera->clone(op);
+    _hudCamera = (osg::Camera*)sel._hudCamera->clone(op);
 }
 
 
@@ -217,8 +240,8 @@ bool PolygonSelection::handleEvent(const osgGA::GUIEventAdapter& ea)
 
     const osg::Vec3 mousepos(ea.getX(),ea.getY(),_zcoord);
 
-    if (ea.getEventType()==osgGA::GUIEventAdapter::PUSH 
-	&& ea.getButton()==osgGA::GUIEventAdapter::LEFT_MOUSE_BUTTON)
+    if (ea.getEventType()==osgGA::GUIEventAdapter::PUSH && 
+	ea.getButton()==osgGA::GUIEventAdapter::LEFT_MOUSE_BUTTON)
     {
 	clear();
 
@@ -234,6 +257,7 @@ bool PolygonSelection::handleEvent(const osgGA::GUIEventAdapter& ea)
 	    _coords->resize(4);
 	    (*_coords)[0] = mousepos;
 	}
+	setLatestMousePoints(mousepos);
 	return true;
     }
 
@@ -251,21 +275,13 @@ bool PolygonSelection::handleEvent(const osgGA::GUIEventAdapter& ea)
 	&& ea.getButton()==osgGA::GUIEventAdapter::LEFT_MOUSE_BUTTON)
     {
 	_isDrawing = false;
-
-	const float radius = _bbox.valid() ? _bbox.radius() : 0.0;
-	if ( radius<_minRadius )
-	{
-	    clear();
-	    return false;
-	}
-
-	osg::NodeCallback* nodecb = dynamic_cast<osg::NodeCallback*>( _callback.get() );
-	if ( nodecb )
+	bool ispolygon = _coords->size()>2;
+	if (_callback)
 	{
 	    osg::NodeVisitor nv;
-	    (*nodecb)( this, &nv );
+	    ( *_callback )(this,&nv);
 	}
-	return true;
+	return ispolygon;
     }
    
     return false;
@@ -385,6 +401,5 @@ void PolygonSelection::removeCallBack(osg::NodeCallback *nc)
     else
 	_callback->removeNestedCallback(nc);
 }
-
 
 } // osgGeo
