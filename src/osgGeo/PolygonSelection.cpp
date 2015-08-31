@@ -276,10 +276,12 @@ bool PolygonSelection::handleEvent(const osgGA::GUIEventAdapter& ea)
     {
 	_isDrawing = false;
 	bool ispolygon = _coords->size()>2;
-	if (_callback)
+	osg::NodeCallback* nodecb = dynamic_cast<osg::NodeCallback*>( 
+							    _callback.get() );
+	if ( nodecb )
 	{
 	    osg::NodeVisitor nv;
-	    ( *_callback )(this,&nv);
+	    (*nodecb)( this, &nv );
 	}
 	return ispolygon;
     }
