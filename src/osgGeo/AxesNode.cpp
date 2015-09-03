@@ -185,12 +185,10 @@ static osg::ref_ptr<osg::Node> arrowNode( const float rad, const float len,const
 
     osg::ref_ptr<osg::Geode> arrowgeode = new osg::Geode();
     osg::ref_ptr<osg::Material> mat = new osg::Material;
-    const float fac = 0.3f;
-    osg::Vec4 ambcolor(color.r()*fac, color.g()*fac, color.b()*fac, 1.0f);
-    mat->setDiffuse(osg::Material::FRONT, color);
-    mat->setAmbient(osg::Material::FRONT, ambcolor);
-    arrowgeode->getOrCreateStateSet()->setAttribute(mat);
+    const float fac = 1.5f;
+    mat->setDiffuse(osg::Material::FRONT, color*fac);
     arrowgeode->addDrawable(arrowgeometry);
+    arrowgeode->getOrCreateStateSet()->setAttribute(mat);
    
     osg::ref_ptr<osg::Geode> textgeode = new osg::Geode();
     osg::ref_ptr<osgText::Text> annot = new  osgText::Text;
@@ -218,7 +216,7 @@ bool AxesNode::updateGeometry()
     osg::Vec4 red(1,0,0,1), green(0,1,0,1), blue(0,0.55,1,1), yellow(1,1,0,1);
     
     osg::ref_ptr<osg::Material> mat = new osg::Material;
-    mat->setDiffuse(osg::Material::FRONT, yellow);
+    mat->setDiffuse(osg::Material::FRONT, yellow*1.5);
     osg::ref_ptr<osg::ShapeDrawable> sphere = 
 	new osg::ShapeDrawable(new osg::Sphere(osg::Vec3f(0,0,0),_radius*0.75f));
     osg::ref_ptr<osg::Geode> spheregeode = new osg::Geode();

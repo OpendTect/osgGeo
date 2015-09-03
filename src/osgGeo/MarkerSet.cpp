@@ -107,7 +107,7 @@ bool MarkerSet::updateShapes()
     _nonShadingSwitch->removeChildren(0, _nonShadingSwitch->getNumChildren());
 
     osg::ref_ptr<osg::Material> material = new osg::Material;
-    material->setColorMode(osg::Material::DIFFUSE);
+    material->setColorMode(osg::Material::AMBIENT_AND_DIFFUSE);
 
     for (unsigned int idx=0;idx<_vertexArr->size();idx++)
     {
