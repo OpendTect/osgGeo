@@ -145,7 +145,8 @@ bool TabPlaneDragger::convToTranslatePlaneDraggerEvent( osgGA::GUIEventAdapter& 
     _normalizedPosOnScreen[0] = ea.getXnormalized();
     _normalizedPosOnScreen[1] = ea.getYnormalized();
 
-    _curMouseButModKeyIdx = -1;
+    if ( ea.getEventType()==osgGA::GUIEventAdapter::RELEASE )
+	_curMouseButModKeyIdx = -1;
 
     for ( int idx=0; idx<_mouseButMasks1D.size() || idx<_modKeyMasks1D.size(); idx++ )
     {
@@ -155,7 +156,10 @@ bool TabPlaneDragger::convToTranslatePlaneDraggerEvent( osgGA::GUIEventAdapter& 
 	    // Perpendicular-to-plane translation
 	    ea.setButtonMask( osgGA::GUIEventAdapter::MIDDLE_MOUSE_BUTTON );
 	    ea.setModKeyMask( osgGA::GUIEventAdapter::NONE );
-	    _curMouseButModKeyIdx = idx;
+
+	    if ( ea.getEventType()==osgGA::GUIEventAdapter::PUSH )
+		_curMouseButModKeyIdx = idx;
+
 	    return true;
 	}
     }
@@ -169,6 +173,10 @@ bool TabPlaneDragger::convToTranslatePlaneDraggerEvent( osgGA::GUIEventAdapter& 
 	    ea.setButtonMask( osgGA::GUIEventAdapter::LEFT_MOUSE_BUTTON );
 	    ea.setModKeyMask( osgGA::GUIEventAdapter::NONE );
 	    _curMouseButModKeyIdx = idx;
+
+	    if ( ea.getEventType()==osgGA::GUIEventAdapter::PUSH )
+		_curMouseButModKeyIdx = idx;
+
 	    return true;
 	}
     }
