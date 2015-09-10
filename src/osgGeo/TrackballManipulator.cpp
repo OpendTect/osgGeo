@@ -77,13 +77,16 @@ TrackballManipulator::TrackballManipulator(int flags)
     , _onlyUseLeftButtonForAllMovement(false)
     , _alsoUseLeftButtonForAllMovement(false)
     , _isDiscreteZooming(false)
-{}
+{
+    enableDragging( true );
+}
 
 
 TrackballManipulator::TrackballManipulator(const TrackballManipulator& tm, const osg::CopyOp& copyOp)
     : osgGA::MultiTouchTrackballManipulator(tm, copyOp)
     , osg::Object(tm, copyOp)	// needs explicit init in copy constructor because of [-Wextra] warning
     , _dragEnabled(tm._dragEnabled)
+    , _dragMouseButMask(tm._dragMouseButMask)
     , _keyHandlingEnabled(true)
     , _boundTraversalMask(tm._boundTraversalMask)
     , _viewallMargin(tm._viewallMargin)
@@ -105,6 +108,20 @@ TrackballManipulator::TrackballManipulator(const TrackballManipulator& tm, const
 
 TrackballManipulator::~TrackballManipulator()
 {}
+
+
+void TrackballManipulator::enableDragging( bool yn )
+{
+    _dragMouseButMask = osgGA::GUIEventAdapter::LEFT_MOUSE_BUTTON |
+			osgGA::GUIEventAdapter::MIDDLE_MOUSE_BUTTON |
+			osgGA::GUIEventAdapter::RIGHT_MOUSE_BUTTON;
+    if ( !yn )
+	_dragMouseButMask = osgGA::GUIEventAdapter::NONE;
+}
+
+
+void TrackballManipulator::enableDragging( int mouseButtonMask )
+{ _dragMouseButMask = mouseButtonMask; }
 
 
 osg::Matrixd TrackballManipulator::computePerspectiveProjectionFromOrtho(const osg::Camera& camera) const
@@ -297,7 +314,7 @@ osg::Matrix TrackballManipulator::getInverseMatrix(const osg::Vec3d& center,
 
 void TrackballManipulator::notifyMappedMouseButtonEvents(const osgGA::GUIEventAdapter& ea)
 {
-    if ( ea.getHandled() )
+    if ( ea.getHandled() || !_dragEnabled )
 	return; 
 
     if ( ea.getEventType()!=osgGA::GUIEventAdapter::PUSH && ea.getEventType()!=osgGA::GUIEventAdapter::RELEASE )
@@ -335,7 +352,8 @@ void TrackballManipulator::notifyMappedMouseButtonEvents(const osgGA::GUIEventAd
 
 bool TrackballManipulator::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa)
 {
-    _currentModKeyMask = ea.getModKeyMask();
+    if ( ea.getEventType()==osgGA::GUIEventAdapter::PUSH )
+	_currentModKeyMask = ea.getModKeyMask();
 
     if ( ea.getEventType()==osgGA::GUIEventAdapter::FRAME )
     {
@@ -359,6 +377,9 @@ bool TrackballManipulator::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIAc
     }
     else
     {
+	if ( ea.getButton() )
+	    _dragEnabled = ea.getButton() & _dragMouseButMask;
+
 	_touchEventView = 0;
 	if ( !_dragEnabled && ea.getEventType()==osgGA::GUIEventAdapter::DRAG )
 	    return false;
