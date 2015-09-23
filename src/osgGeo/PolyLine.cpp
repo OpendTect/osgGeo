@@ -185,18 +185,22 @@ bool PolyLineNode::isCameraChanged(const osgUtil::CullVisitor* cv)
 {
     if( !cv )
 	return false;
-  
-    const osg::Camera* camera =
-	const_cast<osgUtil::CullVisitor*>(cv)->getCurrentCamera();
-    osg::Matrix curviewmatrix = camera->getViewMatrix();
-    bool ischanged = false;
-    if (_viewMatrix != curviewmatrix)
+
+    const double eps = 0.002f;
+#define mIsNotEqual(v1,v2) \
+	    (abs(v1-v2) > eps)
+
+    
+    bool isChanged = false;
+    const float pixsz = abs( cv->pixelSize(_bbox.center(),1.0f) );
+
+    if ( mIsNotEqual(_pixsz,pixsz) )
     {
-	ischanged = true;
-	_viewMatrix = curviewmatrix;
+	_pixsz = pixsz;
+	isChanged = true;
     }
    
-    return ischanged;
+    return isChanged;
 }
 
 

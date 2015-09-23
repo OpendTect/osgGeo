@@ -57,26 +57,30 @@ public:
     void		clearAll();
 
 protected:
+   
     virtual		~PolyLineNode();
     bool		updateGeometry();
     void		reScaleCoordinates(const osgUtil::CullVisitor*);
     bool		isCameraChanged(const osgUtil::CullVisitor*);
     bool		needsUpdate() const;
+    
     void		getOrthoVecs(const osg::Vec3&,osg::Vec3&,osg::Vec3&) const;
     void		buildA3DLineStrip(osg::DrawElementsUInt*,osg::Vec3Array*,
 			osg::Vec3Array*,int pidx0,int pidx1,int pidx2,bool doonce);
+    
     osg::BoundingSphere	computeBound() const;
-    void			 touch();
-    void			 setUpdateFlag(bool);  
+    void		touch();
+    void		setUpdateFlag(bool);  
 
     float			_radius;
     int				_resolution;
     osg::BoundingBox		_bbox;
 
-    osg::Matrix			 _viewMatrix;
-    bool			 _needsUpdate;
-    bool			 _isGeometryChanged;
-    bool			 _screenSizeScaling;
+    bool			_needsUpdate;
+    bool			_isGeometryChanged;
+    bool			_screenSizeScaling;
+    float			_pixsz;
+
     
     unsigned int                 _arrayModifiedCount;
     std::vector<unsigned int>	 _primitivesetModCount;
