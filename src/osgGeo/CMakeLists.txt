@@ -24,8 +24,29 @@ if ( WIN32 )
 endif()
 
 if ( UNIX )
-    add_definitions( "-DGL_HEADER_HAS_GLUINT64" )
-    add_definitions( "-DGL_HEADER_HAS_GLINT64" )
+    include (CheckCXXSourceCompiles)
+
+    check_cxx_source_compiles(
+	"${OPENGL_HEADER1}
+	${OPENGL_HEADER2}
+	int main() { GLint64 test; return 0; }"
+	GL_HEADER_HAS_GLINT64
+    )
+
+    check_cxx_source_compiles(
+	"${OPENGL_HEADER1}
+	${OPENGL_HEADER2}
+	int main() { GLuint64 test; return 0; }"
+	GL_HEADER_HAS_GLUINT64
+    )
+
+    if ( GL_HEADER_HAS_GLINT64  EQUAL 1 )
+	add_definitions( "-DGL_HEADER_HAS_GLINT64" )
+    endif() 
+
+    if ( OD_GL_HEADER_HAS_GLUINT64 EQUAL 1 )
+	add_definitions( "-DGL_HEADER_HAS_GLUINT64" )
+    endif()
 endif()
 
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/..
