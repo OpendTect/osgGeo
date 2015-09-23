@@ -29,14 +29,14 @@ if ( UNIX )
     check_cxx_source_compiles(
 	"${OPENGL_HEADER1}
 	${OPENGL_HEADER2}
-	int main() { GLint64 test; return 0; }"
+	int main() { GLint64 test = 2; return (int) test; }"
 	GL_HEADER_HAS_GLINT64
     )
 
     check_cxx_source_compiles(
 	"${OPENGL_HEADER1}
 	${OPENGL_HEADER2}
-	int main() { GLuint64 test; return 0; }"
+	int main() { GLuint64 test = 2; return (int) test; }"
 	GL_HEADER_HAS_GLUINT64
     )
 
