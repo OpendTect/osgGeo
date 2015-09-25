@@ -188,11 +188,11 @@ bool PolyLineNode::isCameraChanged(const osgUtil::CullVisitor* cv)
 
     const double eps = 0.002f;
 #define mIsNotEqual(v1,v2) \
-	    (abs(v1-v2) > eps)
+	    (fabs(v1-v2) > eps)
 
     
     bool isChanged = false;
-    const float pixsz = abs( cv->pixelSize(_bbox.center(),1.0f) );
+    const float pixsz = fabs( cv->pixelSize(_bbox.center(),1.0f) );
 
     if ( mIsNotEqual(_pixsz,pixsz) )
     {
