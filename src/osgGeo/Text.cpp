@@ -182,12 +182,20 @@ void Text::computePositions(unsigned int contextID) const
         titr!=_textureGlyphQuadMap.end();
         ++titr)
     {
+
         GlyphQuads& glyphquad = titr->second;
         GlyphQuads::Coords2& coords2 = glyphquad._coords;
-        GlyphQuads::Coords3& transformedCoords = glyphquad._transformedCoords[contextID];
+
 
 #if OSG_MIN_VERSION_REQUIRED(3,3,4)
-        unsigned int numCoords = coords2->size();
+	
+	if (contextID>=glyphquad._transformedCoords.size())
+            continue;
+        
+        GlyphQuads::Coords3& transformedCoords = glyphquad._transformedCoords[contextID];
+        if (!transformedCoords) transformedCoords = new osg::Vec3Array;
+        
+	unsigned int numCoords = coords2->size();
         if (numCoords!=transformedCoords->size())
         {
             transformedCoords->resize(numCoords);
@@ -199,6 +207,7 @@ void Text::computePositions(unsigned int contextID) const
         }
 	transformedCoords->dirty();
 #else
+	GlyphQuads::Coords3& transformedCoords = glyphquad._transformedCoords[contextID];
         unsigned int numCoords = coords2.size();
         if (numCoords!=transformedCoords.size())
         {
