@@ -144,6 +144,8 @@ class OSGGEO_EXPORT TrackballManipulator : public osgGA::MultiTouchTrackballMani
 	double				_fovy;
 	bool				_isDiscreteZooming;
 
+        osg::Vec2f                      _lastKnownMousePos;
+
 	osg::Vec2d		        _touchZoomCenter;
 	osg::View*			_touchEventView;
 

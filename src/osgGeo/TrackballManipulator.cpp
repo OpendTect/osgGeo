@@ -77,6 +77,7 @@ TrackballManipulator::TrackballManipulator(int flags)
     , _onlyUseLeftButtonForAllMovement(false)
     , _alsoUseLeftButtonForAllMovement(false)
     , _isDiscreteZooming(false)
+    , _lastKnownMousePos(-1,-1)
 {
     enableDragging( true );
 }
@@ -103,6 +104,7 @@ TrackballManipulator::TrackballManipulator(const TrackballManipulator& tm, const
     , _onlyUseLeftButtonForAllMovement(false)
     , _alsoUseLeftButtonForAllMovement(false)
     , _isDiscreteZooming(false)
+    , _lastKnownMousePos(-1,-1)
 {}
 
 
@@ -352,6 +354,11 @@ void TrackballManipulator::notifyMappedMouseButtonEvents(const osgGA::GUIEventAd
 
 bool TrackballManipulator::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa)
 {
+    if ( ea.getEventType()==osgGA::GUIEventAdapter::MOVE && !ea.isMultiTouchEvent() )
+    {
+        _lastKnownMousePos = osg::Vec2( ea.getX(), ea.getY() );
+    }
+    
     if ( ea.getEventType()==osgGA::GUIEventAdapter::PUSH )
 	_currentModKeyMask = ea.getModKeyMask();
 
@@ -585,8 +592,10 @@ bool TrackballManipulator::handleMouseWheelZoomIn(const osgGA::GUIEventAdapter& 
                                                    osgGA::GUIActionAdapter& us)
 {
     osg::Vec3d intersectionPos;
-    const osg::Vec2d zoomcenter(ea.getX(), ea.getY());
-    if ( !getZoomCenterIntersectionPoint(us.asView(),zoomcenter,intersectionPos) )
+    if ( _lastKnownMousePos.x()<0 || _lastKnownMousePos.y()<0 )
+        return false;
+    
+    if ( !getZoomCenterIntersectionPoint(us.asView(),_lastKnownMousePos,intersectionPos) )
         return false;
 
     return zoomIn(intersectionPos,fabs(_wheelZoomFactor));
