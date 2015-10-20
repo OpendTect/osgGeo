@@ -3310,137 +3310,204 @@ bool LayeredTexture::areUndefLayersInverted() const
 class CompositeTextureTask : public osg::Referenced, public OpenThreads::Thread
 {
 public:
-			CompositeTextureTask(const LayeredTexture& lt,
-				    osg::Image& image,osg::Vec4f& borderCol,
-				    const std::vector<LayerProcess*>& procs,
-				    float minOpacity,bool dummyTexture,
-				    pixel_int startNr,pixel_int stopNr,
-				    OpenThreads::BlockCount& ready)
-			    : _lt( lt )
-			    , _image( image )
-			    , _borderColor( borderCol )
-			    , _processList( procs )
-			    , _minOpacity( minOpacity )
-			    , _dummyTexture( dummyTexture )
-			    , _start( startNr>=0 ? startNr : 0 )
-			    , _stop( stopNr<=image.s()*image.t() ? stopNr : image.s()*image.t() )
-			    , _readyCount( ready )
-			{}
 
-			~CompositeTextureTask()
-			{
-			    while( isRunning() )
-				OpenThreads::Thread::YieldCurrentThread();
+   void			set(const LayeredTexture* lt,
+			    osg::Image* image,osg::Vec4f& borderCol,
+			    const std::vector<LayerProcess*>& procs,
+			    float minOpacity,bool dummyTexture,
+			    pixel_int startNr,pixel_int stopNr,
+			    OpenThreads::BlockCount& ready)
+       			{
+			    _lock.lock();
+			    _lt = lt;
+			    _image = image;
+			    _borderColor = &borderCol;
+			    _processList = &procs;
+			    _minOpacity = minOpacity;
+			    _dummyTexture = dummyTexture;
+			    _start = startNr>=0 ? startNr : 0;
+			    _stop = stopNr<=image->s()*image->t() ? stopNr : image->s()*image->t();
+			    _readyCount = &ready;
+                	    _cond.signal();
+			    _lock.unlock();
 			}
 
     void		run();
 
+    static osg::ref_ptr<CompositeTextureTask>	getTask();
+    static void					returnTask(CompositeTextureTask*);
+
 protected:
 
-    const LayeredTexture&		_lt;
+			CompositeTextureTask() : _stopflag( 0 ), _lt( 0 ) {}
+			~CompositeTextureTask()
+			{
+			   _lock.lock();
+			   _stopflag = true;
+			   _cond.signal();
+			   _lock.unlock();
+
+			    while( isRunning() )
+				OpenThreads::Thread::YieldCurrentThread();
+			}
+
+
+    const LayeredTexture*		_lt;
     bool				_dummyTexture;
-    osg::Image&				_image;
-    osg::Vec4f&				_borderColor;
-    const std::vector<LayerProcess*>&	_processList;
+    osg::Image*				_image;
+    osg::Vec4f*				_borderColor;
+    const std::vector<LayerProcess*>*	_processList;
     float				_minOpacity;
     pixel_int				_start;
     pixel_int				_stop;
-    OpenThreads::BlockCount&		_readyCount;
+    OpenThreads::BlockCount*		_readyCount;
+
+    OpenThreads::Condition		_cond;
+    OpenThreads::Mutex			_lock;
+    bool				_stopflag;
+
+    static std::vector<osg::ref_ptr<CompositeTextureTask> >	_tasks;
+    static OpenThreads::Mutex					_tasklock;
 };
 
+std::vector<osg::ref_ptr<CompositeTextureTask> > CompositeTextureTask::_tasks;
+OpenThreads::Mutex CompositeTextureTask::_tasklock;
+
+osg::ref_ptr<CompositeTextureTask> CompositeTextureTask::getTask()
+{
+    osg::ref_ptr<CompositeTextureTask> res = 0;
+    _tasklock.lock();
+    if ( _tasks.size() )
+    {
+        res = _tasks.back();
+        _tasks.pop_back();
+    }
+    _tasklock.unlock();
+    if ( !res )
+    {
+        res = new CompositeTextureTask;
+        res->start();
+    }
+
+    return res;
+}
+
+
+void CompositeTextureTask::returnTask(CompositeTextureTask *task )
+{
+    _tasklock.lock();
+    _tasks.push_back( task );
+    _tasklock.unlock();
+}
 
 void CompositeTextureTask::run()
 {
-    const int idx = _lt.getDataLayerIndex( _lt._compositeLayerId );
-    const osg::Vec2f& origin = _lt._dataLayers[idx]->_origin;
-    const osg::Vec2f& scale = _lt._dataLayers[idx]->_scale;
-
-    const LayeredTextureData* udfLayer = 0;
-    const int udfIdx = _lt.getDataLayerIndex( _lt._stackUndefLayerId );
-    if ( udfIdx>=0 )
-	udfLayer = _lt._dataLayers[udfIdx];
-
-    const osg::Vec4f& udfColor = _lt._stackUndefColor;
-    const int udfChannel = _lt._stackUndefChannel;
-    float udf = 0.0f;
-
-    std::vector<LayerProcess*>::const_reverse_iterator it;
-    unsigned char* imagePtr = _image.data() + _start*4;
-    const int width = _image.s();
-    const pixel_int nrImagePixels = width * _image.t();
-
-    for ( pixel_int pixelNr=_start; pixelNr<=_stop; pixelNr++ ) 
+    _lock.lock();
+    while ( !_stopflag )
     {
-	osg::Vec2f globalCoord( origin.x()+scale.x()*(pixelNr%width+0.5),
-				origin.y()+scale.y()*(pixelNr/width+0.5) );
+        while ( !_stopflag && !_lt )
+	    _cond.wait( &_lock );
 
-	osg::Vec4f fragColor( -1.0f, -1.0f, -1.0f, -1.0f );
+        if ( _stopflag || !_lt )
+            continue;
 
-	if ( udfLayer && !_dummyTexture )
+	const int idx = _lt->getDataLayerIndex( _lt->_compositeLayerId );
+	const osg::Vec2f& origin = _lt->_dataLayers[idx]->_origin;
+	const osg::Vec2f& scale = _lt->_dataLayers[idx]->_scale;
+
+	const LayeredTextureData* udfLayer = 0;
+	const int udfIdx = _lt->getDataLayerIndex( _lt->_stackUndefLayerId );
+	if ( udfIdx>=0 )
+	    udfLayer = _lt->_dataLayers[udfIdx];
+
+	const osg::Vec4f& udfColor = _lt->_stackUndefColor;
+	const int udfChannel = _lt->_stackUndefChannel;
+	float udf = 0.0f;
+
+	std::vector<LayerProcess*>::const_reverse_iterator it;
+	unsigned char* imagePtr = _image->data() + _start*4;
+	const int width = _image->s();
+	const pixel_int nrImagePixels = width * _image->t();
+
+	for ( pixel_int pixelNr=_start; pixelNr<=_stop; pixelNr++ )
 	{
-	    udf = udfLayer->getTextureVec(globalCoord)[udfChannel];
-	    if ( _lt._invertUndefLayers )
-		udf = 1.0-udf;
-	}
+	    osg::Vec2f globalCoord( origin.x()+scale.x()*(pixelNr%width+0.5),
+				    origin.y()+scale.y()*(pixelNr/width+0.5) );
 
-	if ( udf<1.0 )
-	{
-	    for ( it=_processList.rbegin(); it!=_processList.rend(); it++ )
+	    osg::Vec4f fragColor( -1.0f, -1.0f, -1.0f, -1.0f );
+
+	    if ( udfLayer && !_dummyTexture )
 	    {
-		(*it)->doProcess( fragColor, udf, globalCoord );
-
-		if ( fragColor[3]>=1.0f )
-		    break;
+		udf = udfLayer->getTextureVec(globalCoord)[udfChannel];
+		if ( _lt->_invertUndefLayers )
+		    udf = 1.0-udf;
 	    }
 
-	    if ( _dummyTexture )
-		fragColor = osg::Vec4f( 0.0f, 0.0f, 0.0f, 0.0f );
-	    else if ( fragColor[0]==-1.0f )
-		fragColor = osg::Vec4f( 1.0f, 1.0f, 1.0f, _minOpacity );
-	}
-
-	if ( udf>=1.0f )
-	    fragColor = udfColor;
-	else if ( udf>0.0 )
-	{
-	    if ( udfColor[3]<=0.0f )
-		fragColor[3] *= 1.0f-udf;
-	    else if ( udfColor[3]>=1.0f && fragColor[3]>=1.0f )
-		fragColor = fragColor*(1.0f-udf) + udfColor*udf;
-	    else if ( fragColor[3]>0.0f )
+	    if ( udf<1.0 )
 	    {
-		const float a = fragColor[3]*(1.0f-udf);
-		const float b = udfColor[3]*udf;
-		fragColor = (fragColor*a + udfColor*b) / (a+b);
-		fragColor[3] = a+b;
+		for ( it=_processList->rbegin(); it!=_processList->rend(); it++ )
+		{
+		    (*it)->doProcess( fragColor, udf, globalCoord );
+
+		    if ( fragColor[3]>=1.0f )
+			break;
+		}
+
+		if ( _dummyTexture )
+		    fragColor = osg::Vec4f( 0.0f, 0.0f, 0.0f, 0.0f );
+		else if ( fragColor[0]==-1.0f )
+		    fragColor = osg::Vec4f( 1.0f, 1.0f, 1.0f, _minOpacity );
+	    }
+
+	    if ( udf>=1.0f )
+		fragColor = udfColor;
+	    else if ( udf>0.0 )
+	    {
+		if ( udfColor[3]<=0.0f )
+		    fragColor[3] *= 1.0f-udf;
+		else if ( udfColor[3]>=1.0f && fragColor[3]>=1.0f )
+		    fragColor = fragColor*(1.0f-udf) + udfColor*udf;
+		else if ( fragColor[3]>0.0f )
+		{
+		    const float a = fragColor[3]*(1.0f-udf);
+		    const float b = udfColor[3]*udf;
+		    fragColor = (fragColor*a + udfColor*b) / (a+b);
+		    fragColor[3] = a+b;
+		}
+		else
+		{
+		    fragColor = udfColor;
+		    fragColor[3] *= udf;
+		}
+	    }
+
+	    if ( fragColor[3]<0.5f/255.0f )
+		fragColor = osg::Vec4f( 0.0f, 0.0f, 0.0f, 0.0f );
+
+	    if ( pixelNr<nrImagePixels )
+	    {
+		fragColor *= 255.0f;
+		for ( int tc=0; tc<4; tc++ )
+		{
+		    int val = (int) floor( fragColor[tc]+0.5 );
+		    val = val<=0 ? 0 : (val>=255 ? 255 : val);
+
+		    *imagePtr = (unsigned char) val;
+		    imagePtr++;
+		}
 	    }
 	    else
-	    {
-		fragColor = udfColor;
-		fragColor[3] *= udf;
-	    }
+		*_borderColor = fragColor;
 	}
 
-	if ( fragColor[3]<0.5f/255.0f )
-	    fragColor = osg::Vec4f( 0.0f, 0.0f, 0.0f, 0.0f );
-
-	if ( pixelNr<nrImagePixels )
-	{
-	    fragColor *= 255.0f;
-	    for ( int tc=0; tc<4; tc++ )
-	    {
-		int val = (int) floor( fragColor[tc]+0.5 );
-		val = val<=0 ? 0 : (val>=255 ? 255 : val);
-
-		*imagePtr = (unsigned char) val;
-		imagePtr++;
-	    }
-	}
-	else
-	    _borderColor = fragColor;
+	// Order is important here, as we must return task before we update
+	//read-count, as we may be deleted otherwise
+    	_lt = 0;
+	returnTask( this );
+	_readyCount->completed();
     }
 
-    _readyCount.completed();
+    _lock.unlock();
 }
 
 
@@ -3523,10 +3590,10 @@ void LayeredTexture::createCompositeTexture( bool dummyTexture, bool triggerProg
 	else
 	    stop--;
 
-	osg::ref_ptr<CompositeTextureTask> task = new CompositeTextureTask( *this, *image, borderColor, processList, minOpacity, dummyTexture, start, stop, readyCount );
+	osg::ref_ptr<CompositeTextureTask> task = CompositeTextureTask::getTask();
+	task->set( this, image, borderColor, processList, minOpacity, dummyTexture, start, stop, readyCount );
 
 	tasks.push_back( task.get() );
-	task->start();
 
 	start = stop+1;
     }
