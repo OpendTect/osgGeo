@@ -56,7 +56,7 @@ bool Line3::intersectWith( const osg::Plane& plane, float& t ) const
 
 osg::Vec3 Line3::getInterSectionPoint( const osg::Plane& plane ) const
 {
-    float intercept;
+    float intercept = 0;
     intersectWith( plane, intercept );
     return getPositionOnLine( intercept );
 }

@@ -65,8 +65,9 @@ protected:
     bool		needsUpdate() const;
     
     void		getOrthoVecs(const osg::Vec3&,osg::Vec3&,osg::Vec3&) const;
-    void		buildA3DLineStrip(osg::DrawElementsUInt*,osg::Vec3Array*,
-			osg::Vec3Array*,int pidx0,int pidx1,int pidx2,bool doonce);
+    bool		buildA3DLineStrip(osg::Vec3Array&,
+			    osg::Vec3Array&,int pidx0,bool first,bool last);
+    void		addCap(const osg::Vec3& p,const osg::Vec3Array& cornerpoints,const osg::Vec3& norm);
     
     osg::BoundingSphere	computeBound() const;
     void		touch();
