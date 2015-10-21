@@ -209,29 +209,14 @@ void PolyLineNode::reScaleCoordinates(const osgUtil::CullVisitor* cv)
     if ( !cv )
 	return;
 
-#define mScaleCoord \
-    const osg::Vec3& coord = _unScaledGeomCoords->at(idx); \
-    const float factor = cv->pixelSize( coord, 1.0f ); \
-    (*_geom3DCoords)[idx] = coord + _geom3DNormals->at(idx)*_radius/factor; \
-
-    for (unsigned int idx=0;idx<_geom3DCoords->size();idx++)
+    for ( unsigned int idx=0; idx<_geom3DCoords->size(); idx++)
     {
-	const int res = _resolution * 2;
-	if (idx<_geom3DCoords->size()-res)
-	{
-	    if (_capflags[ idx ] == true)
-	    {
-		for (int idy=0; idy<=res; idy+=2)
-		    (*_geom3DCoords)[idx+idy] = (*_geom3DCoords)[idx+res+idy+1];
-		idx += res;
-		continue;
-	    }
-	    else
-	    {
-		mScaleCoord
-	    }
-	}
-	mScaleCoord
+	if ( _capflags[idx] )
+	    continue;
+
+	const osg::Vec3& coord = _unScaledGeomCoords->at(idx);
+	const float factor = cv->pixelSize(coord,1.0f);
+	    (*_geom3DCoords )[idx] = coord + _geom3DNormals->at(idx)*_radius/factor;
     }
     _geometry->dirtyDisplayList();
  }
@@ -318,23 +303,12 @@ void PolyLineNode::clearAll()
 #define mAddVertex(vec,pos)\
     _geom3DCoords ->push_back(vec); \
     _capflags.push_back(false);\
-    norm = vec - pos; \
-    norm.normalize();\
-    _geom3DNormals->push_back(norm); \
-    triindices->push_back(_geom3DCoords->size()-1); \
-    _bbox.expandBy(pos); \
-
-
-#define mAddCap(croner,p) \
-	   	_geom3DCoords ->push_back((*croner)[idx]); \
-		_capflags.push_back(true);\
-		triindices->push_back( _geom3DCoords->size() - 1 ); \
-		_geom3DNormals->push_back(norm); \
-		_geom3DCoords ->push_back(p); \
-		_capflags.push_back(true);\
-		triindices->push_back(_geom3DCoords->size()-1); \
-		_geom3DNormals->push_back(norm); \
-		_bbox.expandBy(p); \
+    { \
+        osg::Vec3 norm = vec - pos; \
+        norm.normalize();\
+        _geom3DNormals->push_back(norm); \
+     } \
+    _bbox.expandBy(pos)
 
 bool PolyLineNode::updateGeometry()
 {
@@ -363,23 +337,24 @@ bool PolyLineNode::updateGeometry()
 		    continue;
 	    }
 
-	    osg::ref_ptr<osg::DrawElementsUInt> triindices = 
-		new osg::DrawElementsUInt(osg::PrimitiveSet::TRIANGLE_STRIP);
 	    osg::ref_ptr<osg::Vec3Array> corners1 = new osg::Vec3Array(_resolution);
 	    osg::ref_ptr<osg::Vec3Array> corners2 = new osg::Vec3Array(_resolution);
 
-	    bool doonce = true;
-	    for (unsigned int stripidx=0; stripidx<stripidxarr->getNumIndices(); stripidx++)
+	    bool first = true;
+	    const int originalsize = _geom3DCoords->size();
+	    for (unsigned int stripidx=0; stripidx<stripidxarr->getNumIndices()-1; stripidx++)
 	    {
 		const unsigned int sz = stripidxarr->getNumIndices();
 		const unsigned int pidx0 = stripidxarr->index(stripidx);
 		const unsigned int pidx1 = stripidxarr->index(stripidx <sz-1 ? stripidx+1 : stripidx);
 		const unsigned int pidx2 = stripidxarr->index(stripidx <sz-2 ? stripidx+2 : stripidx);
-		buildA3DLineStrip(triindices,corners1,corners2,pidx0,pidx1,pidx2,doonce);
-		doonce = false;
+		if (buildA3DLineStrip(*corners1,*corners2,pidx0,first,stripidx==stripidxarr->getNumIndices()-2))
+		    first = false;
 	    }
-	    if (triindices->size()>0)
-		_geometry->addPrimitiveSet(triindices);
+
+	    const int endsize = _geom3DCoords->size();
+	    if (originalsize!=endsize)
+		_geometry->addPrimitiveSet(new osg::DrawArrays(osg::PrimitiveSet::TRIANGLE_STRIP,originalsize,endsize-originalsize));
 	    cidx = endidx-1;
 	}
     }
@@ -394,67 +369,102 @@ bool PolyLineNode::updateGeometry()
 }
 
 
-void PolyLineNode::buildA3DLineStrip(osg::DrawElementsUInt* triindices,osg::Vec3Array* corners1,
-	osg::Vec3Array* corners2,int pidx0,int pidx1,int pidx2,bool doonce)
+bool PolyLineNode::buildA3DLineStrip(osg::Vec3Array& corners1,
+	osg::Vec3Array& corners2,int pidx0, bool first,
+	bool last )
 {
-    const osg::Vec3  p0 = _polyLineCoords->at(pidx0);
-    const osg::Vec3  p1 = _polyLineCoords->at(pidx1);
-    const osg::Vec3  p2 = _polyLineCoords->at(pidx2);
-    osg::Vec3 vec01 = p1 - p0; vec01.normalize();
-    osg::Vec3 vec12 = p2 - p1; vec12.normalize();
+    if (pidx0>=_polyLineCoords->size()-1)
+	return false;
 
-    const bool doreverse = vec01*vec12<-0.5f;
-    const osg::Vec3 planenormal =
-	doreverse ? vec12-vec01:vec01+vec12;
-    osg::Vec3 norm = -planenormal;
-    norm.normalize();
-    if (doonce)
+    const osg::Vec3  p0 = _polyLineCoords->at(pidx0);
+    const osg::Vec3  p1 = _polyLineCoords->at(pidx0+1);
+    const int pidx2 = pidx0 >= _polyLineCoords->size()-2 
+	? pidx0+1
+	: pidx0+2;
+
+    const osg::Vec3  p2 = _polyLineCoords->at(pidx2);
+    osg::Vec3 vec01 = p1 - p0;
+    const float vec01len2 = vec01.length2();
+    const bool vec01ok = vec01len2>0;
+
+    if (!vec01ok)
+	return false;
+
+    vec01 /= sqrt(vec01len2);
+
+    osg::Vec3 vec12 = p2 - p1;
+    const float vec12len2 = vec12.length2();
+    const bool vec12ok = vec12len2>0;
+   	
+    bool doreverse;
+    osg::Vec3 planenormal;
+
+    if (vec12ok)
     {
+	vec12 /= sqrt(vec12len2);
+	doreverse = vec01*vec12<-0.5f;
+	planenormal = doreverse ? vec12-vec01 : vec01+vec12;
+    }
+    else
+    {
+	doreverse = false;
+	planenormal = vec01;
+    }
+
+    planenormal.normalize();
+
+    if (first)
+    {
+	//Create the cap and record the points in corner1
 	osg::Vec3 curu,curv;
 	getOrthoVecs(vec01,curu,curv);
 	for (int idx=0; idx<_resolution; idx++)
 	{
 	    float angl=idx*2*M_PI/_resolution;
 	    const osg::Vec3 vec1 = curu*cos(angl)+curv*sin(angl);
-	    (*corners1)[idx] = vec1*_radius+p0;
-	    mAddCap(corners1,p0);
+	    corners1[idx] = vec1*_radius+p0;
 	}
 
-	_geom3DCoords->push_back((*corners1)[0]);
-	_capflags.push_back(false);
-	triindices->push_back(_geom3DCoords->size()-1);
-	_geom3DNormals->push_back(norm);
+	addCap(p0,corners1,-planenormal);
     }
 
     const osg::Plane plane(planenormal,p1);
     for (int idx=0; idx<_resolution; idx++)
     {
-	const osgGeo::Line3 lineproj((*corners1)[idx],vec01);
-	(*corners2) [idx] = lineproj.getInterSectionPoint(plane);
-	mAddVertex((*corners1)[idx],p0)
-	mAddVertex((*corners2)[idx],p1)
+	const osgGeo::Line3 lineproj(corners1[idx],vec01);
+	corners2[idx] = lineproj.getInterSectionPoint(plane);
+	mAddVertex(corners1[idx],p0);
+	mAddVertex(corners2[idx],p1);
     }
 
-    mAddVertex((*corners1)[0],p0)
-    mAddVertex((*corners2)[0],p1)
+    mAddVertex(corners1[0],p0);
+    mAddVertex(corners2[0],p1);
 
-    if (doreverse)
+    if (doreverse||last)
     {
-	norm = -planenormal;
-	norm.normalize();
-	for (int idx=0; idx<_resolution; idx++)
-	{
-	    mAddCap(corners2,p1);
-	}
-
-	_geom3DCoords->push_back((*corners2)[0]);
-	_capflags.push_back(false); 
-	triindices->push_back( _geom3DCoords->size()-1);
-	_geom3DNormals->push_back(norm);
+	//Make cap
+	addCap(p1,corners2,-planenormal);
     }
-    for (int idx=0; idx<_resolution; idx++)
-	(*corners1)[idx] = (*corners2)[idx];
+    corners1 = corners2;
+    return true;
 }
+
+
+void PolyLineNode::addCap(const osg::Vec3& p,const osg::Vec3Array& cornerpoints,const osg::Vec3& norm)
+{
+    for (int idx = 0; idx<cornerpoints.size(); idx++)
+    {
+	mAddVertex(cornerpoints[idx],p);
+	_geom3DCoords ->push_back(p);
+	_capflags.push_back(true);
+	_geom3DNormals->push_back(norm);
+	_bbox.expandBy(p);
+    }
+
+    mAddVertex(cornerpoints[0],p);
+}
+
+
 
 bool PolyLineNode::needsUpdate() const
 {
