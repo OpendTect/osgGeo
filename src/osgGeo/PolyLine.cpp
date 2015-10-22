@@ -342,13 +342,11 @@ bool PolyLineNode::updateGeometry()
 
 	    bool first = true;
 	    const int originalsize = _geom3DCoords->size();
-	    for (unsigned int stripidx=0; stripidx<stripidxarr->getNumIndices()-1; stripidx++)
+	    const unsigned int sz = stripidxarr->getNumIndices();
+	    for (unsigned int stripidx=0; stripidx<sz-1; stripidx++)
 	    {
-		const unsigned int sz = stripidxarr->getNumIndices();
 		const unsigned int pidx0 = stripidxarr->index(stripidx);
-		const unsigned int pidx1 = stripidxarr->index(stripidx <sz-1 ? stripidx+1 : stripidx);
-		const unsigned int pidx2 = stripidxarr->index(stripidx <sz-2 ? stripidx+2 : stripidx);
-		if (buildA3DLineStrip(*corners1,*corners2,pidx0,first,stripidx==stripidxarr->getNumIndices()-2))
+		if (buildA3DLineStrip(*corners1,*corners2,pidx0,first,stripidx==sz-2))
 		    first = false;
 	    }
 
@@ -450,14 +448,14 @@ bool PolyLineNode::buildA3DLineStrip(osg::Vec3Array& corners1,
 }
 
 
-void PolyLineNode::addCap(const osg::Vec3& p,const osg::Vec3Array& cornerpoints,const osg::Vec3& norm)
+void PolyLineNode::addCap(const osg::Vec3& p,const osg::Vec3Array& cornerpoints,const osg::Vec3& planenormal)
 {
     for (int idx = 0; idx<cornerpoints.size(); idx++)
     {
 	mAddVertex(cornerpoints[idx],p);
 	_geom3DCoords ->push_back(p);
 	_capflags.push_back(true);
-	_geom3DNormals->push_back(norm);
+	_geom3DNormals->push_back(planenormal);
 	_bbox.expandBy(p);
     }
 
