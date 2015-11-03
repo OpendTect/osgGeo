@@ -2366,9 +2366,13 @@ void LayeredTexture::assignTextureUnits()
     if ( _useShaders )
 	getProcessInfo( orderedLayerIDs, nrUsedLayers, _useShaders );
 
+    std::vector<int> prevTexUnits;
     std::vector<LayeredTextureData*>::iterator lit = _dataLayers.begin();
     for ( ; lit!=_dataLayers.end(); lit++ )
+    {
+	prevTexUnits.push_back( (*lit)->_textureUnit );
 	(*lit)->_textureUnit = -1;
+    }
 
     if ( _useShaders )
     {
@@ -2392,7 +2396,15 @@ void LayeredTexture::assignTextureUnits()
     if ( _tilingInfo->_retilingNeeded || _updateSetupStateSet )
 	setUpdateVar( _retileCompositeLayer, false );
 
-    setUpdateVar( _updateSetupStateSet, true );
+    for ( int idx=0; idx<prevTexUnits.size(); idx++ )
+    {
+	if ( prevTexUnits[idx] != _dataLayers[idx]->_textureUnit )
+	{
+	    setUpdateVar( _updateSetupStateSet, true );
+	    break;
+	}
+    }
+
     updateSetupStateSetIfNeeded();
 }
 
