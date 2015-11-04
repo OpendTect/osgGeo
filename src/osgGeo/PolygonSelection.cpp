@@ -105,10 +105,16 @@ PolygonSelection::PolygonSelection(const PolygonSelection& sel,const osg::CopyOp
 {
     _geode = (osg::Geode*)sel._geode->clone(op);
     _lineGeometry = (osg::Geometry*)sel._lineGeometry->clone(op);
-    _coords = (osg::Vec3Array*)sel._coords->clone(op);
+    _coords = new osg::Vec3Array;
+    for ( int idx=0; idx<sel._coords->size(); idx++ )
+	_coords->push_back((*sel._coords)[idx]);
+    //_coords = (osg::Vec3Array*)sel._coords->clone(op);
     _coordsList = (osg::DrawArrays*)sel._coordsList->clone(op);
     _masterCamera = (osg::Camera*)sel._masterCamera->clone(op);
     _hudCamera = (osg::Camera*)sel._hudCamera->clone(op);
+    _shapeType = sel._shapeType;
+    _zcoord = sel._zcoord;
+    computeBound();
 }
 
 
@@ -331,7 +337,11 @@ osg::Vec2 PolygonSelection::projectPointToScreen(osg::Vec3 pointin3d) const
      const osg::Matrix vpwmatrix(_masterCamera->getViewMatrix() *
 			   _masterCamera->getProjectionMatrix() *
 			   _masterCamera->getViewport()->computeWindowMatrix());
+     const osg::Matrix vpmatrix = _masterCamera->getViewMatrix() *
+	 _masterCamera->getProjectionMatrix();
+
      const osg::Vec3 pointin2d = pointin3d * vpwmatrix;
+     const osg::Vec3 nonwinpt = pointin3d * vpmatrix;
      const osg::Vec2 point2d(pointin2d.x(), pointin2d.y());
      return point2d;
 }

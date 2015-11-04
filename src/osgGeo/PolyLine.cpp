@@ -385,6 +385,8 @@ bool PolyLineNode::buildA3DLineStrip(osg::Vec3Array& corners1,
     osg::Vec3 vec12 = p2 - p1; vec12.normalize();
 	  
     const bool vec12ok = vec12.length() != 0;
+    if ( first && vec01.length()==0 )
+	return false;
     const bool doreverse = vec01 * vec12 < -0.5f;
     const osg::Vec3 planenormal =
 	vec12ok ? doreverse ? vec12 - vec01 : vec01 + vec12 : vec01;
