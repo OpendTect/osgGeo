@@ -346,7 +346,10 @@ bool PolyLineNode::updateGeometry()
 	    for (unsigned int stripidx=0; stripidx<sz-1; stripidx++)
 	    {
 		const unsigned int pidx0 = stripidxarr->index(stripidx);
-		if (buildA3DLineStrip(*corners1,*corners2,pidx0,first,stripidx==sz-2))
+		const unsigned int pidx1 = stripidxarr->index(stripidx+1);
+		const unsigned int pidx2 = stripidxarr->index(stripidx<pssz-2 ? stripidx+2 : stripidx+1);
+		
+		if (buildA3DLineStrip(*corners1,*corners2,pidx0,pidx1,pidx2,first,stripidx==sz-2))
 		    first = false;
 	    }
 
@@ -368,48 +371,27 @@ bool PolyLineNode::updateGeometry()
 
 
 bool PolyLineNode::buildA3DLineStrip(osg::Vec3Array& corners1,
-	osg::Vec3Array& corners2,int pidx0, bool first,
+	osg::Vec3Array& corners2,int pidx0,int pidx1, int pidx2, bool first,
 	bool last )
 {
     if (pidx0>=_polyLineCoords->size()-1)
 	return false;
 
     const osg::Vec3  p0 = _polyLineCoords->at(pidx0);
-    const osg::Vec3  p1 = _polyLineCoords->at(pidx0+1);
-    const int pidx2 = pidx0 >= _polyLineCoords->size()-2 
-	? pidx0+1
-	: pidx0+2;
-
+    const osg::Vec3  p1 = _polyLineCoords->at(pidx1);
     const osg::Vec3  p2 = _polyLineCoords->at(pidx2);
-    osg::Vec3 vec01 = p1 - p0;
-    const float vec01len2 = vec01.length2();
-    const bool vec01ok = vec01len2>0;
+   	    
+    osg::Vec3 vec01 = p1 - p0; vec01.normalize();
+    osg::Vec3 vec12 = p2 - p1; vec12.normalize();
+	  
+     if ( vec12.length() == 0 )
+	 vec12 = -vec01;
 
-    if (!vec01ok)
-	return false;
-
-    vec01 /= sqrt(vec01len2);
-
-    osg::Vec3 vec12 = p2 - p1;
-    const float vec12len2 = vec12.length2();
-    const bool vec12ok = vec12len2>0;
-   	
-    bool doreverse;
-    osg::Vec3 planenormal;
-
-    if (vec12ok)
-    {
-	vec12 /= sqrt(vec12len2);
-	doreverse = vec01*vec12<-0.5f;
-	planenormal = doreverse ? vec12-vec01 : vec01+vec12;
-    }
-    else
-    {
-	doreverse = false;
-	planenormal = vec01;
-    }
-
-    planenormal.normalize();
+    const bool doreverse = vec01 * vec12 < -0.5f;
+    const osg::Vec3 planenormal = 
+		doreverse ? vec12 - vec01 : vec01 + vec12;
+    osg::Vec3 norm = -planenormal;
+    norm.normalize();
 
     if (first)
     {
