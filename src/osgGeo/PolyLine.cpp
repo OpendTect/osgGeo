@@ -389,9 +389,6 @@ bool PolyLineNode::buildA3DLineStrip(osg::Vec3Array& corners1,
     const osg::Vec3 planenormal =
 	vec12ok ? doreverse ? vec12 - vec01 : vec01 + vec12 : vec01;
     
-    osg::Vec3 norm = -planenormal;
-    norm.normalize();
-
     if (first)
     {
 	//Create the cap and record the points in corner1
