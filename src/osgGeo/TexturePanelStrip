@@ -121,7 +121,6 @@ public:
     osg::BoundingSphere		computeBound() const;
 
     void			forceRedraw(bool=true);
-    std::vector<osg::Geometry*> getGeoMetries() const { return _geometries; }
 
 protected:
     virtual			~TexturePanelStripNode();
