@@ -538,6 +538,10 @@ float TexturePanelStripNode::calcPathTexOffset( int idx ) const
 
     if ( _texture )
     {
+	const osg::Vec2f origin = _texture->envelopeCenter() -
+				  _texture->textureEnvelopeSize() * 0.5f;
+	offset -= origin[_swapTextureAxes ? 1 : 0];
+
 	const osg::Vec2 resolution = _texture->tilingPlanResolution();
 	offset *= resolution[_swapTextureAxes ? 1 : 0];
     }
@@ -593,6 +597,11 @@ void TexturePanelStripNode::finalizeZTiling( const std::vector<float>& tOrigins,
 
     if ( _texture )
     {
+	const osg::Vec2f origin = _texture->envelopeCenter() -
+				  _texture->textureEnvelopeSize() * 0.5f;
+	start -= origin[_swapTextureAxes ? 0 : 1];
+	stop -= origin[_swapTextureAxes ? 0 : 1];
+
 	const osg::Vec2 resolution = _texture->tilingPlanResolution();
 	const float resval = resolution[_swapTextureAxes ? 0 : 1];
 	start *= resval; stop *= resval;
