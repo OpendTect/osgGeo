@@ -347,7 +347,7 @@ bool PolyLineNode::updateGeometry()
 	    {
 		const unsigned int pidx0 = stripidxarr->index(stripidx);
 		const unsigned int pidx1 = stripidxarr->index(stripidx+1);
-		const unsigned int pidx2 = stripidxarr->index(stripidx<pssz-2 ? stripidx+2 : stripidx+1);
+		const unsigned int pidx2 = stripidxarr->index(stripidx<sz-2 ? stripidx+2 : stripidx+1);
 		
 		if (buildA3DLineStrip(*corners1,*corners2,pidx0,pidx1,pidx2,first,stripidx==sz-2))
 		    first = false;
