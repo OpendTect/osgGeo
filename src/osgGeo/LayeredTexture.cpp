@@ -3318,7 +3318,6 @@ bool LayeredTexture::areUndefLayersInverted() const
 
 //============================================================================
 
-
 class CompositeTextureTask : public osg::Referenced, public OpenThreads::Thread
 {
 public:
@@ -3346,6 +3345,7 @@ public:
 
     void		run();
 
+    static void					removeTasks();
     static osg::ref_ptr<CompositeTextureTask>	getTask();
     static void					returnTask(CompositeTextureTask*);
 
@@ -3382,8 +3382,23 @@ protected:
     static OpenThreads::Mutex					_tasklock;
 };
 
+
 std::vector<osg::ref_ptr<CompositeTextureTask> > CompositeTextureTask::_tasks;
 OpenThreads::Mutex CompositeTextureTask::_tasklock;
+
+
+void LayeredTexture::shutdownThreading()
+{
+    CompositeTextureTask::removeTasks();
+}
+
+
+void CompositeTextureTask::removeTasks()
+{
+    _tasklock.lock();
+    _tasks.clear();
+    _tasklock.unlock();
+}
 
 osg::ref_ptr<CompositeTextureTask> CompositeTextureTask::getTask()
 {

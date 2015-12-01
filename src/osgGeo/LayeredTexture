@@ -58,7 +58,7 @@ public:
 			META_Object( osgGeo, LayeredTexture );
 
     void		turnOn(bool yn=true);
-    bool		isOn() const			{ return _isOn; };
+    bool		isOn() const			{ return _isOn; }
    
     int			addDataLayer(); //returns an id
 			//Does its own locking
@@ -308,6 +308,9 @@ public:
 
     static int		image2TextureChannel(int channel,GLenum format);
     static int		powerOf2Ceil(unsigned int nr);	// nr<=2^30 supported
+
+    static void		shutdownThreading();
+			//!<Should be called before system dies to turn off threads
 
 protected:
 			~LayeredTexture();
