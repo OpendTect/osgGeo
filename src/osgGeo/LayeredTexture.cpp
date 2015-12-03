@@ -3318,7 +3318,7 @@ bool LayeredTexture::areUndefLayersInverted() const
 
 //============================================================================
 
-class CompositeTextureTask : public osg::Referenced, public OpenThreads::Thread
+class CompositeTextureThread : public osg::Referenced, public OpenThreads::Thread
 {
 public:
 
@@ -3345,14 +3345,14 @@ public:
 
     void		run();
 
-    static void					removeTasks();
-    static osg::ref_ptr<CompositeTextureTask>	getTask();
-    static void					returnTask(CompositeTextureTask*);
+			CompositeTextureThread(TextureComposerThreadGroup& tg)
+			    : _stopflag(0)
+			    , _lt(0)
+			    , _group( tg ) 
+			{}
 
 protected:
-
-			CompositeTextureTask() : _stopflag( 0 ), _lt( 0 ) {}
-			~CompositeTextureTask()
+			~CompositeTextureThread()
 			{
 			   _lock.lock();
 			   _stopflag = true;
@@ -3378,31 +3378,60 @@ protected:
     OpenThreads::Mutex			_lock;
     bool				_stopflag;
 
-    static std::vector<osg::ref_ptr<CompositeTextureTask> >	_tasks;
-    static OpenThreads::Mutex					_tasklock;
+    /*This is a reference as it cannot (i.e. should) not be
+      during the lifecycle of the object. If it is in the 
+      group's pool, it will be deleted by the pool. As
+      the layered texture has reffed teh pool during it's
+      life, the pool will stay alive. */
+    TextureComposerThreadGroup&		_group;
+};
+
+/* Holds a pool of CompositeTextureThreads.*/
+class TextureComposerThreadGroup : public osg::Referenced
+{
+public:
+	
+    osg::ref_ptr<CompositeTextureThread>		    getThread();
+    /* Provided thread should normally be returned to the pool. */
+    void						    returnThread(CompositeTextureThread *thread);
+    /* Return thread to pool. */
+
+    static osg::ref_ptr<TextureComposerThreadGroup>	    getInst();
+    /*Static instance of the group. This is normally alive as long as someone
+      wants it, and recreated if there is none. */
+
+private:
+    std::vector<osg::ref_ptr<CompositeTextureThread> >	    _tasks;
+    OpenThreads::Mutex					    _tasklock;
+
+    static osg::observer_ptr<TextureComposerThreadGroup>    _inst;
+
 };
 
 
-std::vector<osg::ref_ptr<CompositeTextureTask> > CompositeTextureTask::_tasks;
-OpenThreads::Mutex CompositeTextureTask::_tasklock;
+osg::observer_ptr<TextureComposerThreadGroup>    TextureComposerThreadGroup::_inst = 0;
 
-
-void LayeredTexture::shutdownThreading()
+osg::ref_ptr<TextureComposerThreadGroup> TextureComposerThreadGroup::getInst()
 {
-    CompositeTextureTask::removeTasks();
+    osg::ref_ptr<TextureComposerThreadGroup> res = 0;
+    _inst.lock(res);
+    if ( res.valid() )
+	return res;
+
+    res = new TextureComposerThreadGroup;
+
+    /*This is not 100% ideal, but it is safe. There may be a data race. In such case
+    There may be two groups created, but who cares, as the data and threads will be
+    fully managed. */
+
+    _inst = res;
+    return res;
 }
 
 
-void CompositeTextureTask::removeTasks()
+osg::ref_ptr<CompositeTextureThread> TextureComposerThreadGroup::getThread()
 {
-    _tasklock.lock();
-    _tasks.clear();
-    _tasklock.unlock();
-}
-
-osg::ref_ptr<CompositeTextureTask> CompositeTextureTask::getTask()
-{
-    osg::ref_ptr<CompositeTextureTask> res = 0;
+    osg::ref_ptr<CompositeTextureThread> res = 0;
     _tasklock.lock();
     if ( _tasks.size() )
     {
@@ -3412,7 +3441,7 @@ osg::ref_ptr<CompositeTextureTask> CompositeTextureTask::getTask()
     _tasklock.unlock();
     if ( !res )
     {
-        res = new CompositeTextureTask;
+	res = new CompositeTextureThread(*this);
         res->start();
     }
 
@@ -3420,14 +3449,14 @@ osg::ref_ptr<CompositeTextureTask> CompositeTextureTask::getTask()
 }
 
 
-void CompositeTextureTask::returnTask(CompositeTextureTask *task )
+void TextureComposerThreadGroup::returnThread(CompositeTextureThread *task)
 {
     _tasklock.lock();
     _tasks.push_back( task );
     _tasklock.unlock();
 }
 
-void CompositeTextureTask::run()
+void CompositeTextureThread::run()
 {
     _lock.lock();
     while ( !_stopflag )
@@ -3530,7 +3559,7 @@ void CompositeTextureTask::run()
 	// Order is important here, as we must return task before we update
 	//read-count, as we may be deleted otherwise
     	_lt = 0;
-	returnTask( this );
+	_group.returnThread( this );
 	_readyCount->completed();
     }
 
@@ -3602,7 +3631,10 @@ void LayeredTexture::createCompositeTexture( bool dummyTexture, bool triggerProg
     if ( nrTasks>nrPixels )
 	nrTasks = nrPixels;
 
-    std::vector<osg::ref_ptr<CompositeTextureTask> > tasks;
+    if (!_threadgroup)
+	_threadgroup = TextureComposerThreadGroup::getInst();
+
+    std::vector<osg::ref_ptr<CompositeTextureThread> > tasks;
     OpenThreads::BlockCount readyCount( nrTasks );
     readyCount.reset();
 
@@ -3617,7 +3649,7 @@ void LayeredTexture::createCompositeTexture( bool dummyTexture, bool triggerProg
 	else
 	    stop--;
 
-	osg::ref_ptr<CompositeTextureTask> task = CompositeTextureTask::getTask();
+	osg::ref_ptr<CompositeTextureThread> task = _threadgroup->getThread();
 	task->set( this, image, borderColor, processList, minOpacity, dummyTexture, start, stop, readyCount );
 
 	tasks.push_back( task.get() );

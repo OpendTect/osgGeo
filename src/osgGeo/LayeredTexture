@@ -44,11 +44,12 @@ enum ImageDataOrder	{ STR, SRT, TRS, TSR, RST, RTS };
 struct LayeredTextureData;
 struct TilingInfo;
 struct TextureInfo;
+class TextureComposerThreadGroup;
 
 
 class OSGGEO_EXPORT LayeredTexture : public osgGeo::CallbackObject
 {
-friend class CompositeTextureTask;
+friend class CompositeTextureThread;
 
 public:
 			LayeredTexture();
@@ -309,9 +310,6 @@ public:
     static int		image2TextureChannel(int channel,GLenum format);
     static int		powerOf2Ceil(unsigned int nr);	// nr<=2^30 supported
 
-    static void		shutdownThreading();
-			//!<Should be called before system dies to turn off threads
-
 protected:
 			~LayeredTexture();
     void		assignTextureUnits();
@@ -406,10 +404,11 @@ protected:
     bool				_maySkipEarlyProcesses;
     bool				_enableMipmapping;
 
-    int					_compositeLayerId;
-    int					_compositeSubsampleSteps;
-    bool				_compositeLayerUpdate;
-    bool				_reInitTiling;
+    int						_compositeLayerId;
+    int						_compositeSubsampleSteps;
+    bool					_compositeLayerUpdate;
+    bool					_reInitTiling;
+    osg::ref_ptr<TextureComposerThreadGroup>	_threadgroup;
 };
 
 
