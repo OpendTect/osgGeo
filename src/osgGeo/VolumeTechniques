@@ -64,8 +64,13 @@ class OSGGEO_EXPORT FixedFunctionTechnique : public osgVolume::FixedFunctionTech
 	virtual void init();
 	virtual void traverse(osg::NodeVisitor& nv);
 
+	void setBorderColor(const osg::Vec4f&);
+	const osg::Vec4f& getBorderColor() const;
+
     protected:
 	osg::ref_ptr<BoundingGeometry> _boundingGeometry;
+
+	osg::Vec4f			_borderColor;
 };
 
 
@@ -78,6 +83,9 @@ class OSGGEO_EXPORT RayTracedTechnique : public osgVolume::RayTracedTechnique
 
 	virtual void init();
 	virtual void traverse(osg::NodeVisitor& nv);
+
+	void setBorderColor(const osg::Vec4f&);
+	const osg::Vec4f& getBorderColor() const;
 
 	void setCustomShader(osg::Shader::Type,const char* code);
 	static const char* volumeTfFragDepthCode();
@@ -123,6 +131,8 @@ class OSGGEO_EXPORT RayTracedTechnique : public osgVolume::RayTracedTechnique
 	float				_colTabUndefValue;
 	osg::Vec4f			_colTabUndefColor;
 	bool				_invertColTabUndefChannel;
+
+	osg::Vec4f			_borderColor;
 };
 
 
