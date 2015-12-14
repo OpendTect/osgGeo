@@ -66,6 +66,10 @@ class OSGGEO_EXPORT FixedFunctionTechnique : public osgVolume::FixedFunctionTech
 
     protected:
 	osg::ref_ptr<BoundingGeometry> _boundingGeometry;
+
+    public:
+	void setBorderColor(const osg::Vec4f&);
+	const osg::Vec4f& getBorderColor() const;
 };
 
 
@@ -123,6 +127,10 @@ class OSGGEO_EXPORT RayTracedTechnique : public osgVolume::RayTracedTechnique
 	float				_colTabUndefValue;
 	osg::Vec4f			_colTabUndefColor;
 	bool				_invertColTabUndefChannel;
+
+    public:
+	void setBorderColor(const osg::Vec4f&);
+	const osg::Vec4f& getBorderColor() const;
 };
 
 

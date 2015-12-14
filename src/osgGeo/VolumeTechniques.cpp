@@ -70,6 +70,9 @@ BoundingGeometry::BoundingGeometry( osgVolume::VolumeTechnique& vt )
     dirtyBound();
 }
 
+// Binary compatibility hack, being appropriate for normal (OpendTect) usage
+static osg::Vec4f _sharedBorderColor(1.0f,1.0f,1.0f,1.0f);
+
 
 //=============================================================================
 
@@ -103,6 +106,12 @@ void FixedFunctionTechnique::init()
 	osg::Texture::FilterMode magFilter = _volumeTile->getLayer()->getMagFilter();
 	texture3D->setFilter(osg::Texture3D::MIN_FILTER,minFilter);
 	texture3D->setFilter(osg::Texture3D::MAG_FILTER,magFilter);
+
+	texture3D->setWrap(osg::Texture3D::WRAP_R,osg::Texture3D::CLAMP_TO_BORDER);
+	texture3D->setWrap(osg::Texture3D::WRAP_S,osg::Texture3D::CLAMP_TO_BORDER);
+	texture3D->setWrap(osg::Texture3D::WRAP_T,osg::Texture3D::CLAMP_TO_BORDER);
+
+	texture3D->setBorderColor( _sharedBorderColor );
     }
 
     /* Repair of OSG limitation: FixedFunctionTechnique does not distinguish
@@ -132,6 +141,14 @@ void FixedFunctionTechnique::traverse(osg::NodeVisitor& nv)
     else
 	osgVolume::FixedFunctionTechnique::traverse( nv );
 }
+
+
+void FixedFunctionTechnique::setBorderColor( const osg::Vec4f& borderColor )
+{ _sharedBorderColor = borderColor; }
+
+
+const osg::Vec4f& FixedFunctionTechnique::getBorderColor() const
+{ return _sharedBorderColor; }
 
 
 //=============================================================================
@@ -212,9 +229,7 @@ void RayTracedTechnique::init()
 	texture3D->setFilter(osg::Texture3D::MIN_FILTER,minFilter);
 	texture3D->setFilter(osg::Texture3D::MAG_FILTER,magFilter);
 
-	texture3D->setWrap(osg::Texture3D::WRAP_R,osg::Texture3D::CLAMP_TO_EDGE);
-	texture3D->setWrap(osg::Texture3D::WRAP_S,osg::Texture3D::CLAMP_TO_EDGE);
-	texture3D->setWrap(osg::Texture3D::WRAP_T,osg::Texture3D::CLAMP_TO_EDGE);
+	texture3D->setBorderColor( _sharedBorderColor );
     }
 
     osg::StateAttribute* attr1 = stateSet->getTextureAttribute( 1, osg::StateAttribute::TEXTURE );
@@ -261,6 +276,14 @@ void RayTracedTechnique::traverse( osg::NodeVisitor& nv )
     else
 	osgVolume::RayTracedTechnique::traverse( nv );
 }
+
+
+void RayTracedTechnique::setBorderColor( const osg::Vec4f& borderColor )
+{ _sharedBorderColor = borderColor; }
+
+
+const osg::Vec4f& RayTracedTechnique::getBorderColor() const
+{ return _sharedBorderColor; }
 
 
 void RayTracedTechnique::setCustomShader( osg::Shader::Type type, const char* code )
