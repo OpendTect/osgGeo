@@ -91,6 +91,10 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 					getRotateMode() const { return _rotateMode; }
 
 	void				turnMarkerOn(unsigned int idx,bool);
+	bool				markerOn(unsigned int idx) const;
+	void				removeMarkerOnOff(unsigned int idx);
+					/*!<do it after remove a marker in whcih 
+					removing an element from Normal, Vertex and Color array*/ 
 	void				turnAllMarkersOn(bool);
 	void				forceRedraw(bool);
 

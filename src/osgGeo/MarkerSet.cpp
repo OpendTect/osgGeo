@@ -181,6 +181,22 @@ void MarkerSet::turnMarkerOn(unsigned int idx,bool yn)
 }
 
 
+bool MarkerSet::markerOn(unsigned int idx) const
+{
+    if ( idx<_onoffArr.size() )
+	return _onoffArr[idx];
+
+    return false;
+}
+
+
+void MarkerSet::removeMarkerOnOff(unsigned int idx)
+{
+    if ( idx<_onoffArr.size() )
+	_onoffArr.erase( _onoffArr.begin() + idx );
+}
+
+
 void MarkerSet::turnAllMarkersOn(bool yn)
 {
     memset( &_onoffArr[0], yn, _onoffArr.size()*sizeof(bool) );
