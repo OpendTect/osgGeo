@@ -199,6 +199,9 @@ void MarkerSet::removeMarkerOnOff(unsigned int idx)
 
 void MarkerSet::turnAllMarkersOn(bool yn)
 {
+    if ( _onoffArr.size()==0 )
+	return;
+
     memset( &_onoffArr[0], yn, _onoffArr.size()*sizeof(bool) );
     if ( yn )
 	_nonShadingSwitch->setAllChildrenOn();
