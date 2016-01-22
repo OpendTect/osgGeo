@@ -306,13 +306,19 @@ void PolygonSelection::setLatestMousePoints(const osg::Vec3& pos)
 
 osg::Vec2 PolygonSelection::projectPointToScreen(osg::Vec3 pointin3d) const
 {
+    const osg::Vec2 undefinedPoint( 1e30, 1e30 );
+
     if ( !_masterCamera )
-	return osg::Vec2(1e30, 1e30);
+	return undefinedPoint;
 
      const osg::Matrix vpwmatrix(_masterCamera->getViewMatrix() *
 			   _masterCamera->getProjectionMatrix() *
 			   _masterCamera->getViewport()->computeWindowMatrix());
      const osg::Vec3 pointin2d = pointin3d * vpwmatrix;
+
+     if ( pointin2d.z() > 1.0 )
+	 return undefinedPoint;
+
      const osg::Vec2 point2d(pointin2d.x(), pointin2d.y());
      return point2d;
 }
