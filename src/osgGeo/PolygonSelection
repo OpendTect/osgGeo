@@ -45,7 +45,10 @@ public:
 
     void		    setHUDCamera(osg::Camera*);
     
-    osg::Vec2		    projectPointToScreen(osg::Vec3) const;
+    osg::Vec2		    projectPointToScreen(osg::Vec3) const; // deprecated
+    bool		    projectPointToScreen(const osg::Vec3& pointIn3d,
+						 osg::Vec2& pointIn2d) const;
+
     const osg::Vec3Array*   getCoords() const { return _coords; }
 
     enum ShapeType	    { Off, Polygon, Rectangle };
