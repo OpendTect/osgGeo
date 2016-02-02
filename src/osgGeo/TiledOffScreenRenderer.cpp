@@ -366,12 +366,9 @@ void TiledOffScreenRenderer::OffscreenTileImageCollector
 	{
 	    if ( *depthImageData == BACKGROUNDDEPTH )
 		imageData[3] = _transparency;
+	    else if ( _foregroundTransparency != NOTRANSPARENCY )
+		imageData[3] = _foregroundTransparency;
 	}
-	else if ( _foregroundTransparency != NOTRANSPARENCY )
-	{
-	    imageData[3] = _foregroundTransparency;
-	}
-
     }
 }
 
