@@ -352,10 +352,10 @@ void TiledOffScreenRenderer::OffscreenTileImageCollector
 {
     unsigned char BACKGROUNDDEPTH = 255;
 
-    if ( !image || !depthImage )
+    if (!image || !depthImage)
 	return;
 
-    for ( int s=0; s<image->s();++s)
+    for (int s=0; s<image->s();++s)
     {
 	const int imageOffset = (row * image->s() + s) * 4;
 	const int depthImageOffset = row * depthImage->s() + s;
@@ -366,10 +366,8 @@ void TiledOffScreenRenderer::OffscreenTileImageCollector
 	{
 	    if ( *depthImageData == BACKGROUNDDEPTH )
 		imageData[3] = _transparency;
-	}
-	else if ( _foregroundTransparency != NOTRANSPARENCY )
-	{
-	    imageData[3] = _foregroundTransparency;
+	    else if ( _foregroundTransparency != NOTRANSPARENCY )
+		imageData[3] = _foregroundTransparency;
 	}
 
     }
