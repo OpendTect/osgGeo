@@ -149,7 +149,7 @@ bool MarkerSet::updateShapes()
 	    autotrans->setMinimumScale(_minScale);
 	    autotrans->setMaximumScale(_maxScale);
 	}
-	const bool ison = idx < _onoffArr.size() ? _onoffArr[idx] : true;
+	const bool ison = idx < _onoffArr->size() ? _onoffArr->at(idx) : true;
 	autotrans->addChild(geode);
 	_nonShadingSwitch->addChild( autotrans, ison );
     }
@@ -169,10 +169,10 @@ bool MarkerSet::updateShapes()
 
 void MarkerSet::turnMarkerOn(unsigned int idx,bool yn)
 {
-    if( idx>=_onoffArr.size())
-	_onoffArr.resize(idx+1);
+    if (idx>=_onoffArr->size())
+	_onoffArr->resize(idx+1);
 
-    _onoffArr[idx] = yn;
+    (*_onoffArr)[idx] = yn;
 
     if ( idx<_nonShadingSwitch->getNumChildren() )
 	_nonShadingSwitch->setChildValue(_nonShadingSwitch->getChild(idx), yn);
@@ -183,26 +183,19 @@ void MarkerSet::turnMarkerOn(unsigned int idx,bool yn)
 
 bool MarkerSet::markerOn(unsigned int idx) const
 {
-    if ( idx<_onoffArr.size() )
-	return _onoffArr[idx];
+    if ( idx<_onoffArr->size() )
+	return (*_onoffArr)[idx];
 
     return false;
 }
 
 
-void MarkerSet::removeMarkerOnOff(unsigned int idx)
-{
-    if ( idx<_onoffArr.size() )
-	_onoffArr.erase( _onoffArr.begin() + idx );
-}
-
-
 void MarkerSet::turnAllMarkersOn(bool yn)
 {
-     if ( _onoffArr.size()==0 )
+     if ( _onoffArr->size()==0 )
 	return;
 
-     memset( &_onoffArr[0], yn, _onoffArr.size()*sizeof(bool) );
+     memset( &(*_onoffArr)[0], yn, _onoffArr->size()*sizeof(bool) );
     if ( yn )
 	_nonShadingSwitch->setAllChildrenOn();
     else
@@ -239,6 +232,16 @@ void MarkerSet::setVertexArray(osg::Vec3Array* arr)
     if (arr==_vertexArr)
 	return;
     _vertexArr = arr;
+    forceRedraw(true);
+}
+
+
+void MarkerSet::setOnOffArray( osg::ByteArray* arr )
+{
+    if (arr ==_onoffArr)
+	return;
+
+    _onoffArr = arr;
     forceRedraw(true);
 }
 

@@ -53,6 +53,9 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 	void				setColorArray(osg::Vec4Array*);
 	osg::Vec4Array*			getColorArray() const { return _colorArr; }
 
+	void				setOnOffArray(osg::ByteArray*);
+	osg::ByteArray*			getOnOffArray() const { return _onoffArr; }
+
 	void				setSingleColor(osg::Vec4&);
 	osg::Vec4			getSingleColor() const { return _singleColor; }
 
@@ -92,9 +95,6 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 
 	void				turnMarkerOn(unsigned int idx,bool);
 	bool				markerOn(unsigned int idx) const;
-	void				removeMarkerOnOff(unsigned int idx);
-					/*!<do it after remove a marker in whcih 
-					removing an element from Normal, Vertex and Color array*/ 
 	void				turnAllMarkersOn(bool);
 	void				forceRedraw(bool);
 
@@ -107,7 +107,7 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 
 	osg::ref_ptr<osg::Vec3Array>		_vertexArr;
 	osg::ref_ptr<osg::Vec4Array>		_colorArr;
-	std::vector<char>			_onoffArr;
+	osg::ref_ptr<osg::ByteArray>		_onoffArr;
 	osg::ref_ptr<osg::Vec3Array>		_normalArr;
 	osg::ref_ptr<osg::Switch>		_nonShadingSwitch;
 	std::vector<osg::Quat>		 	_rotationSet;
