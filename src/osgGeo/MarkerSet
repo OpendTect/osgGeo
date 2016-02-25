@@ -53,6 +53,9 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 	void				setColorArray(osg::Vec4Array*);
 	osg::Vec4Array*			getColorArray() const { return _colorArr; }
 
+	void				setOnOffArray(osg::ByteArray*);
+	osg::ByteArray*			getOnOffArray() const;
+
 	void				setSingleColor(osg::Vec4&);
 	osg::Vec4			getSingleColor() const { return _singleColor; }
 
@@ -93,8 +96,7 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 	void				turnMarkerOn(unsigned int idx,bool);
 	bool				markerOn(unsigned int idx) const;
 	void				removeMarkerOnOff(unsigned int idx);
-					/*!<do it after remove a marker in whcih 
-					removing an element from Normal, Vertex and Color array */
+					/*!<don't call it. only for keep ABI*/
 	void				turnAllMarkersOn(bool);
 	void				forceRedraw(bool);
 

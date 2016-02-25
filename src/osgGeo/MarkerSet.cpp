@@ -23,10 +23,13 @@ $Id$
 #include <osg/Material>
 #include <osgGeo/ComputeBoundsVisitor>
 #include <osgUtil/CullVisitor>
+#include <OpenThreads/ScopedLock>
 
 
 using namespace osgGeo;
 
+static std::vector<std::pair<MarkerSet*,osg::ref_ptr<osg::ByteArray>> > _onoffByteArr;
+static OpenThreads::Mutex _onoffLock; // only protect _onoffByteArr
 
 MarkerSet::MarkerSet()
     : _rotateMode(osg::AutoTransform::ROTATE_TO_SCREEN)
@@ -41,6 +44,9 @@ MarkerSet::MarkerSet()
     , _waitForAutoTransformUpdate(false)
     , _applyRotationForAll(true)
 {
+    _onoffLock.lock();
+    _onoffByteArr.push_back(std::pair<MarkerSet*,osg::ByteArray*>(this,0));
+    _onoffLock.unlock();
     setNumChildrenRequiringUpdateTraversal(0);
     _singleColor = osg::Vec4(0.1f, 0.1f, 0.1f, 1.0f);
     _bbox.init();
@@ -49,6 +55,13 @@ MarkerSet::MarkerSet()
 
 MarkerSet::~MarkerSet()
 {
+    _onoffLock.lock();
+    for ( int idx=_onoffByteArr.size()-1; idx>=0; idx-- )
+    {
+	if ( this == _onoffByteArr[idx].first )
+	    _onoffByteArr.erase(_onoffByteArr.begin()+idx);
+    }
+    _onoffLock.unlock();
 }
 
 
@@ -149,7 +162,10 @@ bool MarkerSet::updateShapes()
 	    autotrans->setMinimumScale(_minScale);
 	    autotrans->setMaximumScale(_maxScale);
 	}
-	const bool ison = idx < _onoffArr.size() ? _onoffArr[idx] : true;
+	const osg::ByteArray* arr = getOnOffArray();
+	if ( !arr )
+	    return false;
+	const bool ison = idx < arr->size() ? arr->at(idx) : true;
 	autotrans->addChild(geode);
 	_nonShadingSwitch->addChild( autotrans, ison );
     }
@@ -169,10 +185,14 @@ bool MarkerSet::updateShapes()
 
 void MarkerSet::turnMarkerOn(unsigned int idx,bool yn)
 {
-    if( idx>=_onoffArr.size())
-	_onoffArr.resize(idx+1);
+    osg::ByteArray* arr = getOnOffArray();
+    if ( !arr )
+	return;
 
-    _onoffArr[idx] = yn;
+    if( idx>=arr->size())
+	arr->resize(idx+1);
+
+    (*arr)[idx] = yn;
 
     if ( idx<_nonShadingSwitch->getNumChildren() )
 	_nonShadingSwitch->setChildValue(_nonShadingSwitch->getChild(idx), yn);
@@ -183,26 +203,28 @@ void MarkerSet::turnMarkerOn(unsigned int idx,bool yn)
 
 bool MarkerSet::markerOn(unsigned int idx) const
 {
-    if ( idx<_onoffArr.size() )
-	return _onoffArr[idx];
+    osg::ByteArray* arr = getOnOffArray();
+    if (!arr)
+	return false;
+
+    if ( idx<arr->size() )
+	return (*arr)[idx];
 
     return false;
 }
 
 
 void MarkerSet::removeMarkerOnOff(unsigned int idx)
-{
-    if ( idx<_onoffArr.size() )
-	_onoffArr.erase( _onoffArr.begin() + idx );
-}
+{}
 
 
 void MarkerSet::turnAllMarkersOn(bool yn)
 {
-    if ( _onoffArr.size()==0 )
+    osg::ByteArray* arr = getOnOffArray();
+    if (!arr || arr->size()==0 )
 	return;
+    memset( &(*arr)[0], yn, arr->size()*sizeof(bool) );
 
-    memset( &_onoffArr[0], yn, _onoffArr.size()*sizeof(bool) );
     if ( yn )
 	_nonShadingSwitch->setAllChildrenOn();
     else
@@ -240,6 +262,36 @@ void MarkerSet::setVertexArray(osg::Vec3Array* arr)
 	return;
     _vertexArr = arr;
     forceRedraw(true);
+}
+
+
+void MarkerSet::setOnOffArray( osg::ByteArray* arr )
+{
+    OpenThreads::ScopedLock<OpenThreads::Mutex> lock(_onoffLock);
+    for ( size_t idx = 0; idx<_onoffByteArr.size(); idx++)
+    {
+	if (_onoffByteArr[idx].first==this)
+	{
+	    _onoffByteArr[idx].second = arr;
+	    break;
+	}
+    }
+    
+    forceRedraw(true);
+}
+
+
+osg::ByteArray*	MarkerSet::getOnOffArray() const
+{
+    OpenThreads::ScopedLock<OpenThreads::Mutex> lock(_onoffLock);
+    for ( size_t idx=0; idx<_onoffByteArr.size(); idx++ )
+    {
+	if ( _onoffByteArr[idx].first==this )
+	{
+	    return _onoffByteArr[idx].second;
+	}
+    }
+    return 0;
 }
 
 
