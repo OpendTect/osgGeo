@@ -28,7 +28,7 @@ $Id$
 
 using namespace osgGeo;
 
-static std::vector<std::pair<MarkerSet*,osg::ref_ptr<osg::ByteArray>> > _onoffByteArr;
+static std::vector<std::pair<MarkerSet*,osg::ref_ptr<osg::ByteArray> > > _onoffByteArr;
 static OpenThreads::Mutex _onoffLock; // only protect _onoffByteArr
 
 MarkerSet::MarkerSet()
