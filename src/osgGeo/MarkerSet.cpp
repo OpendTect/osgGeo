@@ -59,7 +59,10 @@ MarkerSet::~MarkerSet()
     for ( int idx=_onoffByteArr.size()-1; idx>=0; idx-- )
     {
 	if ( this == _onoffByteArr[idx].first )
+	{
+	    _onoffByteArr[idx].second->unref();
 	    _onoffByteArr.erase(_onoffByteArr.begin()+idx);
+	}
     }
     _onoffLock.unlock();
 }
@@ -272,6 +275,7 @@ void MarkerSet::setOnOffArray( osg::ByteArray* arr )
     {
 	if (_onoffByteArr[idx].first==this)
 	{
+	    arr->ref();
 	    _onoffByteArr[idx].second = arr;
 	    break;
 	}
