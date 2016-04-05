@@ -36,6 +36,7 @@ namespace osgGeo
 {
 
 class LayeredTexture;
+class Vec2i;
 
 /*!Class to display an arbitrary section through a 3D volume with a layered
    texture. The section follows a path on the x-y plane, and starts/stops at
@@ -123,6 +124,9 @@ public:
     void			forceRedraw(bool=true);
     std::vector<osg::Geometry*> getGeoMetries() { return _geometries; }
 
+    const std::vector<Vec2i>&	getCompositeCutoutOrigins() const; 
+    const std::vector<Vec2i>&	getCompositeCutoutSizes() const; 
+
 protected:
     virtual			~TexturePanelStripNode();
 
@@ -173,6 +177,8 @@ protected:
     bool					_swapTextureAxes;
     bool					_smoothNormals;
     std::vector<osg::Geometry*>			_geometries;
+    std::vector<Vec2i>				_compositeCutoutOrigins;
+    std::vector<Vec2i>				_compositeCutoutSizes;
     std::vector<osg::StateSet*>			_statesets;
     osg::ref_ptr<osg::FloatArray>		_panelWidths;
     osg::ref_ptr<osg::Vec3Array>		_panelNormals;

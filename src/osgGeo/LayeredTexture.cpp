@@ -2310,7 +2310,7 @@ osg::StateSet* LayeredTexture::createCutoutStateSet( const osg::Vec2f& origin, c
 	tc01 = osg::Vec2f( tc11.x(), tc00.y() );
 	tc10 = osg::Vec2f( tc00.x(), tc11.y() );
 
-	tcData.push_back( TextureCoordData( layer->_textureUnit, tc00, tc01, tc10, tc11 ) );
+	tcData.push_back( TextureCoordData( layer->_textureUnit, tc00, tc01, tc10, tc11, tileOrigin, tileSize ) );
 
 	osg::ref_ptr<osg::Texture2D> texture = new osg::Texture2D( tileImage.get() );
 	texture->setResizeNonPowerOfTwoHint( resizeHint );
@@ -2369,8 +2369,9 @@ void LayeredTexture::add3DTextureToStateSet( const LayeredTextureData& layer, st
     if ( !image || !image->s() || !image->t() || !image->r() )
 	return;
 
-    const osg::Vec2f dummy( 0.0f, 0.0f );
-    tcData.push_back( TextureCoordData( layer._textureUnit, dummy, dummy, dummy, dummy ) );
+    const osg::Vec2f fDummy( 0.0f, 0.0f );
+    const Vec2i iDummy( 0, 0 );
+    tcData.push_back( TextureCoordData( layer._textureUnit, fDummy, fDummy, fDummy, fDummy, iDummy, iDummy ) );
 
     osg::ref_ptr<osg::Texture3D> texture = new osg::Texture3D( image );
     texture->setResizeNonPowerOfTwoHint( false );

@@ -24,6 +24,7 @@ $Id$
 #include <osgGeo/TexturePanelStrip>
 #include <osgGeo/LayeredTexture>
 #include <osgGeo/ComputeBoundsVisitor>
+#include <osgGeo/Vec2i>
 
 #include <osg/Geometry>
 #include <osg/LightModel>
@@ -220,6 +221,9 @@ void TexturePanelStripNode::cleanUp()
 	(*it)->unref();
 
     _statesets.clear();
+
+    _compositeCutoutOrigins.clear();
+    _compositeCutoutSizes.clear();
 }
 
 
@@ -818,6 +822,8 @@ bool TexturePanelStripNode::updateGeometry()
 		_geometries.push_back( geometry );
 		stateset->ref();
 		_statesets.push_back( stateset );
+		_compositeCutoutOrigins.push_back( tcData.begin()->_cutoutOrigin );
+		_compositeCutoutSizes.push_back( tcData.begin()->_cutoutSize );
 	    }
 	}
     }
@@ -840,6 +846,14 @@ void TexturePanelStripNode::freezeDisplay( bool yn )
 
     setUpdateVar( _frozen, yn );
 }
+
+
+const std::vector<Vec2i>& TexturePanelStripNode::getCompositeCutoutOrigins() const
+{ return _compositeCutoutOrigins; }
+
+
+const std::vector<Vec2i>& TexturePanelStripNode::getCompositeCutoutSizes() const
+{ return _compositeCutoutSizes; }
 
 
 } //namespace osgGeo

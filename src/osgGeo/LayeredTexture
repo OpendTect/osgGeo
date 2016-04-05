@@ -211,14 +211,17 @@ public:
     {
 			TextureCoordData(int tu,
 				const osg::Vec2f& tc00, const osg::Vec2f& tc01,
-				const osg::Vec2f& tc10, const osg::Vec2f& tc11 )
+				const osg::Vec2f& tc10, const osg::Vec2f& tc11,
+				const Vec2i& origin, const Vec2i& size)
 			    : _textureUnit( tu )
 			    , _tc00( tc00 ), _tc01( tc01 )
 			    , _tc10( tc10 ), _tc11( tc11 )
+			    , _cutoutOrigin( origin ), _cutoutSize( size )
 			{}
 
 	int		_textureUnit;
 	osg::Vec2f	_tc00, _tc01, _tc10, _tc11;
+	Vec2i		_cutoutOrigin ,_cutoutSize;
     };
 
     bool		needsRetiling() const;
