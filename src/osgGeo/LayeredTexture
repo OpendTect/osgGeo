@@ -410,6 +410,36 @@ protected:
     int					_compositeSubsampleSteps;
     bool				_compositeLayerUpdate;
     bool				_reInitTiling;
+
+public:
+
+    struct		NewTextureCoordData
+    {
+			NewTextureCoordData(int tu,
+				const osg::Vec2f& tc00, const osg::Vec2f& tc01,
+				const osg::Vec2f& tc10, const osg::Vec2f& tc11,
+				const Vec2i& origin, const Vec2i& size)
+
+			    : _textureUnit( tu )
+			    , _tc00( tc00 ), _tc01( tc01 )
+			    , _tc10( tc10 ), _tc11( tc11 )
+			    , _cutoutOrigin( origin ), _cutoutSize( size )
+			{}
+
+	int		_textureUnit;
+	osg::Vec2f	_tc00, _tc01, _tc10, _tc11;
+	Vec2i		_cutoutOrigin ,_cutoutSize;
+    };
+
+    osg::StateSet*	createCutoutStateSet(const osg::Vec2f& origin,
+			    const osg::Vec2f& opposite,
+			    std::vector<NewTextureCoordData>&,
+			    const VertexOffsetCutoutInfo* info=0) const;
+protected:
+
+    void		add3DTextureToStateSet(const LayeredTextureData&,
+			    std::vector<LayeredTexture::NewTextureCoordData>&,
+			    osg::StateSet&) const;
 };
 
 

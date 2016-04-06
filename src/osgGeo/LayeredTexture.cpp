@@ -2109,6 +2109,19 @@ osg::Vec2 LayeredTexture::tilingPlanResolution() const
 
 osg::StateSet* LayeredTexture::createCutoutStateSet( const osg::Vec2f& origin, const osg::Vec2f& opposite, std::vector<LayeredTexture::TextureCoordData>& tcData, const VertexOffsetCutoutInfo* vertexOffsetInfo ) const
 {
+    std::vector<LayeredTexture::NewTextureCoordData> ntcd;
+    osg::StateSet* ss = createCutoutStateSet( origin, opposite, ntcd, vertexOffsetInfo );
+
+    tcData.clear();
+    for ( int idx=0; idx<ntcd.size(); idx++ )
+	tcData.push_back( TextureCoordData( ntcd[idx]._textureUnit, ntcd[idx]._tc00, ntcd[idx]._tc01, ntcd[idx]._tc10, ntcd[idx]._tc11 ) );
+
+    return ss;
+}
+
+
+osg::StateSet* LayeredTexture::createCutoutStateSet( const osg::Vec2f& origin, const osg::Vec2f& opposite, std::vector<LayeredTexture::NewTextureCoordData>& tcData, const VertexOffsetCutoutInfo* vertexOffsetInfo ) const
+{
     tcData.clear();
     osg::ref_ptr<osg::StateSet> stateset = new osg::StateSet;
 
@@ -2310,7 +2323,7 @@ osg::StateSet* LayeredTexture::createCutoutStateSet( const osg::Vec2f& origin, c
 	tc01 = osg::Vec2f( tc11.x(), tc00.y() );
 	tc10 = osg::Vec2f( tc00.x(), tc11.y() );
 
-	tcData.push_back( TextureCoordData( layer->_textureUnit, tc00, tc01, tc10, tc11 ) );
+	tcData.push_back( NewTextureCoordData( layer->_textureUnit, tc00, tc01, tc10, tc11, tileOrigin, tileSize ) );
 
 	osg::ref_ptr<osg::Texture2D> texture = new osg::Texture2D( tileImage.get() );
 	texture->setResizeNonPowerOfTwoHint( resizeHint );
@@ -2365,12 +2378,23 @@ osg::StateSet* LayeredTexture::createCutoutStateSet( const osg::Vec2f& origin, c
 
 void LayeredTexture::add3DTextureToStateSet( const LayeredTextureData& layer, std::vector<LayeredTexture::TextureCoordData>& tcData, osg::StateSet& stateset ) const
 {
+    std::vector<LayeredTexture::NewTextureCoordData> ntcd;
+    add3DTextureToStateSet( layer, ntcd, stateset );
+
+    for ( int idx=0; idx<ntcd.size(); idx++ )
+	tcData.push_back( TextureCoordData( ntcd[idx]._textureUnit, ntcd[idx]._tc00, ntcd[idx]._tc01, ntcd[idx]._tc10, ntcd[idx]._tc11 ) );
+}
+
+
+void LayeredTexture::add3DTextureToStateSet( const LayeredTextureData& layer, std::vector<LayeredTexture::NewTextureCoordData>& tcData, osg::StateSet& stateset ) const
+{
     osg::Image* image = layer._image;
     if ( !image || !image->s() || !image->t() || !image->r() )
 	return;
 
-    const osg::Vec2f dummy( 0.0f, 0.0f );
-    tcData.push_back( TextureCoordData( layer._textureUnit, dummy, dummy, dummy, dummy ) );
+    const osg::Vec2f fDummy( 0.0f, 0.0f );
+    const Vec2i iDummy( 0, 0 );
+    tcData.push_back( NewTextureCoordData( layer._textureUnit, fDummy, fDummy, fDummy, fDummy, iDummy, iDummy ) );
 
     osg::ref_ptr<osg::Texture3D> texture = new osg::Texture3D( image );
     texture->setResizeNonPowerOfTwoHint( false );

@@ -24,6 +24,7 @@ $Id$
 #include <osgGeo/TexturePanelStrip>
 #include <osgGeo/LayeredTexture>
 #include <osgGeo/ComputeBoundsVisitor>
+#include <osgGeo/Vec2i>
 
 #include <osg/Geometry>
 #include <osg/LightModel>
@@ -115,6 +116,20 @@ protected:
 
 //============================================================================
 
+static std::vector<TexturePanelStripNode*> _panelStrips;
+static std::vector<std::vector<Vec2i>*> _cutoutOrigins;
+static std::vector<std::vector<Vec2i>*> _cutoutSizes;
+
+static int getPanelStripIdx( const TexturePanelStripNode* node )
+{
+    for ( int idx=0; idx<_panelStrips.size(); idx++ )
+    {
+	if ( _panelStrips[idx] == node )
+	    return idx;
+    }
+    return -1;		// This function should never reach this line
+}
+
 
 TexturePanelStripNode::TexturePanelStripNode()
     : _texture( 0 )
@@ -150,7 +165,11 @@ TexturePanelStripNode::TexturePanelStripNode()
     _boundingGeometry = new BoundingGeometry( *this );
     _boundingGeometry->update();
 
-     _textureCallbackHandler = new TextureCallbackHandler( *this );
+    _textureCallbackHandler = new TextureCallbackHandler( *this );
+
+    _panelStrips.push_back( this );
+    _cutoutOrigins.push_back( new std::vector<Vec2i> ); 
+    _cutoutSizes.push_back( new std::vector<Vec2i> ); 
 }
 
 
@@ -197,6 +216,10 @@ TexturePanelStripNode::TexturePanelStripNode( const TexturePanelStripNode& node,
     setPath2TextureMapping( *node._pathTexOffsets );
 
     _textureCallbackHandler = new TextureCallbackHandler( *this );
+
+    _panelStrips.push_back( this );
+    _cutoutOrigins.push_back( new std::vector<Vec2i> ); 
+    _cutoutSizes.push_back( new std::vector<Vec2i> ); 
 }
 
 
@@ -204,6 +227,11 @@ TexturePanelStripNode::~TexturePanelStripNode()
 {
     cleanUp();
     setTexture( 0 );
+
+    const int idx = getPanelStripIdx( this );
+    _panelStrips.erase( _panelStrips.begin()+idx );
+    delete *_cutoutOrigins.erase( _cutoutOrigins.begin()+idx );
+    delete *_cutoutSizes.erase( _cutoutSizes.begin()+idx );
 }
 
 
@@ -220,6 +248,10 @@ void TexturePanelStripNode::cleanUp()
 	(*it)->unref();
 
     _statesets.clear();
+
+    const int idx = getPanelStripIdx( this );
+    _cutoutOrigins[idx]->clear();
+    _cutoutSizes[idx]->clear();
 }
 
 
@@ -759,7 +791,7 @@ bool TexturePanelStripNode::updateGeometry()
 		}
 	    }
 
-	    std::vector<LayeredTexture::TextureCoordData> tcData;
+	    std::vector<LayeredTexture::NewTextureCoordData> tcData;
 	    osg::Vec2f origin, opposite;
 	    if ( _swapTextureAxes )
 	    {
@@ -774,7 +806,7 @@ bool TexturePanelStripNode::updateGeometry()
 
 	    osg::ref_ptr<osg::StateSet> stateset = _texture->createCutoutStateSet( origin, opposite, tcData );
 
-	    std::vector<LayeredTexture::TextureCoordData>::const_iterator it = tcData.begin();
+	    std::vector<LayeredTexture::NewTextureCoordData>::const_iterator it = tcData.begin();
 	    for ( ; it!=tcData.end(); it++ )
 	    {
 		osg::ref_ptr<osg::Vec2Array> texCoords = new osg::Vec2Array;
@@ -818,6 +850,10 @@ bool TexturePanelStripNode::updateGeometry()
 		_geometries.push_back( geometry );
 		stateset->ref();
 		_statesets.push_back( stateset );
+
+		const int idx = getPanelStripIdx( this );
+		_cutoutOrigins[idx]->push_back( tcData.size() ? tcData.begin()->_cutoutOrigin : Vec2i(0,0) );
+		_cutoutSizes[idx]->push_back( tcData.size() ? tcData.begin()->_cutoutSize : Vec2i(0,0) );
 	    }
 	}
     }
@@ -841,5 +877,12 @@ void TexturePanelStripNode::freezeDisplay( bool yn )
     setUpdateVar( _frozen, yn );
 }
 
+
+const std::vector<Vec2i>& TexturePanelStripNode::getCompositeCutoutOrigins() const
+{ return *_cutoutOrigins[ getPanelStripIdx(this) ]; }
+
+
+const std::vector<Vec2i>& TexturePanelStripNode::getCompositeCutoutSizes() const
+{ return *_cutoutSizes[ getPanelStripIdx(this) ]; }
 
 } //namespace osgGeo
