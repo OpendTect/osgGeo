@@ -822,8 +822,9 @@ bool TexturePanelStripNode::updateGeometry()
 		_geometries.push_back( geometry );
 		stateset->ref();
 		_statesets.push_back( stateset );
-		_compositeCutoutOrigins.push_back( tcData.begin()->_cutoutOrigin );
-		_compositeCutoutSizes.push_back( tcData.begin()->_cutoutSize );
+
+		_compositeCutoutOrigins.push_back( tcData.size() ? tcData.begin()->_cutoutOrigin : Vec2i(0,0) );
+		_compositeCutoutSizes.push_back( tcData.size() ? tcData.begin()->_cutoutSize : Vec2i(0,0) );
 	    }
 	}
     }
