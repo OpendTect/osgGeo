@@ -230,8 +230,14 @@ TexturePanelStripNode::~TexturePanelStripNode()
 
     const int idx = getPanelStripIdx( this );
     _panelStrips.erase( _panelStrips.begin()+idx );
-    delete *_cutoutOrigins.erase( _cutoutOrigins.begin()+idx );
-    delete *_cutoutSizes.erase( _cutoutSizes.begin()+idx );
+
+    std::vector<Vec2i>* tobedeleted = _cutoutOrigins[idx];
+    _cutoutOrigins.erase( _cutoutOrigins.begin()+idx );
+    delete tobedeleted;
+    
+    tobedeleted = _cutoutSizes[idx];
+    _cutoutSizes.erase( _cutoutSizes.begin()+idx );
+    delete tobedeleted;
 }
 
 
