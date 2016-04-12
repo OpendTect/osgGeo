@@ -527,13 +527,15 @@ void LayeredTextureData::adaptColors()
 	color = image->getColor( pixelIdx ); \
     else if ( image->t() > image->r() ) \
     { \
-	const unsigned int size = image->getRowStepInBytes(); \
+	const unsigned int pixBytes = image->getPixelSizeInBits()/8; \
+	const unsigned int size = image->getRowStepInBytes() / pixBytes; \
 	const unsigned int blocks = (unsigned int) (idx/size); \
 	color = image->getColor( (unsigned int) (idx-blocks*size), blocks ); \
     } \
     else \
     { \
-	const unsigned int size = image->getImageSizeInBytes(); \
+	const unsigned int pixBytes = image->getPixelSizeInBits()/8; \
+	const unsigned int size = image->getImageSizeInBytes() / pixBytes; \
 	const unsigned int blocks = (unsigned int) (idx/size); \
 	color = image->getColor( (unsigned int)(idx-blocks*size), 0, blocks ); \
     }
