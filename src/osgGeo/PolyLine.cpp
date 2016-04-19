@@ -374,7 +374,7 @@ bool PolyLineNode::buildA3DLineStrip(osg::Vec3Array& corners1,
 	osg::Vec3Array& corners2,int pidx0,int pidx1, int pidx2, bool first,
 	bool last )
 {
-    if (_polyLineCoords->size()<=0 || pidx0>=_polyLineCoords->size()-1)
+    if (_polyLineCoords->size()<=0 || pidx0>=_polyLineCoords->size())
 	return false;
 
     const osg::Vec3  p0 = _polyLineCoords->at(pidx0);
