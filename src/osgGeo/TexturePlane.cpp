@@ -699,4 +699,16 @@ osg::Vec3f TexturePlaneNode::getTexelSpanVector( int texdim )
 }
 
 
+osg::BoundingBox TexturePlaneNode::getGeometryBoundingBox() const
+{
+    osg::BoundingBox bx;
+    for ( int idx=0; idx<_geometries.size(); idx++ )
+    {
+	    bx.expandBy( _geometries[idx]->getBound() );
+    }
+ 
+    return bx;
+}
+
+
 } //namespace osgGeo

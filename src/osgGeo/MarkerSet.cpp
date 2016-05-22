@@ -218,6 +218,8 @@ osg::BoundingSphere MarkerSet::computeBound() const
 
 void MarkerSet::forceRedraw(bool yn)
 {
+    OpenThreads::ScopedLock<OpenThreads::Mutex> lock(_osgMutex);
+
     if ( yn == _forceRedraw )
 	return;
 

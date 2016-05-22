@@ -27,6 +27,7 @@ $Id$
 #include <osg/NodeVisitor>
 #include <osg/Quat>
 #include <osgGeo/Common>
+#include <osg/BoundingBox>
 #include <OpenThreads/ReadWriteMutex>
 
 
@@ -104,6 +105,7 @@ public:
     void			forceRedraw(bool=true);
 
     osg::Vec3f			getTexelSpanVector(int texdim);
+    osg::BoundingBox		getGeometryBoundingBox() const;
 
 protected:
     virtual			~TexturePlaneNode();

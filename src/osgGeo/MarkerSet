@@ -28,7 +28,7 @@ $Id$
 #include <osg/Array>
 #include <osg/Geode>
 #include <osg/AutoTransform>
-
+#include <OpenThreads/Mutex>
 namespace osg 
 { 
     class Geometry; class Geode; class Shape; class Array; class Quat;
@@ -126,6 +126,7 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 	bool					_dirtyBoundAtNextCullStage;
 	bool					_waitForAutoTransformUpdate;
 	osg::Vec3				_prevEyePoint;
+	OpenThreads::Mutex			_osgMutex;
 };
 
 }
