@@ -29,7 +29,8 @@ $Id$
 using namespace osgGeo;
 
 static std::vector<std::pair<MarkerSet*,osg::ref_ptr<osg::ByteArray> > > _onoffByteArr;
-static OpenThreads::Mutex _osgMutex; // lock possible share variables
+static OpenThreads::Mutex _onoffLock;	// only protect _onoffByteArr
+static OpenThreads::Mutex _osgMutex;	// lock possible share variables
 
 MarkerSet::MarkerSet()
     : _rotateMode(osg::AutoTransform::ROTATE_TO_SCREEN)
@@ -44,9 +45,9 @@ MarkerSet::MarkerSet()
     , _waitForAutoTransformUpdate(false)
     , _applyRotationForAll(true)
 {
-    _osgMutex.lock();
+    _onoffLock.lock();
     _onoffByteArr.push_back(std::pair<MarkerSet*,osg::ByteArray*>(this,0));
-    _osgMutex.unlock();
+    _onoffLock.unlock();
     setNumChildrenRequiringUpdateTraversal(0);
     _singleColor = osg::Vec4(0.1f, 0.1f, 0.1f, 1.0f);
     _bbox.init();
@@ -55,7 +56,7 @@ MarkerSet::MarkerSet()
 
 MarkerSet::~MarkerSet()
 {
-    _osgMutex.lock();
+    _onoffLock.lock();
     for ( int idx=_onoffByteArr.size()-1; idx>=0; idx-- )
     {
 	if ( this == _onoffByteArr[idx].first )
@@ -64,7 +65,7 @@ MarkerSet::~MarkerSet()
 	    _onoffByteArr.erase(_onoffByteArr.begin()+idx);
 	}
     }
-    _osgMutex.unlock();
+    _onoffLock.unlock();
 }
 
 
@@ -271,7 +272,7 @@ void MarkerSet::setVertexArray(osg::Vec3Array* arr)
 
 void MarkerSet::setOnOffArray( osg::ByteArray* arr )
 {
-    OpenThreads::ScopedLock<OpenThreads::Mutex> lock(_osgMutex);
+    OpenThreads::ScopedLock<OpenThreads::Mutex> lock(_onoffLock);
     for ( size_t idx = 0; idx<_onoffByteArr.size(); idx++)
     {
 	if (_onoffByteArr[idx].first==this)
@@ -288,7 +289,7 @@ void MarkerSet::setOnOffArray( osg::ByteArray* arr )
 
 osg::ByteArray*	MarkerSet::getOnOffArray() const
 {
-    OpenThreads::ScopedLock<OpenThreads::Mutex> lock(_osgMutex);
+    OpenThreads::ScopedLock<OpenThreads::Mutex> lock(_onoffLock);
     for ( size_t idx=0; idx<_onoffByteArr.size(); idx++ )
     {
 	if ( _onoffByteArr[idx].first==this )

@@ -98,7 +98,6 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 	void				removeMarkerOnOff(unsigned int idx);
 					/*!<don't call it. only for keep ABI*/
 	void				turnAllMarkersOn(bool);
-	void				removeAllMarkers();
 	void				forceRedraw(bool);
 
     protected:
