@@ -25,6 +25,7 @@ $Id$
 #include <osg/Vec2>
 #include <osg/NodeVisitor>
 #include <osgGeo/Common>
+#include <osgText/String>
 
 
 namespace osg { class Camera; class MatrixTransform;  }
@@ -37,30 +38,32 @@ class OSGGEO_EXPORT AxesNode : public osg::MatrixTransform
 {
 public:
 
-			AxesNode();
-			AxesNode(const AxesNode&, const osg::CopyOp& op =
-				    osg::CopyOp::DEEP_COPY_ALL);
-			META_Node(osgGeo,AxesNode);
+				AxesNode();
+				AxesNode(const AxesNode&, const osg::CopyOp& op =
+                                         osg::CopyOp::DEEP_COPY_ALL);
+				META_Node(osgGeo,AxesNode);
 
-    void		traverse(osg::NodeVisitor&);
-    void		setSize(osg::Vec2 size);
-    void		setPosition(osg::Vec2 pos);
-    void		setRadius(const float&);
-    float		getRadius() const { return _radius; }
-    float		getLength() const { return _length; }
-    void		setLength(const float&);
-    void		setAnnotationColor(osg::Vec4 col);
-    void		setAnnotationTextSize(float);
-    float		getAnnotationTextSize() const {return _textSize;}
-    void		setAnnotationFont(osgText::Font*);
-    void		setMasterCamera(osg::Camera*);
+    void			traverse(osg::NodeVisitor&);
+    void			setSize(osg::Vec2 size);
+    void			setPosition(osg::Vec2 pos);
+    void			setRadius(const float&);
+    float			getRadius() const { return _radius; }
+    float			getLength() const { return _length; }
+    void			setLength(const float&);
+    void			setAnnotationColor(osg::Vec4 col);
+    void			setAnnotationText(int dim, const osgText::String&);
+    const osgText::String&	getAnnotationText(int dim) const;
+    void			setAnnotationTextSize(float);
+    float			getAnnotationTextSize() const {return _textSize;}
+    void			setAnnotationFont(osgText::Font*);
+    void			setMasterCamera(osg::Camera*);
 
 protected:
 
-    virtual		~AxesNode();
-    bool		updateGeometry();
-    bool		needsUpdate() const;
-    bool		computeTransform(osg::Matrix&) const;
+    virtual			~AxesNode();
+    bool			updateGeometry();
+    bool			needsUpdate() const;
+    bool			computeTransform(osg::Matrix&) const;
        
     float			_radius;
     float			_length;
@@ -70,7 +73,9 @@ protected:
     osg::Vec4			_annotColor;
     osg::ref_ptr<osgText::Font>	_font;
     bool			_needsUpdate;
-    osg::ref_ptr<osg::Camera>		_masterCamera;
+    osg::ref_ptr<osg::Camera>	_masterCamera;
+
+    osgText::String		_annotText[3];
 };
 
 

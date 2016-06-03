@@ -48,6 +48,9 @@ AxesNode::AxesNode()
     , _textSize(18.0f)
     , _font(0)
 {
+    setAnnotationText( 0, osgText::String("N") );
+    setAnnotationText( 1, osgText::String("E") );
+    setAnnotationText( 2, osgText::String("Z") );
     setCullingActive(false);
 }
 
@@ -63,12 +66,17 @@ AxesNode::AxesNode( const AxesNode& node, const osg::CopyOp& co )
     , _textSize(node._textSize)
     , _font(node._font)
 {
+    setAnnotationText( 0, node.getAnnotationText(0) );
+    setAnnotationText( 1, node.getAnnotationText(1) );
+    setAnnotationText( 2, node.getAnnotationText(2) );
+
     setCullingActive(false);
 }
 
 
 AxesNode::~AxesNode()
-{}
+{
+}
 
 
 void AxesNode::traverse( osg::NodeVisitor& nv )
@@ -110,7 +118,7 @@ bool AxesNode::computeTransform(osg::Matrix& mt) const
 
 
 static osg::ref_ptr<osg::Node> arrowNode( const float rad, const float len,const osg::Vec4& color, 
-				   const osg::Vec3& dir,const char* text, float txtSize, 
+                                   const osg::Vec3& dir,const osgText::String& text, float txtSize,
 				   const osg::Vec4& annotclr, osgText::Font* font )
 {
     osg::ref_ptr<osg::Vec3Array> coords = new osg::Vec3Array;
@@ -191,7 +199,7 @@ static osg::ref_ptr<osg::Node> arrowNode( const float rad, const float len,const
     arrowgeode->getOrCreateStateSet()->setAttribute(mat);
    
     osg::ref_ptr<osg::Geode> textgeode = new osg::Geode();
-    osg::ref_ptr<osgText::Text> annot = new  osgText::Text;
+    osg::ref_ptr<osgText::TextBase> annot = new osgText::Text;
     annot->setPosition(p1);
     annot->setCharacterSize(txtSize);
     annot->setAxisAlignment(osgText::TextBase::SCREEN);
@@ -226,9 +234,9 @@ bool AxesNode::updateGeometry()
     removeChildren(0, getNumChildren());
     addChild( spheregeode ); 
     
-    addChild(arrowNode(_radius,_length,red,osg::Vec3(0,1,0),  "N", _textSize, c, _font));
-    addChild(arrowNode(_radius,_length,green,osg::Vec3(1,0,0),"E", _textSize, c, _font));
-    addChild(arrowNode(_radius,_length,blue,osg::Vec3(0,0,-1),"Z", _textSize, c, _font));
+    addChild(arrowNode(_radius,_length,red,osg::Vec3(0,1,0), _annotText[0], _textSize, c, _font));
+    addChild(arrowNode(_radius,_length,green,osg::Vec3(1,0,0),_annotText[1], _textSize, c, _font));
+    addChild(arrowNode(_radius,_length,blue,osg::Vec3(0,0,-1),_annotText[2], _textSize, c, _font));
 
     _needsUpdate = false;
     return true;
@@ -296,6 +304,22 @@ void AxesNode::setAnnotationFont( osgText::Font* font )
 {
     _font = font;
     _needsUpdate = true;
+}
+
+
+void AxesNode::setAnnotationText( int dim, const osgText::String& text )
+{
+    if ( dim>=0 && dim<3 )
+    {
+        _annotText[dim] = text;
+	_needsUpdate = true;
+    }
+}
+
+
+const osgText::String& AxesNode::getAnnotationText( int dim ) const
+{
+    return _annotText[dim];
 }
 
 } //namespace osgGeo
