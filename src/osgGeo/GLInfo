@@ -1,0 +1,52 @@
+#ifndef OSGGEO_GLINFO_H
+#define OSGGEO_GLINFO_H
+
+/* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
+Copyright 2012 dGB Beheer B.V.
+
+osgGeo is free software; you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>
+
+$Id$
+
+*/
+
+#include <osgGeo/Common>
+#include <string>
+
+namespace osgGeo
+{
+
+class OSGGEO_EXPORT GLInfo
+{
+public:
+			GLInfo();
+
+    bool		get();
+
+    const char*		glVendor() const;
+    const char*		glRenderer() const;
+    const char*		glVersion() const;
+
+protected:
+    std::string		_glvendor;
+    std::string		_glrenderer;
+    std::string		_glversion;
+
+    std::string		_errmsg;
+};
+
+} // namespace osgGeo
+
+#endif // OSGGEO_GLINFO_H
+

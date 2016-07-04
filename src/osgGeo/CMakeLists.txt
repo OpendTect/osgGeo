@@ -67,6 +67,7 @@ set ( LIB_PUBLIC_HEADERS
     ComputeBoundsVisitor
     Config
     Draggers
+    GLInfo
     LayeredTexture
     LayerProcess
     Line3
@@ -96,6 +97,7 @@ add_library( ${LIB_NAME} SHARED
     AxesNode.cpp
     Callback.cpp
     Draggers.cpp
+    GLInfo.cpp
     Palette.cpp
     PlaneWellLog
     ShaderUtility.cpp
