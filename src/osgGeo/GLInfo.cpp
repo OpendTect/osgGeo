@@ -19,8 +19,12 @@ $Id$
 */
 
 
+
+#ifndef __win64__
 #include <GL/gl.h>
 #include <GL/glx.h>
+#endif
+
 #include <osgGeo/GLInfo>
 
 namespace osgGeo
@@ -32,6 +36,7 @@ GLInfo::GLInfo()
 
 bool GLInfo::get()
 {
+#ifndef __win64__
     Display* dpy = XOpenDisplay( NULL );
     int attribSingle[] = {
 	GLX_RGBA,
@@ -94,6 +99,7 @@ bool GLInfo::get()
     XFree(visinfo);
     XDestroyWindow(dpy, win);
     XCloseDisplay(dpy);
+#endif
     return true;
 }
 
