@@ -20,9 +20,9 @@ $Id$
 
 
 
-#ifndef __win64__
-#include <GL/gl.h>
-#include <GL/glx.h>
+#ifndef __win__
+# include <GL/gl.h>
+# include <GL/glx.h>
 #endif
 
 #include <osgGeo/GLInfo>
@@ -36,7 +36,9 @@ GLInfo::GLInfo()
 
 bool GLInfo::get()
 {
-#ifndef __win64__
+#ifdef __win__
+    // TODO
+#else
     Display* dpy = XOpenDisplay( NULL );
     int attribSingle[] = {
 	GLX_RGBA,
