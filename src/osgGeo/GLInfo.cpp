@@ -20,7 +20,9 @@ $Id$
 
 
 
-#ifndef __win__
+#if defined(__win64__) || defined(__win32__)
+# include <windows.h>
+#else
 # include <GL/gl.h>
 # include <GL/glx.h>
 #endif
@@ -36,7 +38,7 @@ GLInfo::GLInfo()
 
 bool GLInfo::get()
 {
-#ifdef __win__
+#if defined(__win64__) || defined(__win32__)
     // TODO
 #else
     Display* dpy = XOpenDisplay( NULL );
