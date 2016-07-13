@@ -184,7 +184,8 @@ static bool readDrawables( osgDB::InputStream& is, osgGeo::OneSideRender& node )
         osgGeo::Line3 line;
         is >> is.PROPERTY("Line") >> line;
 
-        osg::Drawable* drawable = dynamic_cast<osg::Drawable*>( is.readObject() );
+	osg::ref_ptr<osg::Drawable> drawable =
+	    dynamic_cast<osg::Drawable*>( (osg::Object*) is.readObject() );
         if ( drawable )
         {
             node.addDrawable( drawable, line );
