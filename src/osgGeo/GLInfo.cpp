@@ -19,6 +19,25 @@ $Id$
 */
 
 
+/* This implementation of class osgGeo::GLInfo is using code from: 
+ *
+ * [1] wglinfo.c by Nate Robins, 1997 (for Windows)
+ *
+ * [2] glxinfo by Brian Paul, 1999-2006 (for Linux)
+ *
+ * Copyright (C) 1999-2006  Brian Paul   All Rights Reserved.
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included
+ * in all copies or substantial portions of the Software.
+ */
+
 
 #if defined(__win64__) || defined(__win32__)
 # include <windows.h>
@@ -34,6 +53,16 @@ namespace osgGeo
 
 GLInfo::GLInfo()
 {}
+
+
+bool GLInfo::isPlatformSupported() const
+{
+#if defined(__win64__) || defined(__win32__)
+    return false;
+#else
+    return true;
+#endif
+}
 
 
 bool GLInfo::get()
@@ -94,9 +123,12 @@ bool GLInfo::get()
 
     if ( glXMakeCurrent(dpy,win,ctx) )
     {
-	_glvendor = (const char*)glGetString(GL_VENDOR);
-	_glrenderer = (const char*)glGetString(GL_RENDERER);
-	_glversion = (const char*)glGetString(GL_VERSION);
+	if ( (const char*) glGetString(GL_VENDOR) )
+	    _glvendor = (const char*) glGetString(GL_VENDOR);
+	if ( (const char*) glGetString(GL_RENDERER) )
+	    _glrenderer = (const char*) glGetString(GL_RENDERER);
+	if ( (const char*) (const char*) glGetString(GL_VERSION) )
+	    _glversion = (const char*) glGetString(GL_VERSION);
     }
 
     glXDestroyContext(dpy, ctx);

@@ -32,6 +32,7 @@ class OSGGEO_EXPORT GLInfo
 public:
 			GLInfo();
 
+    bool		isPlatformSupported() const;
     bool		get();
 
     const char*		glVendor() const;
