@@ -112,7 +112,7 @@ void MarkerSet::traverse( osg::NodeVisitor& nv )
 	}
     }
 
-    if ( _nonShadingSwitch )
+    if ( _nonShadingSwitch && _nonShadingSwitch->getNumChildren()>0 )
 	_nonShadingSwitch->accept( nv );
 }
 
@@ -199,10 +199,20 @@ void MarkerSet::turnMarkerOn(unsigned int idx,bool yn)
     (*arr)[idx] = yn;
 
     if ( idx<_nonShadingSwitch->getNumChildren() )
+    {
+	OpenThreads::ScopedLock<OpenThreads::Mutex> lock(_osgMutex);
 	_nonShadingSwitch->setChildValue(_nonShadingSwitch->getChild(idx), yn);
+    }
     else
 	forceRedraw( true );
 }
+
+
+void MarkerSet::removeAllMarkers()
+{
+    OpenThreads::ScopedLock<OpenThreads::Mutex> lock(_osgMutex);
+    _nonShadingSwitch->removeChildren(0,_nonShadingSwitch->getNumChildren());
+    forceRedraw(true);}
 
 
 bool MarkerSet::markerOn(unsigned int idx) const

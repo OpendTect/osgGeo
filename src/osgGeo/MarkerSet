@@ -99,6 +99,7 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 					/*!<don't call it. only for keep ABI*/
 	void				turnAllMarkersOn(bool);
 	void				forceRedraw(bool);
+	void				removeAllMarkers();
 
     protected:
 	osg::BoundingSphere		computeBound() const;
