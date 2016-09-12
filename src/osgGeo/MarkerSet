@@ -97,6 +97,7 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 	bool				markerOn(unsigned int idx) const;
 	void				turnAllMarkersOn(bool);
 	void				forceRedraw(bool);
+	void				removeAllMarkers();
 
     protected:
 	osg::BoundingSphere		computeBound() const;
