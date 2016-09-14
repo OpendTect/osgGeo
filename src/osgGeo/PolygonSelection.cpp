@@ -109,6 +109,11 @@ PolygonSelection::PolygonSelection(const PolygonSelection& sel,const osg::CopyOp
     _coordsList = (osg::DrawArrays*)sel._coordsList->clone(op);
     _masterCamera = (osg::Camera*)sel._masterCamera->clone(op);
     _hudCamera = (osg::Camera*)sel._hudCamera->clone(op);
+
+    if(_masterCamera)
+	_masterCamera->ref();
+    if(_hudCamera)
+	_hudCamera->ref();
 }
 
 
