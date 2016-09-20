@@ -139,6 +139,17 @@ int TabBoxDragger::get2DTranslateModKeyMaskOfPlanes(int idx) const
 }
 
 
+const TabPlaneDragger* TabBoxDragger::getEventHandlingTabPlane() const
+{
+    for (unsigned int i=0; i<_planeDraggers.size(); ++i)
+    {
+	if ( _planeDraggers[i]->isCurrentEventHandler() )
+	    return _planeDraggers[i];
+    }
+    return 0;
+}
+
+
 int TabBoxDragger::getEventHandlingTabPlaneIdx() const
 {
     for (unsigned int i=0; i<_planeDraggers.size(); ++i)

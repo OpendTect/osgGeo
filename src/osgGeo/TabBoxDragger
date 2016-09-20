@@ -63,6 +63,9 @@ class OSGGEO_EXPORT TabBoxDragger : public osgManipulator::CompositeDragger
 	virtual ~TabBoxDragger();
 
 	std::vector< osg::ref_ptr< osgGeo::TabPlaneDragger > > _planeDraggers;
+
+    public:
+	const TabPlaneDragger* getEventHandlingTabPlane() const; 
 };
 
 }

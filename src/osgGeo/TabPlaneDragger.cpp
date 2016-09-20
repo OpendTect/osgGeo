@@ -23,6 +23,38 @@ $Id: TrackballManipulator.cpp 231 2013-04-16 12:35:57Z kristofer.tingdahl@dgbes.
 namespace osgGeo
 {
 
+static OpenThreads::Mutex _allDraggersMutex;
+static std::vector<const TabPlaneDragger*> _allDraggers;
+
+static std::vector<osg::Vec2>	_positionOnScreen;
+static std::vector<float>	_normalAngleToCamera;
+static std::vector<osg::Vec2>	_upwardPlaneAxisProj;
+static std::vector<osg::Vec2>   _planeNormalProj;
+
+static void moveToFront( const TabPlaneDragger* draggerPtr )
+{
+    _allDraggersMutex.lock();
+
+    for ( int idx=0; idx<_allDraggers.size(); idx++ )
+    {
+	if ( _allDraggers[idx] == draggerPtr )
+	{
+	    if ( idx > 0 )
+	    {
+		std::swap( _allDraggers[0], _allDraggers[idx] );
+		std::swap( _positionOnScreen[0], _positionOnScreen[idx] );
+		std::swap( _normalAngleToCamera[0], _normalAngleToCamera[idx] );
+		std::swap( _upwardPlaneAxisProj[0], _upwardPlaneAxisProj[idx] );
+		std::swap( _planeNormalProj[0], _planeNormalProj[idx] );
+	    }
+
+	    break;
+	}
+    }
+
+    _allDraggersMutex.unlock();
+}
+
 
 TabPlaneDragger::TabPlaneDragger( float handleScaleFactor )
     : osgManipulator::TabPlaneDragger( handleScaleFactor )
@@ -34,6 +66,68 @@ TabPlaneDragger::TabPlaneDragger( float handleScaleFactor )
 
     set2DTranslateMouseButtonMask( osgGA::GUIEventAdapter::LEFT_MOUSE_BUTTON );
     set2DTranslateModKeyMask( osgGA::GUIEventAdapter::MODKEY_SHIFT );
+
+    _allDraggersMutex.lock();
+
+    _allDraggers.push_back( this );
+    _positionOnScreen.push_back( osg::Vec2(0.0,0.0) );
+    _normalAngleToCamera.push_back( M_PI/2 );
+    _upwardPlaneAxisProj.push_back( osg::Vec2(0.0,0.0) );
+    _planeNormalProj.push_back( osg::Vec2(0.0,0.0) );
+
+    _allDraggersMutex.unlock();
+}
+
+
+void TabPlaneDragger::traverse( osg::NodeVisitor& nv )
+{
+    if ( nv.getVisitorType()==osg::NodeVisitor::CULL_VISITOR )
+    {
+	osgUtil::CullVisitor* cv = dynamic_cast<osgUtil::CullVisitor*>( &nv );
+	const osg::RefMatrix& MVPW = *cv->getMVPW();
+
+	const osg::Vec3 xVec = osg::Vec3(0.5,0,0)*MVPW-osg::Vec3(-0.5,0,0)*MVPW;
+	const osg::Vec3 yVec = osg::Vec3(0,0.5,0)*MVPW-osg::Vec3(0,-0.5,0)*MVPW;
+	const osg::Vec3 zVec = osg::Vec3(0,0,0.5)*MVPW-osg::Vec3(0,0,-0.5)*MVPW;
+
+	osg::Vec2 xProj( xVec[0], xVec[1] );
+	osg::Vec2 yProj( zVec[0], zVec[1] );
+	osg::Vec2 zProj( yVec[0], yVec[1] );
+
+	const float xLen = xProj.length();
+	const float yLen = yProj.length();
+
+	xProj.normalize(); yProj.normalize(); zProj.normalize();
+
+	const float xWeight = fabs( xProj * zProj );
+	const float yWeight = fabs( yProj * zProj );
+
+	osg::Vec2 normalProjDir = zProj;
+	normalProjDir *= (xWeight*xLen+yWeight*yLen) / (xWeight+yWeight);
+
+	osg::Vec2 upAxisDir = xProj * xLen;
+	if ( fabs(xProj[1]) < fabs(yProj[1]) )
+	    upAxisDir = yProj * yLen;
+	if ( upAxisDir[1] < 0.0 )
+	    upAxisDir = -upAxisDir;
+
+	const osg::RefMatrix& MV = *cv->getModelViewMatrix();
+	osg::Vec3 normalDir = osg::Vec3(0,0,0)*MV - osg::Vec3(0,1,0)*MV;
+	float cosAngle = normalDir.normalize() ? normalDir[2] : 1.0;
+
+	if ( cosAngle < 0.0 )
+	{
+	    cosAngle = -cosAngle;
+	    upAxisDir = -upAxisDir;
+	}
+
+	moveToFront( this );
+	_normalAngleToCamera[0] = acos( cosAngle );
+	_planeNormalProj[0] = normalProjDir;
+	_upwardPlaneAxisProj[0] = upAxisDir;
+    }
+
+    osgManipulator::TabPlaneDragger::traverse( nv );
 }
 
 
@@ -113,8 +207,36 @@ osg::Vec2 TabPlaneDragger::getNormalizedPosOnPlane() const
 }
 
 
+osg::Vec2 TabPlaneDragger::getPositionOnScreen() const
+{
+    moveToFront( this );
+    return _positionOnScreen[0];
+}
+
+
 const osg::Vec2& TabPlaneDragger::getNormalizedPosOnScreen() const
 { return _normalizedPosOnScreen; }
+
+
+float TabPlaneDragger::getPlaneNormalAngleToCamera() const
+{
+    moveToFront( this );
+    return _normalAngleToCamera[0];
+}
+
+
+osg::Vec2 TabPlaneDragger::getPlaneNormalProjOnScreen() const
+{
+    moveToFront( this );
+    return _planeNormalProj[0];
+}
+
+
+osg::Vec2 TabPlaneDragger::getUpwardPlaneAxisProjOnScreen() const
+{
+    moveToFront( this );
+    return _upwardPlaneAxisProj[0];
+}
 
 
 static bool isModKeyMaskMatching( osgGA::GUIEventAdapter& ea, int mask )
@@ -142,6 +264,9 @@ static bool isModKeyMaskMatching( osgGA::GUIEventAdapter& ea, int mask )
 
 bool TabPlaneDragger::convToTranslatePlaneDraggerEvent( osgGA::GUIEventAdapter& ea )
 {
+    moveToFront( this );
+    _positionOnScreen[0] = osg::Vec2( ea.getX(), ea.getY() );
+
     _normalizedPosOnScreen[0] = ea.getXnormalized();
     _normalizedPosOnScreen[1] = ea.getYnormalized();
 

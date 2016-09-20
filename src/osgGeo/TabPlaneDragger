@@ -66,6 +66,15 @@ class OSGGEO_EXPORT TabPlaneDragger : public osgManipulator::TabPlaneDragger
 	std::vector<int>	_mouseButMasks2D;
 	std::vector<int>	_modKeyMasks1D;
 	std::vector<int>	_modKeyMasks2D;
+
+	virtual void traverse(osg::NodeVisitor&);
+
+    public:
+	osg::Vec2 getPositionOnScreen() const;
+	float getPlaneNormalAngleToCamera() const;
+	osg::Vec2 getPlaneNormalProjOnScreen() const;
+	osg::Vec2 getUpwardPlaneAxisProjOnScreen() const;
+
 };
 
 }
