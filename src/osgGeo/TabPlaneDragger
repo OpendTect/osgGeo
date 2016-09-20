@@ -40,8 +40,13 @@ class OSGGEO_EXPORT TabPlaneDragger : public osgManipulator::TabPlaneDragger
         bool isCurrentEventHandler() const;
 
 	int getCurMouseButtonModKeyIdx() const;
+	const osg::Vec2& getPositionOnScreen() const;
 	osg::Vec2 getNormalizedPosOnPlane() const;
 	const osg::Vec2& getNormalizedPosOnScreen() const;
+
+	float getPlaneNormalAngleToCamera() const;
+	const osg::Vec2& getPlaneNormalProjOnScreen() const;
+	const osg::Vec2& getUpwardPlaneAxisProjOnScreen() const;
 
 	void set1DTranslateMouseButtonMask(int mask,int idx=0);
 	int get1DTranslateMouseButtonMask(int idx=0) const;
@@ -59,8 +64,14 @@ class OSGGEO_EXPORT TabPlaneDragger : public osgManipulator::TabPlaneDragger
 
 	bool convToTranslatePlaneDraggerEvent(osgGA::GUIEventAdapter&);
 
+	virtual void traverse(osg::NodeVisitor&);
+
 	int			_curMouseButModKeyIdx;
+	osg::Vec2		_positionOnScreen;
 	osg::Vec2		_normalizedPosOnScreen;
+	float			_normalAngleToCamera;
+	osg::Vec2		_upwardPlaneAxisProj;
+	osg::Vec2		_planeNormalProj;
 
 	std::vector<int>	_mouseButMasks1D;
 	std::vector<int>	_mouseButMasks2D;

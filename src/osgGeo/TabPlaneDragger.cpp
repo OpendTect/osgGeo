@@ -28,12 +28,67 @@ TabPlaneDragger::TabPlaneDragger( float handleScaleFactor )
     : osgManipulator::TabPlaneDragger( handleScaleFactor )
     , _curMouseButModKeyIdx( -1 )
     , _normalizedPosOnScreen( 0.0, 0.0 )
+    , _positionOnScreen( 0.0, 0.0 )
+    , _normalAngleToCamera( M_PI/2 )
+    , _upwardPlaneAxisProj( 0.0, 0.0 )
+    , _planeNormalProj( 0.0, 0.0 )
 {
     set1DTranslateMouseButtonMask( osgGA::GUIEventAdapter::LEFT_MOUSE_BUTTON );
     set1DTranslateModKeyMask( osgGA::GUIEventAdapter::NONE );
 
     set2DTranslateMouseButtonMask( osgGA::GUIEventAdapter::LEFT_MOUSE_BUTTON );
     set2DTranslateModKeyMask( osgGA::GUIEventAdapter::MODKEY_SHIFT );
+}
+
+
+void TabPlaneDragger::traverse( osg::NodeVisitor& nv )
+{
+    if ( nv.getVisitorType()==osg::NodeVisitor::CULL_VISITOR )
+    {
+	osgUtil::CullVisitor* cv = dynamic_cast<osgUtil::CullVisitor*>( &nv );
+	const osg::RefMatrix& MVPW = *cv->getMVPW();
+
+	const osg::Vec3 xVec = osg::Vec3(0.5,0,0)*MVPW-osg::Vec3(-0.5,0,0)*MVPW;
+	const osg::Vec3 yVec = osg::Vec3(0,0.5,0)*MVPW-osg::Vec3(0,-0.5,0)*MVPW;
+	const osg::Vec3 zVec = osg::Vec3(0,0,0.5)*MVPW-osg::Vec3(0,0,-0.5)*MVPW;
+
+	osg::Vec2 xProj( xVec[0], xVec[1] );
+	osg::Vec2 yProj( zVec[0], zVec[1] );
+	osg::Vec2 zProj( yVec[0], yVec[1] );
+
+	const float xLen = xProj.length();
+	const float yLen = yProj.length();
+
+	xProj.normalize(); yProj.normalize(); zProj.normalize();
+
+	const float xWeight = fabs( xProj * zProj );
+	const float yWeight = fabs( yProj * zProj );
+
+	osg::Vec2 normalProjDir = zProj;
+	normalProjDir *= (xWeight*xLen+yWeight*yLen) / (xWeight+yWeight);
+
+	osg::Vec2 upAxisDir = xProj * xLen;
+	if ( fabs(xProj[1]) < fabs(yProj[1]) ) 
+	    upAxisDir = yProj * yLen;
+	if ( upAxisDir[1] < 0.0 )
+	    upAxisDir = -upAxisDir;
+
+	const osg::RefMatrix& MV = *cv->getModelViewMatrix();
+	osg::Vec3 normalDir = osg::Vec3(0,0,0)*MV - osg::Vec3(0,1,0)*MV;
+	float cosAngle = normalDir.normalize() ? normalDir[2] : 1.0;
+
+	if ( cosAngle < 0.0 )
+	{
+	    cosAngle = -cosAngle;
+	    upAxisDir = -upAxisDir;
+	}
+
+	_normalAngleToCamera = acos( cosAngle );
+	_planeNormalProj = normalProjDir;
+	_upwardPlaneAxisProj = upAxisDir;
+    }
+
+    osgManipulator::TabPlaneDragger::traverse( nv );
 }
 
 
@@ -113,8 +168,24 @@ osg::Vec2 TabPlaneDragger::getNormalizedPosOnPlane() const
 }
 
 
+const osg::Vec2& TabPlaneDragger::getPositionOnScreen() const
+{ return _positionOnScreen; }
+
+
 const osg::Vec2& TabPlaneDragger::getNormalizedPosOnScreen() const
 { return _normalizedPosOnScreen; }
+
+
+float TabPlaneDragger::getPlaneNormalAngleToCamera() const
+{ return _normalAngleToCamera; }
+
+
+const osg::Vec2& TabPlaneDragger::getPlaneNormalProjOnScreen() const
+{ return _planeNormalProj; }
+
+
+const osg::Vec2& TabPlaneDragger::getUpwardPlaneAxisProjOnScreen() const
+{ return _upwardPlaneAxisProj; }
 
 
 static bool isModKeyMaskMatching( osgGA::GUIEventAdapter& ea, int mask )
@@ -142,6 +213,8 @@ static bool isModKeyMaskMatching( osgGA::GUIEventAdapter& ea, int mask )
 
 bool TabPlaneDragger::convToTranslatePlaneDraggerEvent( osgGA::GUIEventAdapter& ea )
 {
+    _positionOnScreen[0] = ea.getX();
+    _positionOnScreen[1] = ea.getY();
     _normalizedPosOnScreen[0] = ea.getXnormalized();
     _normalizedPosOnScreen[1] = ea.getYnormalized();
 

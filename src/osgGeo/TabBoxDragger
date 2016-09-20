@@ -45,6 +45,7 @@ class OSGGEO_EXPORT TabBoxDragger : public osgManipulator::CompositeDragger
 
 	void setPlaneColor(const osg::Vec4& color);
 
+	const TabPlaneDragger* getEventHandlingTabPlane() const;
 	int getEventHandlingTabPlaneIdx() const;
 	int getCurMouseButtonModKeyIdx() const;
 
