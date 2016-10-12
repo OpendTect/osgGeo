@@ -25,6 +25,7 @@ $Id$
 #include <osgGeo/Vec2i>
 #include <osgGeo/Common>
 #include <osgGeo/Callback>
+#include <osgGeo/ThreadGroup>
 #include <osg/Object>
 #include <osg/Vec2f>
 #include <osg/Vec4f>
@@ -44,7 +45,9 @@ enum ImageDataOrder	{ STR, SRT, TRS, TSR, RST, RTS };
 struct LayeredTextureData;
 struct TilingInfo;
 struct TextureInfo;
-class TextureComposerThreadGroup;
+
+class CompositeTextureThread;
+class PowerEncodingThread;
 
 
 class OSGGEO_EXPORT LayeredTexture : public osgGeo::CallbackObject
@@ -369,6 +372,9 @@ protected:
 			   LayeredTextureData::_dirtyTileImages
 			*/
 
+    int			encodeBaseChannelPower(osg::Image& image,
+					       int nrPowerChannels);
+
     bool				_isOn;
     OpenThreads::ReadWriteMutex		_lock;
     std::vector<LayeredTextureData*>	_dataLayers;
@@ -407,11 +413,13 @@ protected:
     bool				_maySkipEarlyProcesses;
     bool				_enableMipmapping;
 
-    int						_compositeLayerId;
-    int						_compositeSubsampleSteps;
-    bool					_compositeLayerUpdate;
-    bool					_reInitTiling;
-    osg::ref_ptr<TextureComposerThreadGroup>	_threadgroup;
+    int					_compositeLayerId;
+    int					_compositeSubsampleSteps;
+    bool				_compositeLayerUpdate;
+    bool				_reInitTiling;
+
+    osg::ref_ptr<ThreadGroup<CompositeTextureThread> > _compositeThreads;
+    osg::ref_ptr<ThreadGroup<PowerEncodingThread> > _powerEncodingThreads;
 };
 
 

@@ -233,57 +233,6 @@ static TransparencyType getImageTransparencyType( const osg::Image* image, int t
 }
 
 
-static int encodeBaseChannelPower( osg::Image& image, int nrPowerChannels )
-{
-    if ( nrPowerChannels<1 )
-	return 0;
-
-    const int pixelSizeInBytes  = image.getPixelSizeInBits()/8;
-
-    int maxPowerChannels = pixelSizeInBytes>2 ? 2 : pixelSizeInBytes-1;
-    if ( image.getDataType()!=GL_UNSIGNED_BYTE )
-	maxPowerChannels = 0;
-
-    if ( nrPowerChannels>maxPowerChannels )
-	nrPowerChannels = maxPowerChannels;
-
-    if ( nrPowerChannels<1 )
-    {
-	std::cerr << "Unsupported image format to encode base channel power" << std::endl;
-	return 0;
-    }
-
-    unsigned char lut1[256];
-    unsigned char lut2[256];
-
-    for ( int idx=0; idx<256; idx++ )
-    {
-	const float val = idx*idx/255.0f;
-	if ( nrPowerChannels==2 )
-	{
-	    lut1[idx] = (unsigned char) floor( val );
-	    lut2[idx] = (unsigned char) floor( 0.5 + (val-lut1[idx])*255.0f );
-	}
-	else
-	    lut1[idx] = (unsigned char) floor( 0.5 + val );
-    }
-
-    unsigned char* ptr = image.data();
-    const unsigned char* endPtr = ptr + image.getTotalSizeInBytes();
-
-    while ( ptr < endPtr )
-    {
-	*(ptr+1) = lut1[*ptr];
-	if ( nrPowerChannels==2 )
-	    *(ptr+2) = lut2[*ptr];
-
-	ptr += pixelSizeInBytes;
-    }
-
-    return nrPowerChannels;
-}
-
-
 static void copyImageTile( const osg::Image& srcImage, osg::Image& tileImage, const Vec2i& tileOrigin, const Vec2i& tileSize, int sliceNr=0, ImageDataOrder dataOrder=osgGeo::STR )
 {
     const int xSize = tileSize.x();
@@ -3321,9 +3270,12 @@ bool LayeredTexture::areUndefLayersInverted() const
 
 //============================================================================
 
-class CompositeTextureThread : public osg::Referenced, public OpenThreads::Thread
+class CompositeTextureThread : public GroupThread<CompositeTextureThread>
 {
 public:
+			CompositeTextureThread(ThreadGroup<CompositeTextureThread>& tg)
+			    : GroupThread<CompositeTextureThread>(tg)
+			{}
 
    void			set(const LayeredTexture* lt,
 			    osg::Image* image,osg::Vec4f& borderCol,
@@ -3332,7 +3284,8 @@ public:
 			    pixel_int startNr,pixel_int stopNr,
 			    OpenThreads::BlockCount& ready)
        			{
-			    _lock.lock();
+			    beginSetFunction( &ready );
+
 			    _lt = lt;
 			    _image = image;
 			    _borderColor = &borderCol;
@@ -3341,31 +3294,12 @@ public:
 			    _dummyTexture = dummyTexture;
 			    _start = startNr>=0 ? startNr : 0;
 			    _stop = stopNr<=image->s()*image->t() ? stopNr : image->s()*image->t();
-			    _readyCount = &ready;
-                	    _cond.signal();
-			    _lock.unlock();
+			    endSetFunction();
 			}
-
-    void		run();
-
-			CompositeTextureThread(TextureComposerThreadGroup& tg)
-			    : _stopflag(0)
-			    , _lt(0)
-			    , _group( tg ) 
-			{}
 
 protected:
-			~CompositeTextureThread()
-			{
-			   _lock.lock();
-			   _stopflag = true;
-			   _cond.signal();
-			   _lock.unlock();
 
-			    while( isRunning() )
-				OpenThreads::Thread::YieldCurrentThread();
-			}
-
+    void				doWork();
 
     const LayeredTexture*		_lt;
     bool				_dummyTexture;
@@ -3375,101 +3309,13 @@ protected:
     float				_minOpacity;
     pixel_int				_start;
     pixel_int				_stop;
-    OpenThreads::BlockCount*		_readyCount;
-
-    OpenThreads::Condition		_cond;
-    OpenThreads::Mutex			_lock;
-    bool				_stopflag;
-
-    /*This is a reference as it cannot (i.e. should) not be
-      during the lifecycle of the object. If it is in the 
-      group's pool, it will be deleted by the pool. As
-      the layered texture has reffed teh pool during it's
-      life, the pool will stay alive. */
-    TextureComposerThreadGroup&		_group;
-};
-
-/* Holds a pool of CompositeTextureThreads.*/
-class TextureComposerThreadGroup : public osg::Referenced
-{
-public:
-	
-    osg::ref_ptr<CompositeTextureThread>		    getThread();
-    /* Provided thread should normally be returned to the pool. */
-    void						    returnThread(CompositeTextureThread *thread);
-    /* Return thread to pool. */
-
-    static osg::ref_ptr<TextureComposerThreadGroup>	    getInst();
-    /*Static instance of the group. This is normally alive as long as someone
-      wants it, and recreated if there is none. */
-
-private:
-    std::vector<osg::ref_ptr<CompositeTextureThread> >	    _tasks;
-    OpenThreads::Mutex					    _tasklock;
-
-    static osg::observer_ptr<TextureComposerThreadGroup>    _inst;
-
 };
 
 
-osg::observer_ptr<TextureComposerThreadGroup>    TextureComposerThreadGroup::_inst = 0;
-
-osg::ref_ptr<TextureComposerThreadGroup> TextureComposerThreadGroup::getInst()
+void CompositeTextureThread::doWork()
 {
-    osg::ref_ptr<TextureComposerThreadGroup> res = 0;
-    _inst.lock(res);
-    if ( res.valid() )
-	return res;
-
-    res = new TextureComposerThreadGroup;
-
-    /*This is not 100% ideal, but it is safe. There may be a data race. In such case
-    There may be two groups created, but who cares, as the data and threads will be
-    fully managed. */
-
-    _inst = res;
-    return res;
-}
-
-
-osg::ref_ptr<CompositeTextureThread> TextureComposerThreadGroup::getThread()
-{
-    osg::ref_ptr<CompositeTextureThread> res = 0;
-    _tasklock.lock();
-    if ( _tasks.size() )
+    if ( _lt )
     {
-        res = _tasks.back();
-        _tasks.pop_back();
-    }
-    _tasklock.unlock();
-    if ( !res )
-    {
-	res = new CompositeTextureThread(*this);
-        res->start();
-    }
-
-    return res;
-}
-
-
-void TextureComposerThreadGroup::returnThread(CompositeTextureThread *task)
-{
-    _tasklock.lock();
-    _tasks.push_back( task );
-    _tasklock.unlock();
-}
-
-void CompositeTextureThread::run()
-{
-    _lock.lock();
-    while ( !_stopflag )
-    {
-        while ( !_stopflag && !_lt )
-	    _cond.wait( &_lock );
-
-        if ( _stopflag || !_lt )
-            continue;
-
 	const int idx = _lt->getDataLayerIndex( _lt->_compositeLayerId );
 	const osg::Vec2f& origin = _lt->_dataLayers[idx]->_origin;
 	const osg::Vec2f& scale = _lt->_dataLayers[idx]->_scale;
@@ -3558,15 +3404,7 @@ void CompositeTextureThread::run()
 	    else
 		*_borderColor = fragColor;
 	}
-
-	// Order is important here, as we must return task before we update
-	//read-count, as we may be deleted otherwise
-    	_lt = 0;
-	_group.returnThread( this );
-	_readyCount->completed();
     }
-
-    _lock.unlock();
 }
 
 
@@ -3634,8 +3472,8 @@ void LayeredTexture::createCompositeTexture( bool dummyTexture, bool triggerProg
     if ( nrTasks>nrPixels )
 	nrTasks = nrPixels;
 
-    if (!_threadgroup)
-	_threadgroup = TextureComposerThreadGroup::getInst();
+    if (!_compositeThreads)
+	_compositeThreads = ThreadGroup<CompositeTextureThread>::getInst();
 
     std::vector<osg::ref_ptr<CompositeTextureThread> > tasks;
     OpenThreads::BlockCount readyCount( nrTasks );
@@ -3652,7 +3490,7 @@ void LayeredTexture::createCompositeTexture( bool dummyTexture, bool triggerProg
 	else
 	    stop--;
 
-	osg::ref_ptr<CompositeTextureThread> task = _threadgroup->getThread();
+	osg::ref_ptr<CompositeTextureThread> task = _compositeThreads->getThread();
 	task->set( this, image, borderColor, processList, minOpacity, dummyTexture, start, stop, readyCount );
 
 	tasks.push_back( task.get() );
@@ -3707,6 +3545,147 @@ void LayeredTexture::setCompositeSubsampleSteps( int steps )
 int LayeredTexture::getCompositeSubsampleSteps() const
 {
     return _compositeSubsampleSteps;
+}
+
+
+//============================================================================
+
+
+class PowerEncodingThread : public GroupThread<PowerEncodingThread>
+{
+public:
+    		PowerEncodingThread(ThreadGroup<PowerEncodingThread>& tg)
+		    : GroupThread<PowerEncodingThread>(tg)
+		{}
+
+    void	set(unsigned char* dataPtr,
+		    int pixelSizeInBytes,int nrPowerChannels,
+		    pixel_int startNr,pixel_int stopNr,
+		    OpenThreads::BlockCount& ready)
+		{
+		    beginSetFunction( &ready );
+
+		    _dataPtr = dataPtr;
+		    _pixelSizeInBytes = pixelSizeInBytes;
+		    _nrPowerChannels = nrPowerChannels;
+		    _startNr = startNr;
+		    _stopNr = stopNr;
+
+		    endSetFunction();
+		}
+
+protected:
+
+    void		doWork();
+
+    unsigned char*	_dataPtr;
+    pixel_int		_startNr;
+    pixel_int		_stopNr;
+    int			_pixelSizeInBytes;
+    int			_nrPowerChannels;
+};
+
+
+void PowerEncodingThread::doWork()
+{
+    const int step = _pixelSizeInBytes;
+    unsigned char* ptr = _dataPtr + _startNr*step;
+    const unsigned char* endPtr = _dataPtr + _stopNr*step;
+
+    unsigned char lut1[256];
+
+    if ( _nrPowerChannels==2 )
+    {
+	unsigned char lut2[256];
+
+	for ( int idx=0; idx<256; idx++ )
+	{
+	    const float val = idx*idx/255.0f;
+	    lut1[idx] = (unsigned char) floor( val );
+	    lut2[idx] = (unsigned char) floor( 0.5 + (val-lut1[idx])*255.0f );
+	}
+
+	while ( ptr < endPtr )
+	{
+	    *(ptr+1) = lut1[*ptr];
+	    *(ptr+2) = lut2[*ptr];
+	    ptr += step;
+	}
+    }
+    else
+    {
+	for ( int idx=0; idx<256; idx++ )
+	{
+	    const float val = idx*idx/255.0f;
+	    lut1[idx] = (unsigned char) floor( 0.5 + val );
+	}
+
+	while ( ptr < endPtr )
+	{
+	    *(ptr+1) = lut1[*ptr];
+	    ptr += step;
+	}
+    }
+}
+
+
+int LayeredTexture::encodeBaseChannelPower( osg::Image& image, int nrPowerChannels )
+{
+    if ( nrPowerChannels<1 )
+	return 0;
+
+    const int pixelSizeInBytes  = image.getPixelSizeInBits()/8;
+    int maxPowerChannels = pixelSizeInBytes>2 ? 2 : pixelSizeInBytes-1;
+    if ( image.getDataType()!=GL_UNSIGNED_BYTE )
+	maxPowerChannels = 0;
+
+    if ( nrPowerChannels>maxPowerChannels )
+	nrPowerChannels = maxPowerChannels;
+
+    if ( nrPowerChannels<1 )
+    {
+	std::cerr << "Unsupported image format to encode base channel power" << std::endl;
+	return 0;
+    }
+
+    const pixel_int nrPixels = image.getTotalSizeInBytes() / pixelSizeInBytes;
+    const pixel_int maxTasks = nrPixels/1024;
+
+    int nrTasks = OpenThreads::GetNumberOfProcessors();
+
+    if ( nrTasks>maxTasks )
+	nrTasks = maxTasks;
+    if ( nrTasks<1 )
+	nrTasks = 1;
+
+    if ( !_powerEncodingThreads )
+	_powerEncodingThreads = ThreadGroup<PowerEncodingThread>::getInst();
+
+    std::vector<osg::ref_ptr<PowerEncodingThread> > tasks;
+    OpenThreads::BlockCount readyCount( nrTasks );
+    readyCount.reset();
+
+    pixel_int remainder = nrPixels%nrTasks;
+    pixel_int start = 0;
+
+    while ( start<nrPixels )
+    {
+	pixel_int stop = start + nrPixels/nrTasks;
+	if ( remainder )
+	    remainder--;
+	else
+	    stop--;
+
+	osg::ref_ptr<PowerEncodingThread> task = _powerEncodingThreads->getThread();
+	task->set( image.data(), pixelSizeInBytes, nrPowerChannels, start, stop, readyCount );
+
+	tasks.push_back( task.get() );
+
+	start = stop+1;
+    }
+
+    readyCount.block();
+    return nrPowerChannels;
 }
 
 
