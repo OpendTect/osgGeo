@@ -45,10 +45,13 @@ struct LayeredTextureData;
 struct TilingInfo;
 struct TextureInfo;
 
+class CompositeTextureThread;
+class PowerEncodingThread;
+
 
 class OSGGEO_EXPORT LayeredTexture : public osgGeo::CallbackObject
 {
-friend class CompositeTextureTask;
+friend class CompositeTextureThread;
 
 public:
 			LayeredTexture();
@@ -440,6 +443,9 @@ protected:
     void		add3DTextureToStateSet(const LayeredTextureData&,
 			    std::vector<LayeredTexture::NewTextureCoordData>&,
 			    osg::StateSet&) const;
+
+    int			encodeBaseChannelPower(osg::Image& image,
+					       int nrPowerChannels);
 };
 
 
