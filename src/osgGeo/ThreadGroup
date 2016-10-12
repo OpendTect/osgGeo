@@ -29,7 +29,7 @@ namespace osgGeo
 
 /* Holds a pool of threads of type T. */
 
-template<class T> OSGGEO_EXPORT class ThreadGroup : public osg::Referenced
+template<class T> class OSGGEO_EXPORT ThreadGroup : public osg::Referenced
 {
 public:
 	
@@ -107,7 +107,7 @@ template<class T> void ThreadGroup<T>::returnThread(T *task)
    (2) Reimplement the doWork() function to have your parallel code executed.
 */
 
-template<class T> OSGGEO_EXPORT class GroupThread : public osg::Referenced, public OpenThreads::Thread
+template<class T> class OSGGEO_EXPORT GroupThread : public osg::Referenced, public OpenThreads::Thread
 {
 public:
 
