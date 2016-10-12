@@ -18,7 +18,6 @@ $Id$
 
 */
 
-
 #include <osgGeo/LayeredTexture>
 #include <osg/BlendFunc>
 #include <osg/GLExtensions>
