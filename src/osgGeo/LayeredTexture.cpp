@@ -670,6 +670,30 @@ struct TextureInfo
 
 //============================================================================
 
+static OpenThreads::Mutex			_allLayTexMutex;
+static std::vector<const LayeredTexture*>	_allLayTex;
+static std::vector<osg::ref_ptr<ThreadGroup<CompositeTextureThread> > > _compositeThreads;
+static std::vector<osg::ref_ptr<ThreadGroup<PowerEncodingThread> > > _powerEncodingThreads;
+
+static void moveToFront( const LayeredTexture* layTex )
+{
+    for ( int idx=0; idx<_allLayTex.size(); idx++ )
+    {
+	if ( _allLayTex[idx] != layTex )
+	    continue;
+
+	if ( idx > 0 )
+	{
+	    std::swap( _allLayTex[0], _allLayTex[idx] );
+	    std::swap( _compositeThreads[0], _compositeThreads[idx] );
+	    std::swap( _powerEncodingThreads[0], _powerEncodingThreads[idx] );
+	}
+
+	break;
+    }
+}
+
+
 #define EPS			1e-5
 #define START_RECYCLING_ID	100
 
@@ -707,8 +731,11 @@ LayeredTexture::LayeredTexture()
 
     _compositeLayerId = addDataLayer();
 
-    ThreadGroup<CompositeTextureThread>::getInst()->ref();
-    ThreadGroup<PowerEncodingThread>::getInst()->ref();
+    _allLayTexMutex.lock();
+    _allLayTex.push_back( this );
+    _compositeThreads.push_back( 0 );
+    _powerEncodingThreads.push_back( 0 );
+    _allLayTexMutex.unlock();
 }
 
 
@@ -761,15 +788,22 @@ LayeredTexture::LayeredTexture( const LayeredTexture& lt,
     for ( unsigned int idx=0; idx<lt._releasedIds.size(); idx++ )
 	_releasedIds.push_back( lt._releasedIds[idx] );
 
-    ThreadGroup<CompositeTextureThread>::getInst()->ref();
-    ThreadGroup<PowerEncodingThread>::getInst()->ref();
+    _allLayTexMutex.lock();
+    _allLayTex.push_back( this );
+    _compositeThreads.push_back( 0 );
+    _powerEncodingThreads.push_back( 0 );
+    _allLayTexMutex.unlock();
 }
 
 
 LayeredTexture::~LayeredTexture()
 {
-    ThreadGroup<CompositeTextureThread>::getInst()->unref();
-    ThreadGroup<PowerEncodingThread>::getInst()->unref();
+    _allLayTexMutex.lock();
+    moveToFront( this );
+    _allLayTex.erase( _allLayTex.begin() );
+    _compositeThreads.erase( _compositeThreads.begin() );
+    _powerEncodingThreads.erase( _powerEncodingThreads.begin() );
+    _allLayTexMutex.unlock();
 
     std::for_each( _dataLayers.begin(), _dataLayers.end(),
 	    	   osg::intrusive_ptr_release );
@@ -3512,6 +3546,14 @@ void LayeredTexture::createCompositeTexture( bool dummyTexture, bool triggerProg
     if ( nrTasks>nrPixels )
 	nrTasks = nrPixels;
 
+    _allLayTexMutex.lock();
+    moveToFront( this );
+    if ( !_compositeThreads[0] )
+	_compositeThreads[0] = ThreadGroup<CompositeTextureThread>::getInst();
+
+    osg::ref_ptr<ThreadGroup<CompositeTextureThread> > myCompositeThreads = _compositeThreads[0];
+    _allLayTexMutex.unlock();
+
     std::vector<osg::ref_ptr<CompositeTextureThread> > tasks;
     OpenThreads::BlockCount readyCount( nrTasks );
     readyCount.reset();
@@ -3527,7 +3569,8 @@ void LayeredTexture::createCompositeTexture( bool dummyTexture, bool triggerProg
 	else
 	    stop--;
 
-	osg::ref_ptr<CompositeTextureThread> task = ThreadGroup<CompositeTextureThread>::getInst()->getThread();
+	osg::ref_ptr<CompositeTextureThread> task = myCompositeThreads->getThread();
+
 	task->set( this, image, borderColor, processList, minOpacity, dummyTexture, start, stop, readyCount );
 
 	tasks.push_back( task.get() );
@@ -3695,6 +3738,14 @@ int LayeredTexture::encodeBaseChannelPower( osg::Image& image, int nrPowerChanne
     if ( nrTasks<1 )
 	nrTasks = 1;
 
+    _allLayTexMutex.lock();
+    moveToFront( this );
+    if ( !_powerEncodingThreads[0] )
+	_powerEncodingThreads[0] = ThreadGroup<PowerEncodingThread>::getInst();
+
+    osg::ref_ptr<ThreadGroup<PowerEncodingThread> > myPowerEncodingThreads = _powerEncodingThreads[0];
+    _allLayTexMutex.unlock();
+
     std::vector<osg::ref_ptr<PowerEncodingThread> > tasks;
     OpenThreads::BlockCount readyCount( nrTasks );
     readyCount.reset();
@@ -3710,7 +3761,7 @@ int LayeredTexture::encodeBaseChannelPower( osg::Image& image, int nrPowerChanne
 	else
 	    stop--;
 
-	osg::ref_ptr<PowerEncodingThread> task = ThreadGroup<PowerEncodingThread>::getInst()->getThread();
+	osg::ref_ptr<PowerEncodingThread> task = myPowerEncodingThreads->getThread();
 	task->set( image.data(), pixelSizeInBytes, nrPowerChannels, start, stop, readyCount );
 
 	tasks.push_back( task.get() );

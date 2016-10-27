@@ -33,8 +33,6 @@ static std::vector<osg::Vec2>   _planeNormalProj;
 
 static void moveToFront( const TabPlaneDragger* draggerPtr )
 {
-    _allDraggersMutex.lock();
-
     for ( int idx=0; idx<_allDraggers.size(); idx++ )
     {
 	if ( _allDraggers[idx] == draggerPtr )
@@ -51,8 +49,6 @@ static void moveToFront( const TabPlaneDragger* draggerPtr )
 	    break;
 	}
     }
-
-    _allDraggersMutex.unlock();
 }
 
 
@@ -121,10 +117,12 @@ void TabPlaneDragger::traverse( osg::NodeVisitor& nv )
 	    upAxisDir = -upAxisDir;
 	}
 
+	_allDraggersMutex.lock();
 	moveToFront( this );
 	_normalAngleToCamera[0] = acos( cosAngle );
 	_planeNormalProj[0] = normalProjDir;
 	_upwardPlaneAxisProj[0] = upAxisDir;
+	_allDraggersMutex.unlock();
     }
 
     osgManipulator::TabPlaneDragger::traverse( nv );
@@ -209,8 +207,11 @@ osg::Vec2 TabPlaneDragger::getNormalizedPosOnPlane() const
 
 osg::Vec2 TabPlaneDragger::getPositionOnScreen() const
 {
+    _allDraggersMutex.lock();
     moveToFront( this );
-    return _positionOnScreen[0];
+    const osg::Vec2 res = _positionOnScreen[0];
+    _allDraggersMutex.unlock();
+    return res;
 }
 
 
@@ -220,22 +221,31 @@ const osg::Vec2& TabPlaneDragger::getNormalizedPosOnScreen() const
 
 float TabPlaneDragger::getPlaneNormalAngleToCamera() const
 {
+    _allDraggersMutex.lock();
     moveToFront( this );
-    return _normalAngleToCamera[0];
+    const float res = _normalAngleToCamera[0];
+    _allDraggersMutex.unlock();
+    return res;
 }
 
 
 osg::Vec2 TabPlaneDragger::getPlaneNormalProjOnScreen() const
 {
+    _allDraggersMutex.lock();
     moveToFront( this );
-    return _planeNormalProj[0];
+    const osg::Vec2 res = _planeNormalProj[0];
+    _allDraggersMutex.unlock();
+    return res;
 }
 
 
 osg::Vec2 TabPlaneDragger::getUpwardPlaneAxisProjOnScreen() const
 {
+    _allDraggersMutex.lock();
     moveToFront( this );
-    return _upwardPlaneAxisProj[0];
+    const osg::Vec2 res = _upwardPlaneAxisProj[0];
+    _allDraggersMutex.unlock();
+    return res;
 }
 
 
@@ -264,8 +274,10 @@ static bool isModKeyMaskMatching( osgGA::GUIEventAdapter& ea, int mask )
 
 bool TabPlaneDragger::convToTranslatePlaneDraggerEvent( osgGA::GUIEventAdapter& ea )
 {
+    _allDraggersMutex.lock();
     moveToFront( this );
     _positionOnScreen[0] = osg::Vec2( ea.getX(), ea.getY() );
+    _allDraggersMutex.unlock();
 
     _normalizedPosOnScreen[0] = ea.getXnormalized();
     _normalizedPosOnScreen[1] = ea.getYnormalized();
