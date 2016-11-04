@@ -41,6 +41,7 @@ $Id$
 
 #if defined(__win64__) || defined(__win32__)
 # include <windows.h>
+#elif defined( __APPLE__ )
 #else
 # include <GL/gl.h>
 # include <GL/glx.h>
@@ -67,7 +68,7 @@ bool GLInfo::isPlatformSupported() const
 
 bool GLInfo::get()
 {
-#if defined(__win64__) || defined(__win32__)
+#if defined(__win64__) || defined(__win32__) || defined(__APPLE__)
     // TODO
 #else
     Display* dpy = XOpenDisplay( NULL );
