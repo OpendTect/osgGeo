@@ -133,7 +133,9 @@ target_link_libraries(
     ${OSGDB_LIBRARY}
     ${OSGTEXT_LIBRARY}
     ${OSGSIM_LIBRARY}
-    ${OSGVIEWER_LIBRARY})
+    ${OSGVIEWER_LIBRARY}
+    ${OPENGL_gl_LIBRARY}
+)
 
 if ( OSGGEO_INSTDIR_LIB_DEBUG )
     install( TARGETS ${LIB_NAME} 

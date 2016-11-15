@@ -42,102 +42,86 @@ $Id$
 #if defined(__win64__) || defined(__win32__)
 # include <windows.h>
 #elif defined( __APPLE__ )
+# include <OpenGL/gl.h>
 #else
 # include <GL/gl.h>
-# include <GL/glx.h>
 #endif
 
 #include <osgGeo/GLInfo>
 
-namespace osgGeo
-{
+
+using namespace osgGeo;
+
 
 GLInfo::GLInfo()
-{}
-
-
-bool GLInfo::isPlatformSupported() const
+    : _glvendor( (const char*) glGetString(GL_VENDOR) )
+    , _glrenderer( (const char*) glGetString(GL_RENDERER) )
+    , _glversion( (const char*) glGetString(GL_VERSION) )
+    , _glextensions( (const char*) glGetString(GL_EXTENSIONS) )
 {
-#if defined(__win64__) || defined(__win32__)
-    return false;
-#else
-    return true;
-#endif
+    updateLimits();
 }
 
 
-bool GLInfo::get()
+static osg::ref_ptr<GLInfo> inst;
+    
+
+const osg::ref_ptr<GLInfo> GLInfo::get()
 {
-#if defined(__win64__) || defined(__win32__) || defined(__APPLE__)
-    // TODO
-#else
-    Display* dpy = XOpenDisplay( NULL );
-    int attribSingle[] = {
-	GLX_RGBA,
-	GLX_RED_SIZE, 1,
-	GLX_GREEN_SIZE, 1,
-	GLX_BLUE_SIZE, 1,
-	None };
-    int attribDouble[] = {
-	GLX_RGBA,
-	GLX_RED_SIZE, 1,
-	GLX_GREEN_SIZE, 1,
-	GLX_BLUE_SIZE, 1,
-	GLX_DOUBLEBUFFER,
-	None };
-
-    int width = 100, height = 100;
-    int scrnum = 0;
-    Window root = RootWindow( dpy, scrnum );
-
-    XVisualInfo* visinfo = glXChooseVisual( dpy, scrnum, attribSingle );
-    if ( !visinfo )
+    if ( !inst && glGetString(GL_VENDOR) )
     {
-	visinfo = glXChooseVisual(dpy, scrnum, attribDouble);
-	if ( !visinfo )
-	{
-	    _errmsg = "Error: couldn't find RGB GLX visual";
-	    return false;
-	}
+        GLInfo* res = new GLInfo;
+        inst = res;
+    }
+    
+    return inst;
+}
+    
+void GLInfo::updateLimits()
+{
+    struct token_name {
+        GLenum _token;
+        const char* _name;
+    };
+#if defined(GL_ARB_vertex_shader)
+    const struct token_name vertex_limits[] = {
+        { GL_MAX_VERTEX_UNIFORM_COMPONENTS_ARB, "GL_MAX_VERTEX_UNIFORM_COMPONENTS_ARB" },
+        { GL_MAX_VARYING_FLOATS_ARB, "GL_MAX_VARYING_FLOATS_ARB" },
+        { GL_MAX_VERTEX_ATTRIBS_ARB, "GL_MAX_VERTEX_ATTRIBS_ARB" },
+        { GL_MAX_TEXTURE_IMAGE_UNITS_ARB, "GL_MAX_TEXTURE_IMAGE_UNITS_ARB" },
+        { GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS_ARB, "GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS_ARB" },
+        { GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS_ARB, "GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS_ARB" },
+        { GL_MAX_TEXTURE_COORDS_ARB, "GL_MAX_TEXTURE_COORDS_ARB" },
+        { (GLenum) 0, NULL }
+    };
+    
+    for ( int idx = 0; vertex_limits[idx]._token; idx++) {
+        GLint max[1];
+        glGetIntegerv( (GLenum) vertex_limits[idx]._token, max);
+        if (glGetError() == GL_NO_ERROR) {
+            _limits.push_back( Limit( vertex_limits[idx]._token, vertex_limits[idx]._name, max[0] ));
+        }
     }
 
-    XSetWindowAttributes attr;
-    attr.background_pixel = 0;
-    attr.border_pixel = 0;
-    attr.colormap = XCreateColormap( dpy, root, visinfo->visual, AllocNone );
-    attr.event_mask = StructureNotifyMask | ExposureMask;
-
-    unsigned long mask = CWBackPixel | CWBorderPixel | CWColormap | CWEventMask;
-    Window win = XCreateWindow( dpy, root, 0, 0, width, height,
-				0, visinfo->depth, InputOutput,
-				visinfo->visual, mask, &attr );
-
-    Bool allowDirect = True;
-    GLXContext ctx = glXCreateContext( dpy, visinfo, NULL, allowDirect );
-    if ( !ctx )
-    {
-	_errmsg = "Error: glXCreateContext failed";
-	XFree(visinfo);
-	XDestroyWindow(dpy, win);
-	return false;
-    }
-
-    if ( glXMakeCurrent(dpy,win,ctx) )
-    {
-	if ( (const char*) glGetString(GL_VENDOR) )
-	    _glvendor = (const char*) glGetString(GL_VENDOR);
-	if ( (const char*) glGetString(GL_RENDERER) )
-	    _glrenderer = (const char*) glGetString(GL_RENDERER);
-	if ( (const char*) (const char*) glGetString(GL_VERSION) )
-	    _glversion = (const char*) glGetString(GL_VERSION);
-    }
-
-    glXDestroyContext(dpy, ctx);
-    XFree(visinfo);
-    XDestroyWindow(dpy, win);
-    XCloseDisplay(dpy);
 #endif
-    return true;
+    
+#if defined(GL_ARB_fragment_shader)
+    const struct token_name fragment_limits[] = {
+        { GL_MAX_FRAGMENT_UNIFORM_COMPONENTS_ARB, "GL_MAX_FRAGMENT_UNIFORM_COMPONENTS_ARB" },
+        { GL_MAX_TEXTURE_COORDS_ARB, "GL_MAX_TEXTURE_COORDS_ARB" },
+        { GL_MAX_TEXTURE_IMAGE_UNITS_ARB, "GL_MAX_TEXTURE_IMAGE_UNITS_ARB" },
+        { (GLenum) 0, NULL }
+    };
+    
+    for ( int idx = 0; fragment_limits[idx]._token; idx++) {
+        GLint max[1];
+        glGetIntegerv( (GLenum) fragment_limits[idx]._token, max);
+        if (glGetError() == GL_NO_ERROR) {
+            _limits.push_back( Limit( fragment_limits[idx]._token, fragment_limits[idx]._name, max[0] ));
+        }
+    }
+
+#endif
 }
 
 
@@ -150,4 +134,19 @@ const char* GLInfo::glRenderer() const
 const char* GLInfo::glVersion() const
 { return _glversion.c_str(); }
 
-} // namespace osgGeo
+
+bool GLInfo::isOK() const
+{
+    return !_glvendor.empty() && !_glversion.empty() && !_glrenderer.empty();
+}
+    
+    
+int GLInfo::getLimit( int intenum ) const
+{
+    for ( int idx=0; idx<_limits.size(); idx++ )
+        if ( _limits[idx]._token==intenum )
+            return _limits[idx]._value;
+    
+    return -1;
+}
+

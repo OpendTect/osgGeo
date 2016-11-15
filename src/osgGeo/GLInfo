@@ -23,28 +23,50 @@ $Id$
 
 #include <osgGeo/Common>
 #include <string>
+#include <osg/Object>
+#include <osg/ref_ptr>
+#include <vector>
 
 namespace osgGeo
 {
 
-class OSGGEO_EXPORT GLInfo
+class OSGGEO_EXPORT GLInfo : public osg::Referenced
 {
 public:
-			GLInfo();
 
-    bool		isPlatformSupported() const;
-    bool		get();
+    static const osg::ref_ptr<GLInfo>	get();
 
-    const char*		glVendor() const;
-    const char*		glRenderer() const;
-    const char*		glVersion() const;
+    const char*			glVendor() const;
+    const char*			glRenderer() const;
+    const char*			glVersion() const;
+    const char*			glExtensions() const;
+    
+    int				getLimit(int glenum) const;
+    
+    bool			isOK() const;
 
 protected:
-    std::string		_glvendor;
-    std::string		_glrenderer;
-    std::string		_glversion;
+                        	GLInfo();
+    void			updateLimits();
+    std::string			_glvendor;
+    std::string			_glrenderer;
+    std::string			_glversion;
+    std::string			_glextensions;
+    
+    struct Limit
+    {
+                                Limit( int tok, const char* nm, int val )
+                                    : _token( tok ), _name( nm ), _value( val )
+                                {}
+                                    
+        int			_token;
+        const char*		_name;
+        int			_value;
+    };
+    
+    std::vector<Limit>		_limits;
 
-    std::string		_errmsg;
+    std::string			_errmsg;
 };
 
 } // namespace osgGeo
