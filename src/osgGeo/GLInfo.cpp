@@ -41,10 +41,13 @@ $Id$
 
 #if defined(__win64__) || defined(__win32__)
 # include <windows.h>
-#elif defined( __APPLE__ )
+#endif
+
+#if defined( __APPLE__ )
 # include <OpenGL/gl.h>
 #else
 # include <GL/gl.h>
+# include <GL/glext.h>
 #endif
 
 #include <osgGeo/GLInfo>
