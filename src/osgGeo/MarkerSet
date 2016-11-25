@@ -98,11 +98,15 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 	void				turnAllMarkersOn(bool);
 	void				forceRedraw(bool);
 	void				removeAllMarkers();
+	void				setPickable(bool);
+	bool				isPickable() const;
 
     protected:
 	osg::BoundingSphere		computeBound() const;
 	void				traverse(osg::NodeVisitor&);
 	bool				updateShapes();
+	osg::Vec4			getColor(int) const;
+	bool				useShader(MarkerShape::ShapeType)const;
 
     private:
 
@@ -110,12 +114,13 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 	osg::ref_ptr<osg::Vec4Array>		_colorArr;
 	osg::ref_ptr<osg::ByteArray>		_onoffArr;
 	osg::ref_ptr<osg::Vec3Array>		_normalArr;
-	osg::ref_ptr<osg::Switch>		_nonShadingSwitch;
+	osg::ref_ptr<osg::Switch>		_switchNode;
 	std::vector<osg::Quat>		 	_rotationSet;
 	osg::AutoTransform::AutoRotateMode	_rotateMode;
 	osg::Quat				_rotationForAllMarkers;
 	bool					_applyRotationForAll;
 	osg::Vec4f				_singleColor;
+	bool					_ispickable;
 
 	float					_minScale;
 	float					_maxScale;

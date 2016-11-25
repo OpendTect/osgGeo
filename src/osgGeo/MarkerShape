@@ -23,6 +23,7 @@ $Id: MarkerShape 242 2013-04-26 11:26:59Z ding.zheng@dgbes.com $
 
 #include <osgGeo/Common>
 
+#include <osg/Geode> 
 #include <osg/Geometry>
 #include <osg/ShapeDrawable>
 #include <osg/Quat>
@@ -39,7 +40,7 @@ class OSGGEO_EXPORT MarkerShape
 				~MarkerShape();
 
         enum			ShapeType { None=-1,Box=0, Cone, Cylinder, 
-						 Sphere, Plane, Cross, Arrow };
+					  Sphere, Plane, Cross, Arrow, Point };
 
 	void			setType(ShapeType);
 	ShapeType		getType() { return _shapeType; }
@@ -56,19 +57,27 @@ class OSGGEO_EXPORT MarkerShape
 	void			setCenter(const osg::Vec3f&);
 	const osg::Vec3f&	getCenter() const { return _center; }
 
-	osg::ref_ptr<osg::Drawable>	createShape(const osg::Vec4& color,
+	osg::ref_ptr<osg::Drawable> createShape(const osg::Vec4& color,
 						    const osg::Quat& rot) const;
+	osg::ref_ptr<osg::Geode>    createPoints(osg::Vec3Array*,osg::Vec4Array*);
+	bool				isShadingSupported() const;
 
     protected:
+
 	osg::ref_ptr<osg::Drawable>     createCrossDrawable(const osg::Vec4& col) const;
 	osg::ref_ptr<osg::Drawable>     createArrowDrawable(const osg::Vec4& color,
 							    const osg::Quat& rot) const;
+	void				addShader(osg::StateSet*,ShapeType);
 
 	osg::ref_ptr<osg::TessellationHints>	_hints;
 	osg::Vec3f				_center;
 	float					_size;
 	float					_heightRatio;
 	ShapeType   				_shapeType;
+	
+	static const char*			getVertexShader();
+	static const char*			getGeomShaderBox();
+	static const char*			getGeomShaderSphere();
 };
 
 }

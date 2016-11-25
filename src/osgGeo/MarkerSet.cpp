@@ -32,7 +32,7 @@ MarkerSet::MarkerSet()
     : _rotateMode(osg::AutoTransform::ROTATE_TO_SCREEN)
     , _colorArr(new osg::Vec4Array)
     , _vertexArr(new osg::Vec3Array)
-    , _nonShadingSwitch(new osg::Switch)
+    , _switchNode(new osg::Switch)
     , _minScale(0.0f)
     , _maxScale(FLT_MAX)
     , _normalArr(new osg::Vec3Array)
@@ -40,6 +40,7 @@ MarkerSet::MarkerSet()
     , _forceRedraw(false)
     , _waitForAutoTransformUpdate(false)
     , _applyRotationForAll(true)
+    , _ispickable(true)
 {
     setNumChildrenRequiringUpdateTraversal(0);
     _singleColor = osg::Vec4(0.1f, 0.1f, 0.1f, 1.0f);
@@ -77,10 +78,10 @@ void MarkerSet::traverse( osg::NodeVisitor& nv )
 	    _prevEyePoint = eyePoint;
 	    _waitForAutoTransformUpdate = false;
 	    dirtyBound();
-	    if ( !_useScreenSize || _nonShadingSwitch->getNumChildren()!=1 )
+	    if ( !_useScreenSize || _switchNode->getNumChildren()!=1 )
 	    {
 		setCullingActive(true);
-		_nonShadingSwitch->setCullingActive(true);
+		_switchNode->setCullingActive(true);
 	    }
 	}
     }
@@ -95,8 +96,8 @@ void MarkerSet::traverse( osg::NodeVisitor& nv )
 	}
     }
 
-    if ( _nonShadingSwitch && _nonShadingSwitch->getNumChildren()>0 )
-	_nonShadingSwitch->accept( nv );
+    if ( _switchNode && _switchNode->getNumChildren()>0 )
+	_switchNode->accept( nv );
 }
 
 
@@ -104,19 +105,34 @@ bool MarkerSet::updateShapes()
 {
     if ( !_vertexArr ) return false;
 
-    _nonShadingSwitch->removeChildren(0, _nonShadingSwitch->getNumChildren());
+    _switchNode->removeChildren(0, _switchNode->getNumChildren());
+
+    if ( _markerShape.getType() == MarkerShape::Point
+					  || useShader(_markerShape.getType()) )
+    {
+	osg::ref_ptr<osg::Vec3Array> points = new osg::Vec3Array();
+	osg::ref_ptr<osg::Vec4Array> colors = new osg::Vec4Array();
+	for (unsigned int idx=0;idx<_vertexArr->size();idx++)
+	{
+	    const bool ison = idx < _onoffArr->size() ? _onoffArr->at(idx)
+						      : true;
+	    if ( !ison )
+		continue;
+
+	    points->push_back( _vertexArr->at(idx) );
+	    colors->push_back( getColor(idx) );
+	}
+
+	_switchNode->addChild( _markerShape.createPoints(points,colors), true );
+	return true;
+    }
 
     osg::ref_ptr<osg::Material> material = new osg::Material;
     material->setColorMode(osg::Material::AMBIENT_AND_DIFFUSE);
-
+  
     for (unsigned int idx=0;idx<_vertexArr->size();idx++)
     {
-	const osg::Vec4 color = _applySingleColor || !_colorArr
-	    ? _singleColor
-	    : idx<_colorArr->size()
-	        ? _colorArr->at( idx )
-		: _colorArr->back();
-
+	const osg::Vec4 color = getColor( idx );
 	const osg::Quat& rot = _applyRotationForAll
 	    ? _rotationForAllMarkers
 	    : idx < _rotationSet.size()
@@ -151,7 +167,7 @@ bool MarkerSet::updateShapes()
 	}
 	const bool ison = idx < _onoffArr->size() ? _onoffArr->at(idx) : true;
 	autotrans->addChild(geode);
-	_nonShadingSwitch->addChild( autotrans, ison );
+	_switchNode->addChild( autotrans, ison );
     }
 
     // In case of autoscale to screen, new AutoTransforms cannot compute
@@ -160,7 +176,7 @@ bool MarkerSet::updateShapes()
     {
 	_waitForAutoTransformUpdate = true;
 	setCullingActive(false);
-	_nonShadingSwitch->setCullingActive(false);
+	_switchNode->setCullingActive(false);
     }
 
     return true;
@@ -174,10 +190,10 @@ void MarkerSet::turnMarkerOn(unsigned int idx,bool yn)
 
     (*_onoffArr)[idx] = yn;
 
-    if ( idx<_nonShadingSwitch->getNumChildren() )
+    if ( idx<_switchNode->getNumChildren() )
     {
 	OpenThreads::ScopedLock<OpenThreads::Mutex> lock(_osgMutex);
-	_nonShadingSwitch->setChildValue(_nonShadingSwitch->getChild(idx), yn);
+	_switchNode->setChildValue(_switchNode->getChild(idx), yn);
     }
     else
 	forceRedraw( true );
@@ -187,7 +203,7 @@ void MarkerSet::turnMarkerOn(unsigned int idx,bool yn)
 void MarkerSet::removeAllMarkers()
 {
     OpenThreads::ScopedLock<OpenThreads::Mutex> lock(_osgMutex);
-    _nonShadingSwitch->removeChildren(0,_nonShadingSwitch->getNumChildren());
+    _switchNode->removeChildren(0,_switchNode->getNumChildren());
     forceRedraw(true);
 }
 
@@ -208,9 +224,9 @@ void MarkerSet::turnAllMarkersOn(bool yn)
 
      memset( &(*_onoffArr)[0], yn, _onoffArr->size()*sizeof(bool) );
     if ( yn )
-	_nonShadingSwitch->setAllChildrenOn();
+	_switchNode->setAllChildrenOn();
     else
-	_nonShadingSwitch->setAllChildrenOff() ;
+	_switchNode->setAllChildrenOff() ;
 }
 
 
@@ -219,8 +235,8 @@ osg::BoundingSphere MarkerSet::computeBound() const
     osg::BoundingBox bbox;
     bbox.init();
 
-    for ( unsigned int idx=0; idx<_nonShadingSwitch->getNumChildren(); idx++ )
-	bbox.expandBy( _nonShadingSwitch->getChild(idx)->getBound() );
+    for ( unsigned int idx=0; idx<_switchNode->getNumChildren(); idx++ )
+	bbox.expandBy( _switchNode->getChild(idx)->getBound() );
 
     _bbox = bbox;
     return _bbox;
@@ -235,7 +251,7 @@ void MarkerSet::forceRedraw(bool yn)
 	return;
 
     setNumChildrenRequiringUpdateTraversal(
-        _nonShadingSwitch->getNumChildrenRequiringUpdateTraversal()+((int) yn));
+        _switchNode->getNumChildrenRequiringUpdateTraversal()+((int) yn));
     _forceRedraw = yn;
 }
 
@@ -380,3 +396,36 @@ void MarkerSet::useSingleColor(bool applySingleColor)
     _applySingleColor = applySingleColor;
 }
 
+
+osg::Vec4 MarkerSet::getColor( int idx ) const
+{
+    const osg::Vec4 color = _applySingleColor || !_colorArr
+					? _singleColor
+					: idx<_colorArr->size()
+					? _colorArr->at( idx )
+					: _colorArr->back();
+    return color;
+}
+
+
+void MarkerSet::setPickable( bool yn )
+{
+    _ispickable = yn;
+}
+
+
+bool MarkerSet::isPickable() const
+{
+    return _ispickable;
+}
+
+
+
+bool MarkerSet::useShader( MarkerShape::ShapeType shapetype ) const
+{
+    const bool useshader = ( shapetype == MarkerShape::Box
+			     || shapetype == MarkerShape::Sphere )
+			   && ( _markerShape.isShadingSupported()
+				&& !_ispickable && !_useScreenSize );
+    return useshader;
+}
