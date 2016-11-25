@@ -41,6 +41,10 @@ public:
     const char*			glVersion() const;
     const char*			glExtensions() const;
     
+    bool			isVertexProgramSupported() const;
+    bool			isShaderProgramSupported() const;
+    bool			isGeometryShader4Supported() const;
+
     int				getLimit(int glenum) const;
     
     bool			isOK() const;
@@ -63,6 +67,8 @@ protected:
         const char*		_name;
         int			_value;
     };
+
+    bool			getExtension(const char* extntnnm) const;
     
     std::vector<Limit>		_limits;
 

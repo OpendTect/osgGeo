@@ -153,3 +153,27 @@ int GLInfo::getLimit( int intenum ) const
     return -1;
 }
 
+
+bool GLInfo::getExtension( const char* extnsnnm ) const
+{
+    const bool exists = _glextensions.find( extnsnnm ) != std::string::npos;
+    return exists;
+}
+
+
+bool GLInfo::isVertexProgramSupported() const
+{
+    return getExtension( "GL_ARB_vertex_shader" );
+}
+
+
+bool GLInfo::isShaderProgramSupported() const
+{
+    return getExtension( "GL_ARB_fragment_shader" );
+}
+
+
+bool GLInfo::isGeometryShader4Supported() const
+{
+    return getExtension( "GL_EXT_geometry_shader4" );
+}
