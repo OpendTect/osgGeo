@@ -36,6 +36,7 @@ namespace osgGeo
 {
 
 class LayeredTexture;
+class Vec2i;
 
 class OSGGEO_EXPORT TexturePlaneNode : public osg::Node
 {
@@ -105,6 +106,10 @@ public:
 
     osg::Vec3f			getTexelSpanVector(int texdim);
 
+    std::vector<osg::Geometry*>& getGeometries()	{ return _geometries; }
+    const osg::Image*		getCompositeTextureImage(bool addBorder=true);
+    const osg::Vec2Array*	getCompositeTextureCoords(int geomIdx) const;
+
 protected:
     virtual			~TexturePlaneNode();
 
@@ -140,6 +145,11 @@ protected:
     osg::Vec2				_textureGrowth;
 
     std::vector<osg::Geometry*>		_geometries;
+    std::vector<Vec2i>			_compositeCutoutOrigins;
+    std::vector<Vec2i>			_compositeCutoutSizes;
+    int					_compositeCutoutTexUnit;
+    osg::ref_ptr<osg::Image>		_compositeImageWithBorder;
+    osg::Vec2f				_borderEnvelopeOffset;
     std::vector<osg::StateSet*>		_statesets;
 
     osg::ref_ptr<BoundingGeometry>	_boundingGeometry;
