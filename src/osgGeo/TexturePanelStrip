@@ -122,10 +122,11 @@ public:
     osg::BoundingSphere		computeBound() const;
 
     void			forceRedraw(bool=true);
-    std::vector<osg::Geometry*> getGeoMetries() { return _geometries; }
 
-    const std::vector<Vec2i>&	getCompositeCutoutOrigins() const; 
-    const std::vector<Vec2i>&	getCompositeCutoutSizes() const; 
+    std::vector<osg::Geometry*>& getGeometries()	{ return _geometries; }
+
+    const osg::Image*		getCompositeTextureImage(bool addBorder=true);
+    const osg::Vec2Array*	getCompositeTextureCoords(int geomIdx) const;
 
 protected:
     virtual			~TexturePanelStripNode();
@@ -140,6 +141,7 @@ protected:
     osg::Vec3			getAverageNormal(int knotIdx) const;
     void			computeNormals();
 
+    float			calcZTexOffset(int idx) const;
     float			calcPathTexOffset(int idx) const;
     bool			getLocalGeomAtTexOffset(
 				    osg::Vec2& pathCoord,osg::Vec3& normal,
@@ -179,6 +181,9 @@ protected:
     std::vector<osg::Geometry*>			_geometries;
     std::vector<Vec2i>				_compositeCutoutOrigins;
     std::vector<Vec2i>				_compositeCutoutSizes;
+    int						_compositeCutoutTexUnit;
+    osg::ref_ptr<osg::Image>			_compositeImageWithBorder;
+    osg::Vec2f					_borderEnvelopeOffset;
     std::vector<osg::StateSet*>			_statesets;
     osg::ref_ptr<osg::FloatArray>		_panelWidths;
     osg::ref_ptr<osg::Vec3Array>		_panelNormals;

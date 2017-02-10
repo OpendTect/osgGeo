@@ -119,6 +119,7 @@ public:
     const osg::Vec4f&	getDataLayerBorderColor(int id) const;
 
     int			getDataLayerTextureUnit(int id) const;
+    int			getTextureUnitLayerId(int unit) const;
     int			getTextureUnitNrDims(int unit) const;
     void		addAssignTexCrdLine(std::string& code,int unit) const;
 
@@ -144,6 +145,9 @@ public:
 
     void		setDataLayerSliceNr(int id,int nr);
     int			getDataLayerSliceNr(int id) const;
+
+    void		transformDataLayerCoord(osg::Vec2f& local,
+						int fromId, int toId);
 
     void		setDataLayerVertex2TextureTransform(int id,
 							const osg::Matrixf*);
