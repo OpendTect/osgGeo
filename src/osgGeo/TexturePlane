@@ -170,6 +170,10 @@ public:
 
     int			getQuadsPerBrickSide() const
 			{ return _nrQuadsPerBrickSide; }
+
+    std::vector<osg::Geometry*>& getGeometries()	{ return _geometries; }
+    const osg::Image*		getCompositeTextureImage(bool addBorder=true);
+    const osg::Vec2Array*	getCompositeTextureCoords(int geomIdx) const;
 };
 
 

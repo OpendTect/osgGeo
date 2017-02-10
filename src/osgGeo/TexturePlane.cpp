@@ -119,6 +119,24 @@ protected:
 //============================================================================
 
 
+static std::vector<TexturePlaneNode*> _planeNodes;
+static std::vector<std::vector<Vec2i>*> _cutoutOrigins;
+static std::vector<std::vector<Vec2i>*> _cutoutSizes;
+static std::vector<int> _compositeCutoutTexUnit;
+static std::vector<osg::Image*> _compositeImageWithBorder;
+static std::vector<osg::Vec2f> _borderEnvelopeOffset;
+
+static int getPlaneNodeIdx( const TexturePlaneNode* node )
+{
+    for ( int idx=0; idx<_planeNodes.size(); idx++ )
+    {
+	if ( _planeNodes[idx] == node )
+	    return idx;
+    }
+    return -1;		// This function should never reach this line
+}
+
+
 TexturePlaneNode::TexturePlaneNode()
     : _center( 0, 0, 0 )
     , _width( 1, 1, 0 )
@@ -145,6 +163,13 @@ TexturePlaneNode::TexturePlaneNode()
     _boundingGeometry->update();
 
     _textureCallbackHandler = new TextureCallbackHandler( *this );  
+
+    _planeNodes.push_back( this );
+    _cutoutOrigins.push_back( new std::vector<Vec2i> );
+    _cutoutSizes.push_back( new std::vector<Vec2i> );
+    _compositeCutoutTexUnit.push_back( -1 );
+    _compositeImageWithBorder.push_back( 0 );
+    _borderEnvelopeOffset.push_back( osg::Vec2f(0.0f,0.0f) );
 }
 
 
@@ -179,6 +204,24 @@ TexturePlaneNode::TexturePlaneNode( const TexturePlaneNode& node, const osg::Cop
     _boundingGeometry->update();
 
     _textureCallbackHandler = new TextureCallbackHandler( *this );  
+
+    _planeNodes.push_back( this );
+    _cutoutOrigins.push_back( new std::vector<Vec2i> );
+    _cutoutSizes.push_back( new std::vector<Vec2i> );
+    _compositeCutoutTexUnit.push_back( -1 );
+    _compositeImageWithBorder.push_back( 0 );
+    _borderEnvelopeOffset.push_back( osg::Vec2f(0.0f,0.0f) );
+}
+
+
+static void removeCompositeImageWithBorder( TexturePlaneNode* node )
+{
+    const int idx = getPlaneNodeIdx( node );
+    if ( idx>=0 && _compositeImageWithBorder[idx] )
+    {
+	_compositeImageWithBorder[idx]->unref();
+	_compositeImageWithBorder[idx] = 0;
+    }
 }
 
 
@@ -186,6 +229,24 @@ TexturePlaneNode::~TexturePlaneNode()
 {
     cleanUp();
     setLayeredTexture( 0 );
+
+    const int idx = getPlaneNodeIdx( this );
+    _planeNodes.erase( _planeNodes.begin()+idx );
+
+    std::vector<Vec2i>* tobedeleted = _cutoutOrigins[idx];
+    _cutoutOrigins.erase( _cutoutOrigins.begin()+idx );
+    delete tobedeleted;
+
+    tobedeleted = _cutoutSizes[idx];
+    _cutoutSizes.erase( _cutoutSizes.begin()+idx );
+    delete tobedeleted;
+
+    _compositeCutoutTexUnit.erase( _compositeCutoutTexUnit.begin()+idx );
+
+    removeCompositeImageWithBorder( this );
+    _compositeImageWithBorder.erase( _compositeImageWithBorder.begin()+idx );
+
+    _borderEnvelopeOffset.erase( _borderEnvelopeOffset.begin()+idx );
 }
 
 
@@ -204,6 +265,10 @@ void TexturePlaneNode::cleanUp()
 	(*it)->unref();
 
     _statesets.clear();
+
+    const int idx = getPlaneNodeIdx( this );
+    _cutoutOrigins[idx]->clear();
+    _cutoutSizes[idx]->clear();
 }
 
 
@@ -439,7 +504,7 @@ bool TexturePlaneNode::updateGeometry()
 		(*coords)[idx] = rotMat.preMult((*coords)[idx]) + _center;
 	    }
 
-	    std::vector<LayeredTexture::TextureCoordData> tcData;
+	    std::vector<LayeredTexture::NewTextureCoordData> tcData;
 	    osg::Vec2f origin( sOrigins[ids], tOrigins[idt] );
 	    osg::Vec2f opposite( sOrigins[ids+1], tOrigins[idt+1] );
 	    osg::ref_ptr<osg::StateSet> stateset = _texture->createCutoutStateSet( origin, opposite, tcData );
@@ -465,7 +530,7 @@ bool TexturePlaneNode::updateGeometry()
 			SET_COORD(3,i,j,_nrQuadsPerBrickSide); j--;
 			geometry->setVertexArray( crds.get() );
 
-			for ( std::vector<LayeredTexture::TextureCoordData>::iterator it = tcData.begin();
+			for ( std::vector<LayeredTexture::NewTextureCoordData>::iterator it = tcData.begin();
 			      it!=tcData.end();
 			      it++ )
 			{
@@ -484,7 +549,7 @@ bool TexturePlaneNode::updateGeometry()
 		    {
 			geometry->setVertexArray( coords.get() );
 
-			for ( std::vector<LayeredTexture::TextureCoordData>::iterator it = tcData.begin();
+			for ( std::vector<LayeredTexture::NewTextureCoordData>::iterator it = tcData.begin();
 			      it!=tcData.end();
 			      it++ )
 			{
@@ -507,6 +572,10 @@ bool TexturePlaneNode::updateGeometry()
 		    geometry->getBound();
 
 		    _geometries.push_back( geometry );
+		    const int idx = getPlaneNodeIdx( this );
+		    _compositeCutoutTexUnit[idx] = tcData.size() ? tcData.begin()->_textureUnit : -1;
+		    _cutoutOrigins[idx]->push_back( tcData.size() ? tcData.begin()->_cutoutOrigin : Vec2i(0,0) );
+		    _cutoutSizes[idx]->push_back( tcData.size() ? tcData.begin()->_cutoutSize : Vec2i(0,0) );
 		}
 	    }
 	}
@@ -697,6 +766,126 @@ osg::Vec3f TexturePlaneNode::getTexelSpanVector( int texdim )
     vec = rotMat.preMult( vec );
     return vec;
 }
+
+
+const osg::Image* TexturePlaneNode::getCompositeTextureImage( bool addBorder )
+{
+    const int idx = getPlaneNodeIdx( this );
+
+    _borderEnvelopeOffset[idx] = osg::Vec2f( 0.0f, 0.0f );
+
+    if ( !_texture || !_texture->isEnvelopeDefined() )
+    {
+	removeCompositeImageWithBorder( this );
+	return 0;
+    }
+
+    std::vector<float> sOrigins, tOrigins;
+    _texture->planTiling( _textureBrickSize, sOrigins, tOrigins, _isBrickSizeStrict );
+
+    finalizeTiling( sOrigins, 0 );
+    finalizeTiling( tOrigins, 1 );
+
+    const osg::Image* compositeImage = _texture->getCompositeTextureImage();
+
+    if ( !sOrigins.size() || !tOrigins.size() || !compositeImage || !addBorder )
+    {
+	removeCompositeImageWithBorder( this );
+	return compositeImage;
+    }
+
+    int sBorder0 = (int) ceil( -sOrigins.front() - 0.5 );
+    int tBorder0 = (int) ceil( -tOrigins.front() - 0.5 );
+    int sBorder1 = (int) ceil(  sOrigins.back() - compositeImage->s() + 0.5 );
+    int tBorder1 = (int) ceil(  tOrigins.back() - compositeImage->t() + 0.5 );
+
+    if ( sBorder0 < 0 ) sBorder0 = 0;
+    if ( tBorder0 < 0 ) tBorder0 = 0;
+    if ( sBorder1 < 0 ) sBorder1 = 0;
+    if ( tBorder1 < 0 ) tBorder1 = 0;
+
+    if ( !sBorder0 && !tBorder0 && !sBorder1 && !tBorder1 )
+    {
+	removeCompositeImageWithBorder( this );
+	return compositeImage;
+    }
+
+    if ( !_compositeImageWithBorder[idx] )
+    {
+	_compositeImageWithBorder[idx] = new osg::Image;
+	_compositeImageWithBorder[idx]->ref();
+    }
+
+    const int sSize = sBorder0 + compositeImage->s() + sBorder1;
+    const int tSize = tBorder0 + compositeImage->t() + tBorder1;
+
+    if ( _compositeImageWithBorder[idx]->s()!=sSize || _compositeImageWithBorder[idx]->t()!=tSize )
+    {
+	_compositeImageWithBorder[idx]->allocateImage( sSize, tSize, 1, GL_RGBA, GL_UNSIGNED_BYTE );
+    }
+
+    const int id = _texture->compositeLayerId();
+    const osg::Vec4f& borderColor = _texture->getDataLayerBorderColor( id );
+
+    for ( int s=0; s<sSize; s++ )
+    {
+	for ( int t=0; t<tSize; t++ )
+	    _compositeImageWithBorder[idx]->setColor( borderColor, s, t, 0 );
+    }
+
+    _compositeImageWithBorder[idx]->copySubImage( sBorder0, tBorder0, 0, compositeImage );
+
+    _borderEnvelopeOffset[idx] = osg::Vec2f( sBorder0, tBorder0 );
+
+    return _compositeImageWithBorder[idx];
+}
+
+
+const osg::Vec2Array* TexturePlaneNode::getCompositeTextureCoords( int geomIdx ) const
+{
+    const int idx = getPlaneNodeIdx( this );
+
+    if ( geomIdx<0 || geomIdx>=_geometries.size() || !_texture )
+	return 0;
+
+    const osg::Image* compositeImage = _texture->getCompositeTextureImage();
+    if ( _compositeImageWithBorder[idx] )
+	compositeImage = _compositeImageWithBorder[idx];
+
+    if ( !compositeImage )
+	return 0;
+
+    const osg::Geometry* geom = _geometries[geomIdx];
+    const osg::Array* arr = geom->getTexCoordArray( _compositeCutoutTexUnit[idx] );
+    const osg::Vec2Array* texCoords = dynamic_cast<const osg::Vec2Array*>(arr);
+
+    if ( !texCoords )
+	return 0;
+
+    const int toId = _texture->compositeLayerId();
+    const int fromId = _texture->getTextureUnitLayerId( _compositeCutoutTexUnit[idx] );
+
+    const osgGeo::Vec2i tileOrigin = (*_cutoutOrigins[idx])[geomIdx];
+    const osgGeo::Vec2i tileSize = (*_cutoutSizes[idx])[geomIdx];
+
+    osg::ref_ptr<osg::Vec2Array> compositeCoords = new osg::Vec2Array();
+
+    for ( int tcIdx=0; tcIdx<texCoords->size(); tcIdx++ )
+    {
+	osg::Vec2f local( tileOrigin[0] + tileSize[0]*texCoords->at(tcIdx)[0],
+			  tileOrigin[1] + tileSize[1]*texCoords->at(tcIdx)[1] );
+	_texture->transformDataLayerCoord( local, fromId, toId );
+
+	local += _borderEnvelopeOffset[idx];
+
+	const osg::Vec2 texCoord( local[0] / compositeImage->s(),
+				  local[1] / compositeImage->t() );
+	compositeCoords->push_back( texCoord );
+    }
+
+    return compositeCoords.release();
+}
+
 
 
 } //namespace osgGeo
