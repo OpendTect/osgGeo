@@ -323,6 +323,7 @@ struct LayeredTextureData : public osg::Referenced
 			~LayeredTextureData();
 
     LayeredTextureData*	clone() const;
+    osg::Vec2f		getGlobalCoord(const osg::Vec2f& local) const;
     osg::Vec2f		getLayerCoord(const osg::Vec2f& global) const;
     osg::Vec4f		getTextureVec(const osg::Vec2f& global) const;
     void		clearTransparencyType();
@@ -408,6 +409,16 @@ LayeredTextureData* LayeredTextureData::clone() const
 	res->_transparency[idx] = _transparency[idx];
     }
 
+    return res;
+}
+
+
+osg::Vec2f LayeredTextureData::getGlobalCoord( const osg::Vec2f& local ) const
+{
+    osg::Vec2f res = _origin;
+    res.x() += local.x() * _scale.x() * _imageScale.x();
+    res.y() += local.y() * _scale.y() * _imageScale.y();
+    
     return res;
 }
 
@@ -964,6 +975,18 @@ int LayeredTexture::getTextureUnitNrDims( int unit ) const
     }
 
     return 2;
+}
+
+
+int LayeredTexture::getTextureUnitLayerId( int unit ) const
+{
+    for ( int idx=0; unit>=0 && idx<_dataLayers.size(); idx++ )
+    {
+	if ( _dataLayers[idx]->_textureUnit==unit )
+	    return _dataLayers[idx]->_id;
+    }
+
+    return -1;
 }
 
 
@@ -1569,6 +1592,20 @@ osg::Vec4f LayeredTexture::getDataLayerTextureVec( int id, const osg::Vec2f& glo
 	return osg::Vec4f( -1.0f, -1.0f, -1.0f, -1.0f );
 
     return _dataLayers[idx]->getTextureVec( globalCoord );
+}
+
+
+void LayeredTexture::transformDataLayerCoord( osg::Vec2f& local,
+					      int fromId, int toId )
+{
+    const int fromIdx = getDataLayerIndex( fromId );
+    const int toIdx = getDataLayerIndex( toId );
+
+    if ( fromIdx<0 || toIdx<0 || fromId==toId )
+	return;
+
+    const osg::Vec2f global = _dataLayers[fromIdx]->getGlobalCoord( local );
+    local = _dataLayers[toIdx]->getLayerCoord( global );
 }
 
 
@@ -3494,8 +3531,8 @@ void LayeredTexture::createCompositeTexture( bool dummyTexture, bool triggerProg
     updateTilingInfoIfNeeded();
     const osgGeo::TilingInfo& ti = *_tilingInfo;
 
-    int width  = (int) ceil( ti._envelopeSize.x()/ti._smallestScale.x() );
-    int height = (int) ceil( ti._envelopeSize.y()/ti._smallestScale.y() );
+    int width  = (int) ceil( ti._envelopeSize.x()/ti._smallestScale.x() - 0.5 );
+    int height = (int) ceil( ti._envelopeSize.y()/ti._smallestScale.y() - 0.5 );
     width *= _compositeSubsampleSteps;
     height *= _compositeSubsampleSteps;
 

@@ -119,6 +119,9 @@ protected:
 static std::vector<TexturePanelStripNode*> _panelStrips;
 static std::vector<std::vector<Vec2i>*> _cutoutOrigins;
 static std::vector<std::vector<Vec2i>*> _cutoutSizes;
+static std::vector<int>	_compositeCutoutTexUnit;
+static std::vector<osg::Image*> _compositeImageWithBorder;
+static std::vector<osg::Vec2f> _borderEnvelopeOffset;
 
 static int getPanelStripIdx( const TexturePanelStripNode* node )
 {
@@ -170,6 +173,9 @@ TexturePanelStripNode::TexturePanelStripNode()
     _panelStrips.push_back( this );
     _cutoutOrigins.push_back( new std::vector<Vec2i> ); 
     _cutoutSizes.push_back( new std::vector<Vec2i> ); 
+    _compositeCutoutTexUnit.push_back( -1 );
+    _compositeImageWithBorder.push_back( 0 );
+    _borderEnvelopeOffset.push_back( osg::Vec2f(0.0f,0.0f) );
 }
 
 
@@ -220,6 +226,20 @@ TexturePanelStripNode::TexturePanelStripNode( const TexturePanelStripNode& node,
     _panelStrips.push_back( this );
     _cutoutOrigins.push_back( new std::vector<Vec2i> ); 
     _cutoutSizes.push_back( new std::vector<Vec2i> ); 
+    _compositeCutoutTexUnit.push_back( -1 );
+    _compositeImageWithBorder.push_back( 0 );
+    _borderEnvelopeOffset.push_back( osg::Vec2f(0.0f,0.0f) );
+}
+
+
+static void removeCompositeImageWithBorder( TexturePanelStripNode* node )
+{
+    const int idx = getPanelStripIdx( node );
+    if ( idx>=0 && _compositeImageWithBorder[idx] )
+    {
+	_compositeImageWithBorder[idx]->unref();
+	_compositeImageWithBorder[idx] = 0;
+    }
 }
 
 
@@ -238,6 +258,13 @@ TexturePanelStripNode::~TexturePanelStripNode()
     tobedeleted = _cutoutSizes[idx];
     _cutoutSizes.erase( _cutoutSizes.begin()+idx );
     delete tobedeleted;
+
+    _compositeCutoutTexUnit.erase( _compositeCutoutTexUnit.begin()+idx );
+
+    removeCompositeImageWithBorder( this );
+    _compositeImageWithBorder.erase( _compositeImageWithBorder.begin()+idx );
+
+    _borderEnvelopeOffset.erase( _borderEnvelopeOffset.begin()+idx );
 }
 
 
@@ -562,6 +589,25 @@ void TexturePanelStripNode::traverse( osg::NodeVisitor& nv )
 }
 
 
+float TexturePanelStripNode::calcZTexOffset( int idx ) const
+{
+    float offset = idx>0 ? getBottomTextureMapping() : getTopTextureMapping();
+    offset -= _zTextureShift;
+
+    if ( _texture )
+    {
+	const osg::Vec2f origin = _texture->envelopeCenter() -
+				  _texture->textureEnvelopeSize() * 0.5f;
+	offset -= origin[_swapTextureAxes ? 0 : 1];
+
+	const osg::Vec2 resolution = _texture->tilingPlanResolution();
+	offset *= resolution[_swapTextureAxes ? 0 : 1];
+    }
+
+    return offset;
+}
+
+
 float TexturePanelStripNode::calcPathTexOffset( int idx ) const
 {
     if ( idx<0 || idx>=(int)_pathTexOffsets->size() )
@@ -630,20 +676,8 @@ void TexturePanelStripNode::finalizeZTiling( const std::vector<float>& tOrigins,
 
     const int tLast = tOrigins.size()-1;
 
-    float start = getTopTextureMapping() - _zTextureShift;
-    float stop = getBottomTextureMapping() - _zTextureShift;
-
-    if ( _texture )
-    {
-	const osg::Vec2f origin = _texture->envelopeCenter() -
-				  _texture->textureEnvelopeSize() * 0.5f;
-	start -= origin[_swapTextureAxes ? 0 : 1];
-	stop -= origin[_swapTextureAxes ? 0 : 1];
-
-	const osg::Vec2 resolution = _texture->tilingPlanResolution();
-	const float resval = resolution[_swapTextureAxes ? 0 : 1];
-	start *= resval; stop *= resval;
-    }
+    const float start = calcZTexOffset( 0 );
+    const float stop = calcZTexOffset( 1 );
 
     const float offset0 = start<=stop ? start : stop;
     const float offset1 = start<=stop ? stop : start;
@@ -858,6 +892,7 @@ bool TexturePanelStripNode::updateGeometry()
 		_statesets.push_back( stateset );
 
 		const int idx = getPanelStripIdx( this );
+		_compositeCutoutTexUnit[idx] = tcData.size() ? tcData.begin()->_textureUnit : -1;
 		_cutoutOrigins[idx]->push_back( tcData.size() ? tcData.begin()->_cutoutOrigin : Vec2i(0,0) );
 		_cutoutSizes[idx]->push_back( tcData.size() ? tcData.begin()->_cutoutSize : Vec2i(0,0) );
 	    }
@@ -890,5 +925,129 @@ const std::vector<Vec2i>& TexturePanelStripNode::getCompositeCutoutOrigins() con
 
 const std::vector<Vec2i>& TexturePanelStripNode::getCompositeCutoutSizes() const
 { return *_cutoutSizes[ getPanelStripIdx(this) ]; }
+
+
+const osg::Image* TexturePanelStripNode::getCompositeTextureImage( bool addBorder )
+{
+    const int idx = getPanelStripIdx( this );
+
+    _borderEnvelopeOffset[idx] = osg::Vec2f( 0.0f, 0.0f );
+
+    if ( !_texture || !_texture->isEnvelopeDefined() )
+    {
+	removeCompositeImageWithBorder( this );
+	return 0;
+    }
+
+    const int nrOffsets = _pathTexOffsets->size();
+    const osg::Image* compositeImage = _texture->getCompositeTextureImage();
+
+    if ( !nrOffsets || !compositeImage || !addBorder )
+    {
+	removeCompositeImageWithBorder( this );
+	return compositeImage;
+    }
+
+    const float sOffset0 = _swapTextureAxes ? calcZTexOffset(0)
+					    : calcPathTexOffset(0);
+    const float sOffset1 = _swapTextureAxes ? calcZTexOffset(1)
+					    : calcPathTexOffset(nrOffsets-1);
+    const float tOffset0 = _swapTextureAxes ? calcPathTexOffset(0)
+					    : calcZTexOffset(0);
+    const float tOffset1 = _swapTextureAxes ? calcPathTexOffset(nrOffsets-1)
+					    : calcZTexOffset(1);
+
+    int sBorder0 = (int) ceil( -sOffset0 - 0.5 );
+    int tBorder0 = (int) ceil( -tOffset0 - 0.5 );
+    int sBorder1 = (int) ceil(  sOffset1 - compositeImage->s() + 0.5 );
+    int tBorder1 = (int) ceil(  tOffset1 - compositeImage->t() + 0.5 );
+
+    if ( sBorder0 < 0 ) sBorder0 = 0;
+    if ( tBorder0 < 0 ) tBorder0 = 0;
+    if ( sBorder1 < 0 ) sBorder1 = 0;
+    if ( tBorder1 < 0 ) tBorder1 = 0;
+
+    if ( !sBorder0 && !tBorder0 && !sBorder1 && !tBorder1 )
+    {
+	removeCompositeImageWithBorder( this );
+	return compositeImage;
+    }
+
+    if ( !_compositeImageWithBorder[idx] )
+    {
+	_compositeImageWithBorder[idx] = new osg::Image;
+	_compositeImageWithBorder[idx]->ref();
+    }
+
+    const int sSize = sBorder0 + compositeImage->s() + sBorder1;
+    const int tSize = tBorder0 + compositeImage->t() + tBorder1;
+
+    if ( _compositeImageWithBorder[idx]->s()!=sSize || _compositeImageWithBorder[idx]->t()!=tSize )
+    {
+	_compositeImageWithBorder[idx]->allocateImage( sSize, tSize, 1, GL_RGBA, GL_UNSIGNED_BYTE );
+    }
+
+    const int id = _texture->compositeLayerId();
+    const osg::Vec4f& borderColor = _texture->getDataLayerBorderColor( id );
+
+    for ( int s=0; s<sSize; s++ )
+    {
+	for ( int t=0; t<tSize; t++ )
+	    _compositeImageWithBorder[idx]->setColor( borderColor, s, t, 0 );
+    }
+
+    _compositeImageWithBorder[idx]->copySubImage( sBorder0, tBorder0, 0, compositeImage );
+
+    _borderEnvelopeOffset[idx] = osg::Vec2f( sBorder0, tBorder0 );
+
+    return _compositeImageWithBorder[idx];
+}
+
+
+const osg::Vec2Array* TexturePanelStripNode::getCompositeTextureCoords( int geomIdx ) const
+{
+    const int idx = getPanelStripIdx( this );
+
+    if ( geomIdx<0 || geomIdx>=_geometries.size() || !_texture )
+	return 0;
+
+    const osg::Image* compositeImage = _texture->getCompositeTextureImage();
+    if ( _compositeImageWithBorder[idx] )
+	compositeImage = _compositeImageWithBorder[idx];
+
+    if ( !compositeImage )
+	return 0;
+
+    const osg::Geometry* geom = _geometries[geomIdx];
+    const osg::Array* arr = geom->getTexCoordArray( _compositeCutoutTexUnit[idx] );
+    const osg::Vec2Array* texCoords = dynamic_cast<const osg::Vec2Array*>(arr);
+
+    if ( !texCoords )
+	return 0;
+
+    const int toId = _texture->compositeLayerId();
+    const int fromId = _texture->getTextureUnitLayerId( _compositeCutoutTexUnit[idx] );
+
+    const osgGeo::Vec2i tileOrigin = (*_cutoutOrigins[idx])[geomIdx];
+    const osgGeo::Vec2i tileSize = (*_cutoutSizes[idx])[geomIdx];
+
+    osg::ref_ptr<osg::Vec2Array> compositeCoords = new osg::Vec2Array();
+
+    for ( int tcIdx=0; tcIdx<texCoords->size(); tcIdx++ )
+    {
+	osg::Vec2f local( tileOrigin[0] + tileSize[0]*texCoords->at(tcIdx)[0],
+			  tileOrigin[1] + tileSize[1]*texCoords->at(tcIdx)[1] );
+	_texture->transformDataLayerCoord( local, fromId, toId );
+
+	local += _borderEnvelopeOffset[idx];
+
+	const osg::Vec2 texCoord( local[0] / compositeImage->s(),
+				  local[1] / compositeImage->t() );
+	compositeCoords->push_back( texCoord );
+    }
+
+    return compositeCoords.release();
+}
+
 
 } //namespace osgGeo

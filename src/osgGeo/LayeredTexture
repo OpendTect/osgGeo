@@ -446,6 +446,11 @@ protected:
 
     int			encodeBaseChannelPower(osg::Image& image,
 					       int nrPowerChannels);
+public:
+
+    int			getTextureUnitLayerId(int unit) const;
+    void		transformDataLayerCoord(osg::Vec2f& local,
+						int fromId, int toId);
 };
 
 

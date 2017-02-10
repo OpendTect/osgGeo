@@ -122,8 +122,9 @@ public:
     osg::BoundingSphere		computeBound() const;
 
     void			forceRedraw(bool=true);
-    std::vector<osg::Geometry*> getGeoMetries() { return _geometries; }
 
+    // deprecated
+    std::vector<osg::Geometry*> getGeoMetries() { return _geometries; }
     const std::vector<Vec2i>&	getCompositeCutoutOrigins() const;
     const std::vector<Vec2i>&	getCompositeCutoutSizes() const;
 
@@ -140,6 +141,7 @@ protected:
     osg::Vec3			getAverageNormal(int knotIdx) const;
     void			computeNormals();
 
+    float			calcZTexOffset(int idx) const;
     float			calcPathTexOffset(int idx) const;
     bool			getLocalGeomAtTexOffset(
 				    osg::Vec2& pathCoord,osg::Vec3& normal,
@@ -191,6 +193,10 @@ public:
 			    _altTileMode=(_altTileMode+1)%3;
 			    setUpdateVar( _needsUpdate, true );
 			}
+
+    std::vector<osg::Geometry*>& getGeometries() { return _geometries; }
+    const osg::Image*		getCompositeTextureImage(bool addBorder=true);
+    const osg::Vec2Array*	getCompositeTextureCoords(int geomIdx) const;
 };
 
 
