@@ -919,11 +919,26 @@ const osg::Image* TexturePanelStripNode::getCompositeTextureImage( bool addBorde
     const int id = _texture->compositeLayerId();
     const osg::Vec4f& borderColor = _texture->getDataLayerBorderColor( id );
 
+#if OSG_MIN_VERSION_REQUIRED(3,3,0)
     for ( int s=0; s<sSize; s++ )
     {
 	for ( int t=0; t<tSize; t++ )
 	    _compositeImageWithBorder->setColor( borderColor, s, t, 0 );
     }
+#else
+    // Assuming contiguous data of type GL_RGBA
+    unsigned char* imagePtr = _compositeImageWithBorder->data();
+    for ( int count=0; count<sSize*tSize; count++ )
+    {
+	for ( int channel=0; channel<=3; channel++ )
+	{
+	    int val = (int) floor( 255.0f*borderColor[channel] + 0.5 );
+	    val = val<=0 ? 0 : (val>=255 ? 255 : val);
+	    *imagePtr = (unsigned char) val;
+	    imagePtr++;
+	}
+    }
+#endif
 
     _compositeImageWithBorder->copySubImage( sBorder0, tBorder0, 0, compositeImage );
 
