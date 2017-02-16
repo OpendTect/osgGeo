@@ -33,6 +33,8 @@ $Id$
 namespace osgGeo
 {
 
+static OpenThreads::Mutex _cloneMutex;
+
 class PolygonSelectionEventHandler : public osgGA::GUIEventHandler
 {
 public:
@@ -103,17 +105,20 @@ PolygonSelection::PolygonSelection(const PolygonSelection& sel,const osg::CopyOp
     , _isDrawing(false)
     , _hudCamera(0)
 {
+    _cloneMutex.lock();
     _geode = (osg::Geode*)sel._geode->clone(op);
     _lineGeometry = (osg::Geometry*)sel._lineGeometry->clone(op);
     _coords = (osg::Vec3Array*)sel._coords->clone(op);
     _coordsList = (osg::DrawArrays*)sel._coordsList->clone(op);
-    _masterCamera = (osg::Camera*)sel._masterCamera->clone(op);
+    _masterCamera = (osg::Camera*)sel._masterCamera;
     _hudCamera = (osg::Camera*)sel._hudCamera->clone(op);
 
-    if(_masterCamera)
-	_masterCamera->ref();
     if(_hudCamera)
 	_hudCamera->ref();
+
+    _masterCamera->ref();    
+    _cameraPos = sel._cameraPos;
+    _cloneMutex.unlock();
 }
 
 
