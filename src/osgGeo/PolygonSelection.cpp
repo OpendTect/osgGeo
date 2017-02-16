@@ -113,10 +113,11 @@ PolygonSelection::PolygonSelection(const PolygonSelection& sel,const osg::CopyOp
     _masterCamera = (osg::Camera*)sel._masterCamera;
     _hudCamera = (osg::Camera*)sel._hudCamera->clone(op);
 
+    if(_masterCamera)
+	_masterCamera->ref();
     if(_hudCamera)
 	_hudCamera->ref();
 
-    _masterCamera->ref();    
     _cameraPos = sel._cameraPos;
     _cloneMutex.unlock();
 }
