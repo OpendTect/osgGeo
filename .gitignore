@@ -1,0 +1,11 @@
+CMakeFiles
+*.vcx*
+*.sln
+*.tcl
+CTestTestFile.cmake
+*.obj
+cmake_install.cmake
+Debug/
+Release/
+Config
+CMakeCache.txt
