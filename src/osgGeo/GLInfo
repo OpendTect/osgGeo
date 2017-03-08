@@ -41,6 +41,7 @@ public:
     const char*			glVersion() const;
     const char*			glExtensions() const;
     
+    bool			isPlatformSupported() const;
     bool			isVertexProgramSupported() const;
     bool			isShaderProgramSupported() const;
     bool			isGeometryShader4Supported() const;

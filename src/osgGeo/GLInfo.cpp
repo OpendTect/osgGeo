@@ -161,6 +161,16 @@ bool GLInfo::getExtension( const char* extnsnnm ) const
 }
 
 
+bool GLInfo::isPlatformSupported() const
+{
+#if defined(__win64__) || defined(__win32__) || defined(__APPLE__)
+    return false;
+#else
+    return true;
+#endif
+}
+
+
 bool GLInfo::isVertexProgramSupported() const
 {
     return getExtension( "GL_ARB_vertex_shader" );
