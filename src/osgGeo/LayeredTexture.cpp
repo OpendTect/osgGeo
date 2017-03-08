@@ -47,7 +47,7 @@ $Id$
 #endif
 
 
-typedef uintptr_t pixel_int;
+typedef uintptr_t pixel_uint;
 
 
 namespace osgGeo
@@ -475,12 +475,12 @@ void LayeredTextureData::adaptColors()
 
 
 #define GET_PIXEL_INDEX( idx, image, x, y, z, order ) \
-    const pixel_int idx = order==STR ? x+(y+z*image->t())*image->s() : \
-			  order==SRT ? x+(z+y*image->r())*image->s() : \
-			  order==TRS ? z+(x+y*image->s())*image->r() : \
-			  order==TSR ? y+(x+z*image->s())*image->t() : \
-			  order==RST ? y+(z+x*image->r())*image->t() : \
-			/*order==RTS*/ z+(y+x*image->t())*image->r();
+    const pixel_uint idx = order==STR ? x+(y+z*image->t())*image->s() : \
+			   order==SRT ? x+(z+y*image->r())*image->s() : \
+			   order==TRS ? z+(x+y*image->s())*image->r() : \
+			   order==TSR ? y+(x+z*image->s())*image->t() : \
+			   order==RST ? y+(z+x*image->r())*image->t() : \
+			 /*order==RTS*/ z+(y+x*image->t())*image->r();
 
 #define GET_COLOR_WITHOUT_OVERFLOW( color, image, idx ) \
 			  /* OSG multiplies idx by number of BITS per pixel */ \
@@ -3386,7 +3386,7 @@ public:
 			    osg::Image* image,osg::Vec4f& borderCol,
 			    const std::vector<LayerProcess*>& procs,
 			    float minOpacity,bool dummyTexture,
-			    pixel_int startNr,pixel_int stopNr,
+			    pixel_uint startNr,pixel_uint stopNr,
 			    OpenThreads::BlockCount& ready)
        			{
 			    beginSetFunction( &ready );
@@ -3397,7 +3397,7 @@ public:
 			    _processList = &procs;
 			    _minOpacity = minOpacity;
 			    _dummyTexture = dummyTexture;
-			    _start = startNr>=0 ? startNr : 0;
+			    _start = startNr;
 			    _stop = stopNr<=image->s()*image->t() ? stopNr : image->s()*image->t();
 			    endSetFunction();
 			}
@@ -3412,8 +3412,8 @@ protected:
     osg::Vec4f*				_borderColor;
     const std::vector<LayerProcess*>*	_processList;
     float				_minOpacity;
-    pixel_int				_start;
-    pixel_int				_stop;
+    pixel_uint				_start;
+    pixel_uint				_stop;
 };
 
 
@@ -3437,9 +3437,9 @@ void CompositeTextureThread::doWork()
 	std::vector<LayerProcess*>::const_reverse_iterator it;
 	unsigned char* imagePtr = _image->data() + _start*4;
 	const int width = _image->s();
-	const pixel_int nrImagePixels = width * _image->t();
+	const pixel_uint nrImagePixels = width * _image->t();
 
-	for ( pixel_int pixelNr=_start; pixelNr<=_stop; pixelNr++ )
+	for ( pixel_uint pixelNr=_start; pixelNr<=_stop; pixelNr++ )
 	{
 	    osg::Vec2f globalCoord( origin.x()+scale.x()*(pixelNr%width+0.5),
 				    origin.y()+scale.y()*(pixelNr/width+0.5) );
@@ -3568,7 +3568,7 @@ void LayeredTexture::createCompositeTexture( bool dummyTexture, bool triggerProg
 	    minOpacity = (*it)->getOpacity();
     }
 
-    pixel_int nrPixels = height*width;
+    pixel_uint nrPixels = height*width;
 
     /* Cannot cover mixed use of uniform and extended-edge-pixel borders
        without shaders (trick with extra one-pixel wide border is screwed
@@ -3595,12 +3595,12 @@ void LayeredTexture::createCompositeTexture( bool dummyTexture, bool triggerProg
     OpenThreads::BlockCount readyCount( nrTasks );
     readyCount.reset();
 
-    pixel_int remainder = nrPixels%nrTasks;
-    pixel_int start = 0;
+    pixel_uint remainder = nrPixels%nrTasks;
+    pixel_uint start = 0;
 
     while ( start<nrPixels )
     {
-	pixel_int stop = start + nrPixels/nrTasks;
+	pixel_uint stop = start + nrPixels/nrTasks;
 	if ( remainder )
 	    remainder--;
 	else
@@ -3677,7 +3677,7 @@ public:
 
     void	set(unsigned char* dataPtr,
 		    int pixelSizeInBytes,int nrPowerChannels,
-		    pixel_int startNr,pixel_int stopNr,
+		    pixel_uint startNr,pixel_uint stopNr,
 		    OpenThreads::BlockCount& ready)
 		{
 		    beginSetFunction( &ready );
@@ -3696,8 +3696,8 @@ protected:
     void		doWork();
 
     unsigned char*	_dataPtr;
-    pixel_int		_startNr;
-    pixel_int		_stopNr;
+    pixel_uint		_startNr;
+    pixel_uint		_stopNr;
     int			_pixelSizeInBytes;
     int			_nrPowerChannels;
 };
@@ -3765,8 +3765,8 @@ int LayeredTexture::encodeBaseChannelPower( osg::Image& image, int nrPowerChanne
 	return 0;
     }
 
-    const pixel_int nrPixels = image.getTotalSizeInBytes() / pixelSizeInBytes;
-    const pixel_int maxTasks = nrPixels/1024;
+    const pixel_uint nrPixels = image.getTotalSizeInBytes() / pixelSizeInBytes;
+    const pixel_uint maxTasks = nrPixels/1024;
 
     int nrTasks = OpenThreads::GetNumberOfProcessors();
 
@@ -3787,12 +3787,12 @@ int LayeredTexture::encodeBaseChannelPower( osg::Image& image, int nrPowerChanne
     OpenThreads::BlockCount readyCount( nrTasks );
     readyCount.reset();
 
-    pixel_int remainder = nrPixels%nrTasks;
-    pixel_int start = 0;
+    pixel_uint remainder = nrPixels%nrTasks;
+    pixel_uint start = 0;
 
     while ( start<nrPixels )
     {
-	pixel_int stop = start + nrPixels/nrTasks;
+	pixel_uint stop = start + nrPixels/nrTasks;
 	if ( remainder )
 	    remainder--;
 	else
