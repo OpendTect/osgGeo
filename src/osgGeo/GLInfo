@@ -51,6 +51,8 @@ public:
     bool			isOK() const;
 
 protected:
+
+    static bool			initGL();
                         	GLInfo();
     void			updateLimits();
     std::string			_glvendor;

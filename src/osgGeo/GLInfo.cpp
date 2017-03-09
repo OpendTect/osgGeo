@@ -57,26 +57,37 @@ using namespace osgGeo;
 
 
 GLInfo::GLInfo()
-    : _glvendor( (const char*) glGetString(GL_VENDOR) )
+    /*: _glvendor( (const char*) glGetString(GL_VENDOR) )
     , _glrenderer( (const char*) glGetString(GL_RENDERER) )
     , _glversion( (const char*) glGetString(GL_VERSION) )
-    , _glextensions( (const char*) glGetString(GL_EXTENSIONS) )
+    , _glextensions( (const char*) glGetString(GL_EXTENSIONS) )*/
 {
     updateLimits();
 }
 
 
 static osg::ref_ptr<GLInfo> inst;
-    
+
+
+bool GLInfo::initGL()
+{
+    //TODO
+#if defined(__win64__) || defined(__win32__)
+     return false;
+#else 
+    return true;
+#endif
+}
+
 
 const osg::ref_ptr<GLInfo> GLInfo::get()
 {
-    if ( !inst && glGetString(GL_VENDOR) )
+    if ( !inst ) // TODO: && glGetString(GL_VENDOR) when context is available
     {
         GLInfo* res = new GLInfo;
         inst = res;
     }
-    
+
     return inst;
 }
     
