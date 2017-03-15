@@ -225,7 +225,7 @@ void ScalarBar::createDrawables()
 
     osg::ref_ptr<osgText::Font> font = _textProperties._font;
     if ( !font )
-	font = osgText::readFontFile(_textProperties._fontFile.c_str());
+	font = osgText::readRefFontFile(_textProperties._fontFile.c_str());
 
     std::vector<osgText::Text*> texts(_numLabels);      // We'll need to collect pointers to these for later
     float labelIncr = (_numLabels>0) ? (_stc->getMax()-_stc->getMin())/(_numLabels-1) : 0.0f;
