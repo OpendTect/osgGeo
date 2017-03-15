@@ -54,13 +54,15 @@ $Id$
 
 
 using namespace osgGeo;
+void initWinGL();
+void initLuxGL();
 
 
 GLInfo::GLInfo()
-    /*: _glvendor( (const char*) glGetString(GL_VENDOR) )
+    : _glvendor( (const char*) glGetString(GL_VENDOR) )
     , _glrenderer( (const char*) glGetString(GL_RENDERER) )
     , _glversion( (const char*) glGetString(GL_VERSION) )
-    , _glextensions( (const char*) glGetString(GL_EXTENSIONS) )*/
+    , _glextensions( (const char*) glGetString(GL_EXTENSIONS) )
 {
     updateLimits();
 }
@@ -69,20 +71,22 @@ GLInfo::GLInfo()
 static osg::ref_ptr<GLInfo> inst;
 
 
-bool GLInfo::initGL()
+void GLInfo::initGL()
 {
-    //TODO
 #if defined(__win64__) || defined(__win32__)
-     return false;
+    initWinGL();
 #else 
-    return true;
+    initLuxGL();
 #endif
 }
 
 
 const osg::ref_ptr<GLInfo> GLInfo::get()
 {
-    if ( !inst ) // TODO: && glGetString(GL_VENDOR) when context is available
+    if ( !inst )
+	initGL();
+
+    if ( !inst && glGetString(GL_VENDOR) )
     {
         GLInfo* res = new GLInfo;
         inst = res;
@@ -175,7 +179,7 @@ bool GLInfo::getExtension( const char* extnsnnm ) const
 bool GLInfo::isPlatformSupported() const
 {
 #if defined(__win64__) || defined(__win32__) || defined(__APPLE__)
-    return false;
+    return true;
 #else
     return false;
 #endif
@@ -198,3 +202,75 @@ bool GLInfo::isGeometryShader4Supported() const
 {
     return getExtension( "GL_EXT_geometry_shader4" );
 }
+
+#if defined(__win64__) || defined(__win32__)
+LONG WINAPI WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{ 
+    return (LONG)DefWindowProc(hWnd, uMsg, wParam, lParam); 
+}
+
+void initWinGL()
+{
+    HDC	    hDC;	
+    HGLRC   hRC;
+    HWND    hWnd;
+    MSG	    msg;
+    WNDCLASS    wc;
+    PIXELFORMATDESCRIPTOR pfd;
+    static HINSTANCE hInstance = 0;
+    int         pf;
+    
+    if ( !hInstance )
+    {
+	hInstance = GetModuleHandle(NULL);
+	wc.style         = CS_OWNDC;
+	wc.lpfnWndProc   = (WNDPROC)WindowProc;
+	wc.cbClsExtra    = 0;
+	wc.cbWndExtra    = 0;
+	wc.hInstance     = hInstance;
+	wc.hIcon         = LoadIcon(NULL, IDI_WINLOGO);
+	wc.hCursor       = LoadCursor(NULL, IDC_ARROW);
+	wc.hbrBackground = NULL;
+	wc.lpszMenuName  = NULL;
+	wc.lpszClassName = "OpenGL";
+
+	if ( !RegisterClass(&wc) )
+	    return;
+    }
+
+    hWnd = CreateWindow("OpenGL", "OpenGL", WS_OVERLAPPEDWINDOW |
+			WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
+			0, 0, 100, 100, NULL, NULL, hInstance, NULL);
+
+    if ( hWnd == NULL )
+	return ;
+
+    hDC = GetDC( hWnd );
+    memset( &pfd, 0, sizeof(pfd) );
+    pfd.nSize        = sizeof( pfd );
+    pfd.nVersion     = 1;
+    pfd.dwFlags      = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL;
+    pfd.iPixelType   = PFD_TYPE_RGBA;
+    pfd.cColorBits   = 32;
+
+    pf = ChoosePixelFormat( hDC, &pfd );
+
+    if ( pf == 0 )
+	return;
+
+    if ( SetPixelFormat(hDC, pf, &pfd) == FALSE )
+	return;
+
+    DescribePixelFormat(hDC, pf, sizeof(PIXELFORMATDESCRIPTOR), &pfd);
+    ReleaseDC(hWnd,hDC);
+    hRC = wglCreateContext(hDC);
+    wglMakeCurrent(hDC, hRC);
+    DestroyWindow( hWnd );
+}
+#else
+
+void initLuxGL()
+{
+    //TODO: Impelement OpenGL context initialisation at start-up.
+}
+#endif

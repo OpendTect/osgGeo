@@ -52,7 +52,7 @@ public:
 
 protected:
 
-    static bool			initGL();
+    static void			initGL();
                         	GLInfo();
     void			updateLimits();
     std::string			_glvendor;
