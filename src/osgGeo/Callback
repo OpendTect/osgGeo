@@ -1,5 +1,4 @@
-#ifndef OSGGEO_CALLBACK_H
-#define OSGGEO_CALLBACK_H
+#pragma once
 
 /* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
 Copyright 2011 dGB Beheer B.V.
@@ -64,4 +63,3 @@ protected:
 }; // namespace osgGeo
 
 
-#endif //OSGGEO_CALLBACK_H

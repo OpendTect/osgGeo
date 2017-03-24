@@ -66,4 +66,3 @@ class OSGGEO_EXPORT TabBoxDragger : public osgManipulator::CompositeDragger
 
 }
 
-#endif //OSGGEO_TABBOXDRAGGER_H

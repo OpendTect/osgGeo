@@ -79,4 +79,3 @@ class OSGGEO_EXPORT TabPlaneDragger : public osgManipulator::TabPlaneDragger
 
 }
 
-#endif //OSGGEO_TABPLANEDRAGGER_H

@@ -1,5 +1,4 @@
-#ifndef OSGGEO_PLANEWELLLOG_H
-#define OSGGEO_PLANEWELLLOG_H
+#pragma once
 
 /* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
 Copyright 2012 dGB Beheer B.V.
@@ -122,4 +121,3 @@ private:
 
 } // namespace
 
-#endif //OSGGEO_PLANEWELLLOG_H

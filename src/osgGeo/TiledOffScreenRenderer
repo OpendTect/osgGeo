@@ -120,4 +120,3 @@ protected:
 
 }
 
-#endif //OSGGEO_TILEDOFFSCREENRENDERER_H

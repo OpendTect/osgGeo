@@ -1,5 +1,4 @@
-#ifndef OSGGEO_VEC2I_H
-#define OSGGEO_VEC2I_H
+#pragma once
 
 /* -*-c++-*- OpenSceneGraph - Copyright (C) 1998-2006 Robert Osfield 
  *
@@ -149,4 +148,3 @@ inline Vec2i componentDivide(const Vec2i& lhs, const Vec2i& rhs)
 
 }    // end of namespace osgGeo
 
-#endif //OSGGEO_VEC2I_H

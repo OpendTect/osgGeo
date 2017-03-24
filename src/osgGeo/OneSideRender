@@ -1,5 +1,4 @@
-#ifndef OSGGEO_ONE_SIDE_RENDER_H
-#define OSGGEO_ONE_SIDE_RENDER_H
+#pragma once
 
 /* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
 Copyright 2011 dGB Beheer B.V.
@@ -68,4 +67,3 @@ protected:
 };
 
 }
-#endif //OSGGEO_POLYLINE_H

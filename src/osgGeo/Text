@@ -53,4 +53,3 @@ class OSGGEO_EXPORT Text : public osgText::Text
 
 }
 
-#endif //OSGGEO_TEXT_H

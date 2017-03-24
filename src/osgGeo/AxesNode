@@ -78,5 +78,4 @@ protected:
 
 
 } // namespace osgGeo
-#endif //OSGGEO_TEXTUREPLANE_H
 

@@ -71,4 +71,3 @@ class OSGGEO_EXPORT Translate2DDragger : public osgManipulator::Translate2DDragg
 
 } // namespace osgGeo
 
-#endif //OSGGEO_DRAGGERS_H

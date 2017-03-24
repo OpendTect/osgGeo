@@ -1,5 +1,4 @@
-#ifndef OSGGEO_MARKERSET_H
-#define OSGGEO_MARKERSET_H
+#pragma once
 
 /* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
 Copyright 2011 dGB Beheer B.V.
@@ -134,4 +133,3 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 };
 
 }
-#endif //OSGGEO_MARKERSET_H

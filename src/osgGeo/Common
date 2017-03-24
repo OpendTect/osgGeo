@@ -1,5 +1,4 @@
-#ifndef OSGGEO_COMMON_H
-#define OSGGEO_COMMON_H
+#pragma once
 
 /* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
 Copyright 2011 dGB Beheer B.V.
@@ -22,7 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 
 #ifndef M_PI
 #define M_PI 3.14159265
-#endif //M_PI
+#endif
 
 #if defined(_MSC_VER) 
 # define DISABLE_WARNINGS \
@@ -38,5 +37,3 @@ __pragma(warning( disable : 4100 ))
 REGISTER_OBJECT_WRAPPER(NAME, PROTO, CLASS, ASSOCIATES) \
 { if ( wrapper ) return; }
 
-
-#endif //OSGGEO_COMMON_H

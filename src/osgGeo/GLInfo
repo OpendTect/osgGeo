@@ -1,5 +1,4 @@
-#ifndef OSGGEO_GLINFO_H
-#define OSGGEO_GLINFO_H
+#pragma once
 
 /* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
 Copyright 2012 dGB Beheer B.V.
@@ -75,5 +74,4 @@ protected:
 
 } // namespace osgGeo
 
-#endif // OSGGEO_GLINFO_H
 

@@ -53,4 +53,3 @@ class OSGGEO_EXPORT AutoTransform : public osg::AutoTransform
 
 }
 
-#endif //OSGGEO_AUTOTRANSFORM_H

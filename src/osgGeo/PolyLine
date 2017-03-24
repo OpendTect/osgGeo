@@ -1,5 +1,4 @@
-#ifndef OSGGEO_POLYLONENODE_H
-#define OSGGEO_POLYLONENODE_H
+#pragma once
 
 /* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
 Copyright 2011 dGB Beheer B.V.
@@ -95,4 +94,3 @@ protected:
 };
 
 }
-#endif //OSGGEO_POLYLONENODE_H

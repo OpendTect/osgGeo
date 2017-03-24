@@ -1,5 +1,4 @@
-#ifndef OSGGEO_WELLLOG_H
-#define OSGGEO_WELLLOG_H
+#pragma once
 
 /* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
 Copyright 2012 dGB Beheer B.V.
@@ -166,5 +165,4 @@ protected:
 
 } // namespace
 
-#endif //OSGGEO_WellLog_H
 

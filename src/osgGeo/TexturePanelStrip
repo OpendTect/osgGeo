@@ -1,5 +1,4 @@
-#ifndef OSGGEO_RANDOMLINE_H
-#define OSGGEO_RANDOMLINE_H
+#pragma once
 
 /* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
 Copyright 2011 dGB Beheer B.V.
@@ -201,5 +200,4 @@ public:
 
 
 }
-#endif //OSGGEO_RANDOMLINE_H
 
