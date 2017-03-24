@@ -14,8 +14,6 @@ GNU Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-$Id: LayeredTexture.cpp 298 2013-11-26 08:03:31Z jaap.glas@dgbes.com $
-
 */
 
 #include <osgGeo/Callback>

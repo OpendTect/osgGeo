@@ -17,8 +17,6 @@ GNU Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-$Id: WellLog 472 2014-12-18 12:54:16Z ding.zheng@dgbes.com $
-
 */
 
 #include <osg/Node>

@@ -17,8 +17,6 @@ GNU Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-$Id: TrackballManipulator 489 2015-02-24 12:56:56Z kristofer.tingdahl@dgbes.com $
-
 */
 
 #include <osgGeo/Common>

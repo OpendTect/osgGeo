@@ -14,7 +14,6 @@ GNU Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-$Id$
 */
 
 #include <osgGeo/TrackballManipulator>
@@ -793,10 +792,10 @@ bool TrackballManipulator::getPolyIntersectionPoint(osg::View* view,const osg::V
 void TrackballManipulator::handleMultiTouchDrag(const osgGA::GUIEventAdapter::TouchData* now, 
     const osgGA::GUIEventAdapter::TouchData* last, const double ) 
 {
-    const osg::Vec2 pt_1_now(now->get(0).x,now->get(0).y);
-    const osg::Vec2 pt_2_now(now->get(1).x,now->get(1).y);
-    const osg::Vec2 pt_1_last(last->get(0).x,last->get(0).y);
-    const osg::Vec2 pt_2_last(last->get(1).x,last->get(1).y);
+    const osg::Vec2 pt_1_now(now->get(0).x_,now->get(0).y_);
+    const osg::Vec2 pt_2_now(now->get(1).x_,now->get(1).y_);
+    const osg::Vec2 pt_1_last(last->get(0).x_,last->get(0).y_);
+    const osg::Vec2 pt_2_last(last->get(1).x_,last->get(1).y_);
 
     if ( last->get(0).phase == osgGA::GUIEventAdapter::TOUCH_BEGAN )
     {

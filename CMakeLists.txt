@@ -16,8 +16,6 @@
 #
 # All configurations should be set in osgGeoConfig.cmake
 #
-# $Id$
-#
 # No configuration settings should be modified below.
 
 project( osgGeo )

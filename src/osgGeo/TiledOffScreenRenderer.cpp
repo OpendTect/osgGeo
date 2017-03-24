@@ -14,8 +14,6 @@ GNU Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-$Id: TiledOffScreenRenderer.cpp 346 2014-02-07 09:31:17Z ding.zheng@dgbes.com $
-
 */
 #include <osgGeo/TiledOffScreenRenderer>
 

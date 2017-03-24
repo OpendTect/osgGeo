@@ -2,8 +2,6 @@
 ## Then modify the CMakeLists.txt file in the root directory of your
 ## project to incorporate the testing dashboard.
 ## 
-## $Id$
-##
 ## # The following are required to submit to the CDash dashboard:
 ##   ENABLE_TESTING()
 ##   INCLUDE(CTest)

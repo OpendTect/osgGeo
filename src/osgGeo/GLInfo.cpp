@@ -14,8 +14,6 @@ GNU Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-$Id$
-
 */
 
 
@@ -47,9 +45,9 @@ $Id$
 # include <OpenGL/gl.h>
 #else
 # include <GL/gl.h>
-# include <GL/glext.h>
 #endif
 
+#include <GL/glext.h>
 #include <osgGeo/GLInfo>
 
 
@@ -86,6 +84,7 @@ void GLInfo::updateLimits()
         GLenum _token;
         const char* _name;
     };
+    
 #if defined(GL_ARB_vertex_shader)
     const struct token_name vertex_limits[] = {
         { GL_MAX_VERTEX_UNIFORM_COMPONENTS_ARB, "GL_MAX_VERTEX_UNIFORM_COMPONENTS_ARB" },

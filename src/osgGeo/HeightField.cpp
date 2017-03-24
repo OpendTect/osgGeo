@@ -14,8 +14,6 @@ GNU Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-$Id: WellLog.cpp 390 2014-06-02 11:28:21Z ding.zheng@dgbes.com $
-
 */
 
 #include <osgGeo/HeighField>

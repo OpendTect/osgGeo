@@ -14,8 +14,6 @@ GNU Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-$Id: MarkerShape.cpp 242 2013-04-26 11:26:59Z ding.zheng@dgbes.com $
-
 */
 
 #include "osgGeo/MarkerShape"
