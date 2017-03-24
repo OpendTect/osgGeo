@@ -1,5 +1,4 @@
-#ifndef OSGGEO_THUMBWHEEL_H
-#define OSGGEO_THUMBWHEEL_H
+#pragma once
 
 /* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
 Copyright 2011 dGB Beheer B.V.
@@ -147,6 +146,4 @@ protected:
     float _deltaangle;
 };
 
-}
-
-#endif
+} // namespace osgGeo

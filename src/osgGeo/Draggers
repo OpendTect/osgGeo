@@ -1,5 +1,4 @@
-#ifndef OSGGEO_DRAGGERS_H
-#define OSGGEO_DRAGGERS_H
+#pragma once
 
 /* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
 Copyright 2011 dGB Beheer B.V.
@@ -70,4 +69,3 @@ class OSGGEO_EXPORT Translate2DDragger : public osgManipulator::Translate2DDragg
 
 
 } // namespace osgGeo
-

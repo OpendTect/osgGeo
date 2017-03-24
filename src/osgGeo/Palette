@@ -1,5 +1,4 @@
-#ifndef OSGGEO_PALETTE_H
-#define OSGGEO_PALETTE_H
+#pragma once
 
 /* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
 Copyright 2011 dGB Beheer B.V.
@@ -60,5 +59,4 @@ private:
   ColorPointList _colorPoints;
 };
 
-}
-#endif // OSGGEO_PALETTE_H
+} // namespace osgGeo

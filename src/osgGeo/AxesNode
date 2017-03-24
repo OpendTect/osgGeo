@@ -1,5 +1,4 @@
-#ifndef OSGGEO_AXESNODE_H
-#define OSGGEO_AXESNODE_H
+#pragma once
 
 /* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
 Copyright 2011 dGB Beheer B.V.
@@ -78,4 +77,3 @@ protected:
 
 
 } // namespace osgGeo
-

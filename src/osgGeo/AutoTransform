@@ -1,5 +1,4 @@
-#ifndef OSGGEO_AUTOTRANSFORM_H
-#define OSGGEO_AUTOTRANSFORM_H
+#pragma once
 
 /* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
 Copyright 2011 dGB Beheer B.V.
@@ -52,4 +51,3 @@ class OSGGEO_EXPORT AutoTransform : public osg::AutoTransform
 };
 
 }
-

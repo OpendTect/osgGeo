@@ -1,5 +1,4 @@
-#ifndef OSGGEO_TEXT_H
-#define OSGGEO_TEXT_H
+#pragma once
 
 /* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
 Copyright 2011 dGB Beheer B.V.
@@ -51,5 +50,4 @@ class OSGGEO_EXPORT Text : public osgText::Text
 	osg::Vec3	_elevationPlane;
 };
 
-}
-
+} // namespace osgGeo

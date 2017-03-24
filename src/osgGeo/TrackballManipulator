@@ -1,5 +1,4 @@
-#ifndef OSGGEO_TRACKBALLMANIPULATOR_H
-#define OSGGEO_TRACKBALLMANIPULATOR_H
+#pragma once
 
 /* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
 Copyright 2011 dGB Beheer B.V.
@@ -177,7 +176,6 @@ class OSGGEO_EXPORT TrackballManipulator : public osgGA::MultiTouchTrackballMani
 
 
 
-
 class OSGGEO_EXPORT TrackballEventNodeVisitor : public osg::NodeVisitor
 {
 public:
@@ -195,5 +193,4 @@ public:
 };
 
 
-}
-
+} // namespace osgGeo

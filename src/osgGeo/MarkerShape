@@ -1,5 +1,4 @@
-#ifndef OSGGEO_MARKERSHAPE_H
-#define OSGGEO_MARKERSHAPE_H
+#pragma once
 
 /* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
 Copyright 2011 dGB Beheer B.V.
@@ -78,5 +77,4 @@ class OSGGEO_EXPORT MarkerShape
 	static const char*			getGeomShaderSphere();
 };
 
-}
-#endif //OSGGEO_MARKERSHAPE_H
+} // namespace osgGeo

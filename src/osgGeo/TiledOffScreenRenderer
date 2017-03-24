@@ -1,5 +1,4 @@
-#ifndef OSGGEO_TILEDOFFSCREENRENDERER_H
-#define OSGGEO_TILEDOFFSCREENRENDERER_H
+#pragma once
 
 /* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
 Copyright 2011 dGB Beheer B.V.
@@ -117,6 +116,4 @@ protected:
 
 };
 
-
-}
-
+} // namespace osgGeo

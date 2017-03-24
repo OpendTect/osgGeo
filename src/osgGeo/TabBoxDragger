@@ -1,5 +1,4 @@
-#ifndef OSGGEO_TABBOXDRAGGER_H
-#define OSGGEO_TABBOXDRAGGER_H
+#pragma once
 
 /* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
 Copyright 2011 dGB Beheer B.V.
@@ -64,5 +63,4 @@ class OSGGEO_EXPORT TabBoxDragger : public osgManipulator::CompositeDragger
 	std::vector< osg::ref_ptr< osgGeo::TabPlaneDragger > > _planeDraggers;
 };
 
-}
-
+} // namespace osgGeo

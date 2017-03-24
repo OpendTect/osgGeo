@@ -1,5 +1,4 @@
-#ifndef OSGGEO_COMPUTEBOUNDSVISITOR_H
-#define OSGGEO_COMPUTEBOUNDSVISITOR_H
+#pragma once
 
 /* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
 Copyright 2011 dGB Beheer B.V.
@@ -39,5 +38,3 @@ public:
 
 
 } //namespace
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef OSGGEO_LINE3_H
-#define OSGGEO_LINE3_H
+#pragma once
 
 /* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
 Copyright 2011 dGB Beheer B.V.
@@ -50,6 +49,4 @@ public:
 OSGGEO_EXPORT osgDB::InputStream& operator>>(osgDB::InputStream&,Line3&);
 OSGGEO_EXPORT osgDB::OutputStream& operator<<(osgDB::OutputStream&,const Line3&);
 
-} // osgGeo
-
-#endif
+} // namespace osgGeo
