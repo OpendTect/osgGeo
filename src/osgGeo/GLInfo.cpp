@@ -46,8 +46,7 @@ $Id$
 #if defined( __APPLE__ )
 # include <OpenGL/gl.h>
 #else
-# include <GL/gl.h>
-# include <GL/glext.h>
+# include <GL/glx.h>
 #endif
 
 #include <osgGeo/GLInfo>
@@ -73,9 +72,9 @@ static osg::ref_ptr<GLInfo> inst;
 
 void GLInfo::initGL()
 {
-#if defined(__win64__) || defined(__win32__)
+#if defined(__win64__) || defined(__win32__) 
     initWinGL();
-#else 
+#elif defined(__lux64__) || defined(__lux32__) 
     initLuxGL();
 #endif
 }
@@ -178,7 +177,7 @@ bool GLInfo::getExtension( const char* extnsnnm ) const
 
 bool GLInfo::isPlatformSupported() const
 {
-#if defined(__win64__) || defined(__win32__) || defined(__APPLE__)
+#if defined(__win64__) || defined(__win32__) || defined(__lux64__) || defined(__lux32__)
     return true;
 #else
     return false;
@@ -271,6 +270,58 @@ void initWinGL()
 
 void initLuxGL()
 {
-    //TODO: Impelement OpenGL context initialisation at start-up.
+    Display* dpy = XOpenDisplay( NULL );
+    int attribSingle[] = {
+	GLX_RGBA,
+	GLX_RED_SIZE, 1,
+	GLX_GREEN_SIZE, 1,
+	GLX_BLUE_SIZE, 1,
+	None };
+    int attribDouble[] = {
+	GLX_RGBA,
+	GLX_RED_SIZE, 1,
+	GLX_GREEN_SIZE, 1,
+	GLX_BLUE_SIZE, 1,
+	GLX_DOUBLEBUFFER,
+	None };
+
+    int width = 100, height = 100;
+    int scrnum = 0;
+    Window root = RootWindow( dpy, scrnum );
+
+    XVisualInfo* visinfo = glXChooseVisual( dpy, scrnum, attribSingle );
+    if ( !visinfo )
+    {
+	visinfo = glXChooseVisual(dpy, scrnum, attribDouble);
+	if ( !visinfo )
+	    return;
+    }
+
+    XSetWindowAttributes attr;
+    attr.background_pixel = 0;
+    attr.border_pixel = 0;
+    attr.colormap = XCreateColormap( dpy, root, visinfo->visual, AllocNone );
+    attr.event_mask = StructureNotifyMask | ExposureMask;
+
+    unsigned long mask = CWBackPixel | CWBorderPixel | CWColormap | CWEventMask;
+    Window win = XCreateWindow( dpy, root, 0, 0, width, height,
+				0, visinfo->depth, InputOutput,
+				visinfo->visual, mask, &attr );
+
+    Bool allowDirect = True;
+    GLXContext ctx = glXCreateContext( dpy, visinfo, NULL, allowDirect );
+    if ( !ctx )
+    {
+	XFree(visinfo);
+	XDestroyWindow(dpy, win);
+	return;
+    }
+
+    if ( !glXMakeCurrent(dpy,win,ctx) )
+	return;
+
+    glXDestroyContext(dpy, ctx);
+    XFree(visinfo);
+    XDestroyWindow(dpy, win);
 }
 #endif
