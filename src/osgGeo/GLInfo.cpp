@@ -41,11 +41,12 @@ $Id$
 
 #if defined(__win64__) || defined(__win32__)
 # include <windows.h>
+# include <GL/gl.h>
 #endif
 
 #if defined( __APPLE__ )
 # include <OpenGL/gl.h>
-#else
+#elif defined(__lux64__) || defined(__lux32__) 
 # include <GL/glx.h>
 #endif
 
