@@ -200,6 +200,9 @@ static osg::ref_ptr<osg::Node> arrowNode( const float rad, const float len,const
     annot->setText(text);
     annot->setColor(annotclr);
     if ( font ) annot->setFont(font);
+    static bool disablevbo = getenv( "OSGGEO_DISABLE_VBO" )!=0;
+    if ( disablevbo )
+	annot->setUseVertexBufferObjects( false );
     textgeode->addDrawable(annot);
     osg::ref_ptr<osg::Group> grp = new osg::Group;
     grp->addChild(arrowgeode);

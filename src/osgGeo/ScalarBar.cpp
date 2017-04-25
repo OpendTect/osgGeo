@@ -235,6 +235,7 @@ void ScalarBar::createDrawables()
         (_orientation==HORIZONTAL ?  arOffset : -arOffset) * CHARACTER_OFFSET_FACTOR;
 
 
+    static bool disablevbo = getenv( "OSGGEO_DISABLE_VBO" )!=0;
     for(i=0; i<_numLabels; ++i)
     {
         osgText::Text* text = new osgText::Text;
@@ -247,6 +248,8 @@ void ScalarBar::createDrawables()
         text->setPosition(osg::Vec3((i*labelxIncr), labelY, 0.0f)*matrix);
         text->setAlignment( (_orientation==HORIZONTAL) ? osgText::Text::CENTER_BASE_LINE : osgText::Text::LEFT_CENTER);
 	text->setCharacterSizeMode( osgText::TextBase::SCREEN_COORDS );
+	if ( disablevbo )
+	    text->setUseVertexBufferObjects( false );
 
         addDrawable(text);
 
@@ -264,6 +267,8 @@ void ScalarBar::createDrawables()
         text->setFontResolution(_textProperties._fontResolution.first,_textProperties._fontResolution.second);
         text->setCharacterSize(characterSize);
         text->setText(_title);
+	if ( disablevbo )
+	    text->setUseVertexBufferObjects( false );
 
         osg::Vec3 titlePos;
         if ( _orientation==HORIZONTAL )

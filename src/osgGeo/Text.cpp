@@ -34,7 +34,11 @@ Text::Text()
     , _useRotateToScreenElevation(false)
     , _elevationAngle(M_PI/6.0)
     , _elevationPlane(0.0,0.0,1.0)
-{}
+{
+    static bool disablevbo = getenv( "OSGGEO_DISABLE_VBO" )!=0;
+    if ( disablevbo )
+	setUseVertexBufferObjects( false );
+}
 
 
 Text::Text(const Text& text,const osg::CopyOp& copyop)
@@ -42,7 +46,11 @@ Text::Text(const Text& text,const osg::CopyOp& copyop)
     , _useRotateToScreenElevation(text._useRotateToScreenElevation)
     , _elevationAngle(text._elevationAngle)
     , _elevationPlane(text._elevationPlane)
-{}
+{
+    static bool disablevbo = getenv( "OSGGEO_DISABLE_VBO" )!=0;
+    if ( disablevbo )
+	setUseVertexBufferObjects( false );
+}
 
 
 Text::~Text()
