@@ -78,6 +78,7 @@ PolyLineNode::PolyLineNode()
     , _arrayModifiedCount(0)
     , _resolution(4)
     , _polyLineCoords(0)
+    , _pixsz(0)
 {
     setNumChildrenRequiringUpdateTraversal(1);
     _geometry->setVertexArray(_geom3DCoords);
@@ -97,6 +98,7 @@ PolyLineNode::PolyLineNode(const PolyLineNode& node, const osg::CopyOp& co)
     , _arrayModifiedCount(0)
     , _resolution(4)
     , _needsUpdate(true)
+    , _pixsz(0)
 {
    setNumChildrenRequiringUpdateTraversal(1);
    _geometry->setVertexArray(_geom3DCoords);
