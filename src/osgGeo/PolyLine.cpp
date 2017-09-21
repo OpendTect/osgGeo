@@ -76,6 +76,7 @@ PolyLineNode::PolyLineNode()
     , _arrayModifiedCount(0)
     , _resolution(4)
     , _polyLineCoords(0)
+    , _pixsz(0)
 {
     setNumChildrenRequiringUpdateTraversal(1);
     _geometry->setVertexArray(_geom3DCoords);
@@ -95,6 +96,7 @@ PolyLineNode::PolyLineNode(const PolyLineNode& node, const osg::CopyOp& co)
     , _arrayModifiedCount(0)
     , _resolution(4)
     , _needsUpdate(true)
+    , _pixsz(0)
 {
    setNumChildrenRequiringUpdateTraversal(1);
    _geometry->setVertexArray(_geom3DCoords);
@@ -123,7 +125,7 @@ void PolyLineNode::traverse(osg::NodeVisitor& nv)
 	     reScaleCoordinates(cv);
 	    _isGeometryChanged = false;
 	}
-		
+
 	if ( getStateSet() )
 	    cv->pushStateSet(getStateSet());
 
@@ -188,7 +190,7 @@ bool PolyLineNode::isCameraChanged(const osgUtil::CullVisitor* cv)
 #define mIsNotEqual(v1,v2) \
 	    (fabs(v1-v2) > eps)
 
-    
+
     bool isChanged = false;
     const float pixsz = fabs( cv->pixelSize(_bbox.center(),1.0f) );
 
@@ -197,7 +199,7 @@ bool PolyLineNode::isCameraChanged(const osgUtil::CullVisitor* cv)
 	_pixsz = pixsz;
 	isChanged = true;
     }
-   
+
     return isChanged;
 }
 
@@ -224,11 +226,11 @@ osg::BoundingSphere PolyLineNode::computeBound() const
 {
     if (_bbox.valid())
         return _bbox;
-    
+
     osg::BoundingBox bbox;
 
     for (unsigned int idx=0; idx<_polyLineCoords->size(); idx++)
-	bbox.expandBy((*_polyLineCoords)[idx]); 
+	bbox.expandBy((*_polyLineCoords)[idx]);
 
     return bbox;
 
@@ -281,7 +283,7 @@ void PolyLineNode::getOrthoVecs(const osg::Vec3& w,osg::Vec3& u,osg::Vec3& v) co
 	float u2 = -w.y()* factor;
 	u.set( u0, u1, u2 );
     }
-    
+
     u.normalize();
     v = w ^ u;
     v.normalize();
@@ -312,7 +314,7 @@ bool PolyLineNode::updateGeometry()
 {
     if (!_polyLineCoords)
 	return false;
-    
+
     clearAll();
     const unsigned int primsz = _primitiveSets.size();
     for (unsigned int primidx=0;primidx<primsz;primidx++)
@@ -346,7 +348,7 @@ bool PolyLineNode::updateGeometry()
 		const unsigned int pidx0 = stripidxarr->index(stripidx);
 		const unsigned int pidx1 = stripidxarr->index(stripidx+1);
 		const unsigned int pidx2 = stripidxarr->index(stripidx<sz-2 ? stripidx+2 : stripidx+1);
-		
+
 		if (buildA3DLineStrip(*corners1,*corners2,pidx0,pidx1,pidx2,first,stripidx==sz-2))
 		    first = false;
 	    }
@@ -378,19 +380,17 @@ bool PolyLineNode::buildA3DLineStrip(osg::Vec3Array& corners1,
     const osg::Vec3  p0 = _polyLineCoords->at(pidx0);
     const osg::Vec3  p1 = _polyLineCoords->at(pidx1);
     const osg::Vec3  p2 = _polyLineCoords->at(pidx2);
-   	    
+
     osg::Vec3 vec01 = p1 - p0; vec01.normalize();
     osg::Vec3 vec12 = p2 - p1; vec12.normalize();
-
     const bool vec12ok = vec12.length() != 0;
-
     if ( first && vec01.length()==0 )
 	return false;
 
     const bool doreverse = vec01 * vec12 < -0.5f;
     const osg::Vec3 planenormal =
 	vec12ok ? doreverse ? vec12 - vec01 : vec01 + vec12 : vec01;
-    
+
     if (first)
     {
 	//Create the cap and record the points in corner1
@@ -492,7 +492,7 @@ void PolyLineNode::removePrimitiveSet(int idx)
 
     if (idx<(int)_primitiveSets.size())
 	_primitiveSets.erase(_primitiveSets.begin()+idx);
-    
+
     touch();
 }
 
