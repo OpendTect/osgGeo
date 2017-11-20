@@ -83,6 +83,10 @@ void GLInfo::initGL()
 
 const osg::ref_ptr<GLInfo> GLInfo::get()
 {
+#if defined(__mac__)  //Hack to prepvent crash on MAC platform
+    return 0;
+#endif
+
     if ( !inst )
 	initGL();
 
@@ -267,8 +271,9 @@ void initWinGL()
     wglMakeCurrent(hDC, hRC);
     DestroyWindow( hWnd );
 }
-#else
 
+
+#elif defined(__lux64__) || defined(__lux32__)
 void initLuxGL()
 {
     Display* dpy = XOpenDisplay( NULL );
