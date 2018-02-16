@@ -43,6 +43,7 @@ public:
     bool			isGeometryShader4Supported() const;
 
     int				getLimit(int glenum) const;
+    void			getLineWidthRange(float& min,float& max) const;
     
     bool			isOK() const;
 

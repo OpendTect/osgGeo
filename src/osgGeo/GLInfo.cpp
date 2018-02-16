@@ -153,6 +153,15 @@ int GLInfo::getLimit( int intenum ) const
 }
 
 
+void GLInfo::getLineWidthRange( float& min, float& max ) const
+{
+    GLfloat rg[2];
+    glGetFloatv( GL_ALIASED_LINE_WIDTH_RANGE, rg );
+    min = rg[0];
+    max = rg[1];
+}
+
+
 bool GLInfo::getExtension( const char* extnsnnm ) const
 {
     const bool exists = _glextensions.find( extnsnnm ) != std::string::npos;
