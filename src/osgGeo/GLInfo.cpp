@@ -19,21 +19,21 @@ $Id$
 */
 
 
-/* This implementation of class osgGeo::GLInfo is using code from: 
+/* This implementation of class osgGeo::GLInfo is using code from:
  *
  * [1] wglinfo.c by Nate Robins, 1997 (for Windows)
  *
  * [2] glxinfo by Brian Paul, 1999-2006 (for Linux)
  *
  * Copyright (C) 1999-2006  Brian Paul   All Rights Reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation
  * the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included
  * in all copies or substantial portions of the Software.
  */
@@ -46,7 +46,7 @@ $Id$
 
 #if defined( __APPLE__ )
 # include <OpenGL/gl.h>
-#elif defined(__lux64__) || defined(__lux32__) 
+#elif defined(__lux64__) || defined(__lux32__)
 # include <GL/glx.h>
 #endif
 
@@ -73,9 +73,9 @@ static osg::ref_ptr<GLInfo> inst;
 
 void GLInfo::initGL()
 {
-#if defined(__win64__) || defined(__win32__) 
+#if defined(__win64__) || defined(__win32__)
     initWinGL();
-#elif defined(__lux64__) || defined(__lux32__) 
+#elif defined(__lux64__) || defined(__lux32__)
     initLuxGL();
 #endif
 }
@@ -98,7 +98,7 @@ const osg::ref_ptr<GLInfo> GLInfo::get()
 
     return inst;
 }
-    
+
 void GLInfo::updateLimits()
 {
     struct token_name {
@@ -116,7 +116,7 @@ void GLInfo::updateLimits()
         { GL_MAX_TEXTURE_COORDS_ARB, "GL_MAX_TEXTURE_COORDS_ARB" },
         { (GLenum) 0, NULL }
     };
-    
+
     for ( int idx = 0; vertex_limits[idx]._token; idx++) {
         GLint max[1];
         glGetIntegerv( (GLenum) vertex_limits[idx]._token, max);
@@ -126,7 +126,7 @@ void GLInfo::updateLimits()
     }
 
 #endif
-    
+
 #if defined(GL_ARB_fragment_shader)
     const struct token_name fragment_limits[] = {
         { GL_MAX_FRAGMENT_UNIFORM_COMPONENTS_ARB, "GL_MAX_FRAGMENT_UNIFORM_COMPONENTS_ARB" },
@@ -134,7 +134,7 @@ void GLInfo::updateLimits()
         { GL_MAX_TEXTURE_IMAGE_UNITS_ARB, "GL_MAX_TEXTURE_IMAGE_UNITS_ARB" },
         { (GLenum) 0, NULL }
     };
-    
+
     for ( int idx = 0; fragment_limits[idx]._token; idx++) {
         GLint max[1];
         glGetIntegerv( (GLenum) fragment_limits[idx]._token, max);
@@ -161,15 +161,24 @@ bool GLInfo::isOK() const
 {
     return !_glvendor.empty() && !_glversion.empty() && !_glrenderer.empty();
 }
-    
-    
+
+
 int GLInfo::getLimit( int intenum ) const
 {
     for ( int idx=0; idx<_limits.size(); idx++ )
         if ( _limits[idx]._token==intenum )
             return _limits[idx]._value;
-    
+
     return -1;
+}
+
+
+void GLInfo::getLineWidthRange( float& min, float& max ) const
+{
+    GLfloat rg[2];
+    glGetFloatv( GL_ALIASED_LINE_WIDTH_RANGE, rg );
+    min = rg[0];
+    max = rg[1];
 }
 
 
@@ -209,13 +218,13 @@ bool GLInfo::isGeometryShader4Supported() const
 
 #if defined(__win64__) || defined(__win32__)
 LONG WINAPI WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{ 
-    return (LONG)DefWindowProc(hWnd, uMsg, wParam, lParam); 
+{
+    return (LONG)DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
 void initWinGL()
 {
-    HDC	    hDC;	
+    HDC	    hDC;
     HGLRC   hRC;
     HWND    hWnd;
     MSG	    msg;
@@ -223,7 +232,7 @@ void initWinGL()
     PIXELFORMATDESCRIPTOR pfd;
     static HINSTANCE hInstance = 0;
     int         pf;
-    
+
     if ( !hInstance )
     {
 	hInstance = GetModuleHandle(NULL);

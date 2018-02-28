@@ -17,8 +17,6 @@ GNU Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-$Id$
-
 */
 
 #include <osgGeo/Common>
@@ -40,39 +38,41 @@ public:
     const char*			glRenderer() const;
     const char*			glVersion() const;
     const char*			glExtensions() const;
-    
+
     bool			isPlatformSupported() const;
     bool			isVertexProgramSupported() const;
     bool			isShaderProgramSupported() const;
     bool			isGeometryShader4Supported() const;
 
     int				getLimit(int glenum) const;
-    
+    void			getLineWidthRange(float& min,float& max) const;
+
     bool			isOK() const;
 
 protected:
 
     static void			initGL();
-                        	GLInfo();
+				GLInfo();
+
     void			updateLimits();
     std::string			_glvendor;
     std::string			_glrenderer;
     std::string			_glversion;
     std::string			_glextensions;
-    
+
     struct Limit
     {
-                                Limit( int tok, const char* nm, int val )
-                                    : _token( tok ), _name( nm ), _value( val )
-                                {}
-                                    
-        int			_token;
-        const char*		_name;
-        int			_value;
+				Limit( int tok, const char* nm, int val )
+				    : _token( tok ), _name( nm ), _value( val )
+				{}
+
+	int			_token;
+	const char*		_name;
+	int			_value;
     };
 
     bool			getExtension(const char* extntnnm) const;
-    
+
     std::vector<Limit>		_limits;
 
     std::string			_errmsg;
