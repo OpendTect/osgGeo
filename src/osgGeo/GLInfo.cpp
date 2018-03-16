@@ -42,6 +42,7 @@ $Id$
 #if defined(__win64__) || defined(__win32__)
 # include <windows.h>
 # include <GL/gl.h>
+# include <GL/glext.h>
 #endif
 
 #if defined( __APPLE__ )
