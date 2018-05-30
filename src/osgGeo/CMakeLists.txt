@@ -59,7 +59,6 @@ configure_file(
 
 
 set ( LIB_PUBLIC_HEADERS 
-    AutoTransform
     AxesNode
     Export
     Callback
@@ -93,7 +92,6 @@ set ( LIB_PUBLIC_HEADERS
 
 add_library( ${LIB_NAME} SHARED
     ${LIB_PUBLIC_HEADERS}
-    AutoTransform.cpp
     AxesNode.cpp
     Callback.cpp
     Draggers.cpp
