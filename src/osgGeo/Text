@@ -32,22 +32,8 @@ class OSGGEO_EXPORT Text : public osgText::Text
 
 	~Text();
 
-	void useRotateToScreenElevation(bool);
-	bool isRotateToScreenElevationUsed() const; 
-	void setRotateToScreenElevationAngle(float);
-	float getRotateToScreenElevationAngle() const;
-	void setRotateToScreenElevationPlane(const osg::Vec3& refPlaneNormal);
-	const osg::Vec3& getRotateToScreenElevationPlane() const;
-	
     protected:
 
-	virtual void computePositions(unsigned int contextID) const;
-
-	osg::Matrix getElevationMatrix(unsigned int contextID) const;
-	
-	bool		_useRotateToScreenElevation;
-	float		_elevationAngle;
-	osg::Vec3	_elevationPlane;
 };
 
 } // namespace osgGeo
