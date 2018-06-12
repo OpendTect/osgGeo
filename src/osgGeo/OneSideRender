@@ -57,12 +57,15 @@ public:
 
     void		traverse(osg::NodeVisitor&);
 
+    bool		isDrawn(int dim,bool first) const;
+
 protected:
     typedef std::vector<osg::ref_ptr<osg::Drawable> > DrawableList;
     osg::BoundingSphere			computeBound() const;
 
     std::vector<Line3>			_lines;
     DrawableList			_drawables;
+    std::vector<bool>			_isdrawn;
     osg::BoundingBox			_bbox;
 };
 

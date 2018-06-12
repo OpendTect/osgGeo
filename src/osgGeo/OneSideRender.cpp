@@ -38,6 +38,7 @@ osgGeo::OneSideRender::OneSideRender(const OneSideRender& b,
     }
 
     _lines = b._lines;
+    _isdrawn = b._isdrawn;
 }
 
 
@@ -55,6 +56,7 @@ bool osgGeo::OneSideRender::addDrawable( osg::Drawable* gset,
     gset->getBound();
 
     _lines.push_back( line );
+    _isdrawn.push_back( false );
     return true;
 }
 
@@ -70,6 +72,7 @@ bool osgGeo::OneSideRender::removeDrawable(osg::Drawable* gset)
 
     _drawables.erase( drawable );
     _lines.erase( _lines.begin()+idx );
+    _isdrawn.erase( _isdrawn.begin()+idx );
 
     return true;
 }
@@ -87,6 +90,7 @@ void osgGeo::OneSideRender::traverse(osg::NodeVisitor& nv)
 	const osg::Vec3 eye = cv->getEyePoint();
 	for ( unsigned int idx=0; idx<_drawables.size(); idx++ )
 	{
+	    _isdrawn[idx] = false;
 	    const osg::Vec3 viewline = eye-_lines[idx]._pos;
 	    if ( viewline*_lines[idx]._dir>=0 )
 	    {
@@ -97,12 +101,13 @@ void osgGeo::OneSideRender::traverse(osg::NodeVisitor& nv)
 #endif
 		const float depth = cv->getDistanceFromEyePoint(
 		    bb.center(), false );
-		
+
 		if ( depth < 0 )
 		    continue;
 
 		cv->addDrawableAndDepth(
 		    _drawables[idx], cv->getModelViewMatrix(), depth );
+		_isdrawn[idx] = true;
 		bbox.expandBy( bb );
 	    }
 	}
@@ -146,6 +151,15 @@ osg::BoundingSphere osgGeo::OneSideRender::computeBound() const
        bbox.expandBy(_lines[idx]._pos);
 
    return bbox;
+}
+
+
+bool osgGeo::OneSideRender::isDrawn( int dim, bool first ) const
+{
+    int idx = dim*2;
+    if ( !first )
+	idx++;
+    return _isdrawn[idx];
 }
 
 

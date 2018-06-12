@@ -16,8 +16,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 
 */
 
-#include <osgGeo/Text>
 #include <osg/Version>
+#include <osgGeo/Text>
 
 #include <iostream>
 #include <cstdio>
@@ -30,15 +30,31 @@ namespace osgGeo
 
 Text::Text()
     : osgText::Text()
+    , scenetext_(false)
 {}
 
 
-Text::Text(const Text& text,const osg::CopyOp& copyop)
+Text::Text( const Text& text, const osg::CopyOp& copyop )
     : osgText::Text(text,copyop)
+    , scenetext_(text.scenetext_)
 {}
 
 
 Text::~Text()
 {}
+
+
+void Text::drawImplementation( osg::RenderInfo& info ) const
+{
+    const osg::Camera* camera = info.getCurrentCamera();
+    if ( scenetext_ && camera )
+    {
+	osg::Vec3d eye, center, up; double lookdist = 0;
+	camera->getViewMatrixAsLookAt( eye, center, up, lookdist );
+	const osg::Vec3& pos = _position;
+    }
+
+    osgText::Text::drawImplementation( info );
+}
 
 } // end namespace

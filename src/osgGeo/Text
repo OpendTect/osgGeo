@@ -26,13 +26,23 @@ namespace osgGeo
 
 class OSGGEO_EXPORT Text : public osgText::Text
 { 
-    public :
-	Text();
-	Text(const Text& text,const osg::CopyOp& copyop=osg::CopyOp::SHALLOW_COPY);
+public :
+		Text();
+		Text(const Text&,
+		     const osg::CopyOp& copyop=osg::CopyOp::SHALLOW_COPY);
 
-	~Text();
+		~Text();
 
-    protected:
+    void	setSceneText( bool yn )		{ scenetext_ = yn; }
+
+protected:
+
+    virtual void	drawImplementation(osg::RenderInfo&) const;
+
+private:
+
+    bool	scenetext_;
+
 
 };
 
