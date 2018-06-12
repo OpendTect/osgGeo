@@ -51,7 +51,6 @@ void Text::drawImplementation( osg::RenderInfo& info ) const
     {
 	osg::Vec3d eye, center, up; double lookdist = 0;
 	camera->getViewMatrixAsLookAt( eye, center, up, lookdist );
-	const osg::Vec3& pos = _position;
     }
 
     osgText::Text::drawImplementation( info );
