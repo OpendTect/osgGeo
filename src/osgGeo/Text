@@ -30,19 +30,7 @@ public :
 		Text();
 		Text(const Text&,
 		     const osg::CopyOp& copyop=osg::CopyOp::SHALLOW_COPY);
-
 		~Text();
-
-    void	setSceneText( bool yn )		{ scenetext_ = yn; }
-
-protected:
-
-    virtual void	drawImplementation(osg::RenderInfo&) const;
-
-private:
-
-    bool	scenetext_;
-
 
 };
 

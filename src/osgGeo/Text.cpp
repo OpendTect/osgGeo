@@ -30,30 +30,15 @@ namespace osgGeo
 
 Text::Text()
     : osgText::Text()
-    , scenetext_(false)
 {}
 
 
 Text::Text( const Text& text, const osg::CopyOp& copyop )
     : osgText::Text(text,copyop)
-    , scenetext_(text.scenetext_)
 {}
 
 
 Text::~Text()
 {}
-
-
-void Text::drawImplementation( osg::RenderInfo& info ) const
-{
-    const osg::Camera* camera = info.getCurrentCamera();
-    if ( scenetext_ && camera )
-    {
-	osg::Vec3d eye, center, up; double lookdist = 0;
-	camera->getViewMatrixAsLookAt( eye, center, up, lookdist );
-    }
-
-    osgText::Text::drawImplementation( info );
-}
 
 } // end namespace
