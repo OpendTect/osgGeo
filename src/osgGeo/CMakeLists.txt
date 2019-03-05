@@ -19,6 +19,8 @@
 
 set( LIB_NAME osgGeo )
 
+find_package( OpenGL REQUIRED )
+
 if ( WIN32 )
     add_definitions( "/EHsc" "-DWIN32" )
 endif()
