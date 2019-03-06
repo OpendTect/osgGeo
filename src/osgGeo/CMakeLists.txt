@@ -19,6 +19,10 @@
 
 set( LIB_NAME osgGeo )
 
+if ( (NOT DEFINED OPENSCENEGRAPH_FOUND) )
+    find_package( OpenSceneGraph REQUIRED osgDB osgDA osgUtil osgManipulator osgWidget osgViewer osgVolume osgText osgSim )
+endif()
+
 find_package( OpenGL REQUIRED )
 
 if ( WIN32 )
@@ -121,19 +125,12 @@ add_library( ${LIB_NAME} SHARED
     TrackballManipulator.cpp 
     TubeWellLog.cpp
     VolumeTechniques.cpp
-    WellLog.cpp) 
+    WellLog.cpp)
+set( OSG_GEODEPS ${OPENSCENEGRAPH_LIBRARIES} )
+OD_FILTER_LIBRARIES( OSG_GEODEPS ${CMAKE_BUILD_TYPE} )
 target_link_libraries(
     ${LIB_NAME}
-    ${OSG_LIBRARY}
-    ${OSGVOLUME_LIBRARY}
-    ${OPENTHREADS_LIBRARY}
-    ${OSGUTIL_LIBRARY}
-    ${OSGGA_LIBRARY}
-    ${OSGMANIPULATOR_LIBRARY}
-    ${OSGDB_LIBRARY}
-    ${OSGTEXT_LIBRARY}
-    ${OSGSIM_LIBRARY}
-    ${OSGVIEWER_LIBRARY}
+    ${OSG_GEODEPS}
     ${OPENGL_gl_LIBRARY}
 )
 
@@ -171,3 +168,40 @@ else()
 	    ARCHIVE DESTINATION lib${OSGGEO_LIB_POSTFIX} )
     endif()
 endif()
+
+
+
+#Takes a list with both optimized and debug libraries, and removes one of them
+#According to BUILD_TYPE
+
+macro ( OD_FILTER_LIBRARIES INPUTLIST BUILD_TYPE )
+    unset( OUTPUT )
+    foreach ( LISTITEM ${${INPUTLIST}} )
+	if ( DEFINED USENEXT )
+	    if ( USENEXT STREQUAL "yes" )
+		list ( APPEND OUTPUT ${LISTITEM} )
+	    endif()
+	    unset( USENEXT )
+	else()
+	    if ( LISTITEM STREQUAL "debug" )
+		if ( "${BUILD_TYPE}" STREQUAL "Debug" )
+		    set ( USENEXT "yes" )
+		else()
+		    set ( USENEXT "no" )
+		endif()
+	    else()
+		if ( LISTITEM STREQUAL "optimized" )
+		    if ( "${BUILD_TYPE}" STREQUAL "Release" )
+			set ( USENEXT "yes" )
+		    else()
+			set ( USENEXT "no" )
+		    endif()
+		else()
+		    list ( APPEND OUTPUT ${LISTITEM} )
+		endif()
+	    endif()
+	endif()
+    endforeach()
+
+    set ( ${INPUTLIST} ${OUTPUT} )
+endmacro()
