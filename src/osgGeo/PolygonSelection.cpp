@@ -38,7 +38,7 @@ public:
     PolygonSelectionEventHandler()		{}
     void setPolygonSelector(osgGeo::PolygonSelection* ps)
     { _polysel = ps; }
-    
+
 protected:
     bool handle(const osgGA::GUIEventAdapter &ea,
 					osgGA::GUIActionAdapter&,
@@ -68,14 +68,14 @@ PolygonSelection::PolygonSelection()
     : _geode(new osg::Geode)
     , _ison(true)
     , _lineGeometry(new osg::Geometry)
-    , _coords(new osg::Vec3Array) 
+    , _coords(new osg::Vec3Array)
     , _coordsList(new osg::DrawArrays(GL_LINE_LOOP))
     , _shapeType(Polygon)
     , _callback(0)
     , _material(0)
     , _zcoord(0)
     , _masterCamera(0)
-    , _eventHandler(0) 
+    , _eventHandler(0)
     , _isDrawing(false)
     , _hudCamera(0)
 {
@@ -102,7 +102,7 @@ PolygonSelection::PolygonSelection(const PolygonSelection& sel,const osg::CopyOp
     , _isDrawing(false)
     , _hudCamera(0)
 {
-    _cloneMutex.lock(); 
+    _cloneMutex.lock();
     _geode = (osg::Geode*)sel._geode->clone(op);
     _lineGeometry = (osg::Geometry*)sel._lineGeometry->clone(op);
     _coords = (osg::Vec3Array*)sel._coords->clone(op);
@@ -110,9 +110,9 @@ PolygonSelection::PolygonSelection(const PolygonSelection& sel,const osg::CopyOp
     _masterCamera = (osg::Camera*)sel._masterCamera;
     _hudCamera = (osg::Camera*)sel._hudCamera->clone(op);
 
-    if (_masterCamera) 
+    if (_masterCamera)
 	_masterCamera->ref();
-    if (_hudCamera) 
+    if (_hudCamera)
 	_hudCamera->ref();
 
     _cameraPos = sel._cameraPos;
@@ -177,7 +177,7 @@ bool PolygonSelection::setEventHandlerCamera( osg::Camera* camera, bool handleAf
 void PolygonSelection::setHUDCamera( osg::Camera* hudCamera )
 {
     if ( _hudCamera )
-    	_hudCamera->unref();
+	_hudCamera->unref();
 
     _hudCamera = hudCamera;
 
@@ -248,7 +248,7 @@ bool PolygonSelection::handleEvent(const osgGA::GUIEventAdapter& ea)
 
     const osg::Vec3 mousepos(ea.getX(),ea.getY(),_zcoord);
 
-    if (ea.getEventType()==osgGA::GUIEventAdapter::PUSH && 
+    if (ea.getEventType()==osgGA::GUIEventAdapter::PUSH &&
 	ea.getButton()==osgGA::GUIEventAdapter::LEFT_MOUSE_BUTTON)
     {
 	clear();
@@ -279,12 +279,12 @@ bool PolygonSelection::handleEvent(const osgGA::GUIEventAdapter& ea)
 	return true;
     }
 
-    if (ea.getEventType()==osgGA::GUIEventAdapter::RELEASE 
+    if (ea.getEventType()==osgGA::GUIEventAdapter::RELEASE
 	&& ea.getButton()==osgGA::GUIEventAdapter::LEFT_MOUSE_BUTTON)
     {
 	_isDrawing = false;
 	bool ispolygon = _coords->size()>2;
-	osg::NodeCallback* nodecb = dynamic_cast<osg::NodeCallback*>( 
+	osg::NodeCallback* nodecb = dynamic_cast<osg::NodeCallback*>(
 							    _callback.get() );
 	if ( nodecb )
 	{
@@ -293,20 +293,20 @@ bool PolygonSelection::handleEvent(const osgGA::GUIEventAdapter& ea)
 	}
 	return ispolygon;
     }
-   
+
     return false;
 }
 
 
 void PolygonSelection::setLatestMousePoints(const osg::Vec3& pos)
-{   
+{
     osg::BoundingBox bbox;
     bbox.init();
-    
+
     if (_shapeType == Rectangle)
     {
 	(*_coords)[1] = osg::Vec3(pos.x(),_coords->at(0).y(),pos.z());
-	(*_coords)[2] = pos; 
+	(*_coords)[2] = pos;
 	(*_coords)[3] = osg::Vec3(_coords->at(0).x(),pos.y(),pos.z());
 	_coordsList->setCount(_coords->size());
     }
@@ -326,7 +326,7 @@ void PolygonSelection::setLatestMousePoints(const osg::Vec3& pos)
 	dirtyBound();
     }
 
-    _lineGeometry->dirtyDisplayList();
+    _lineGeometry->dirtyGLObjects();
 
 }
 
@@ -377,7 +377,7 @@ void PolygonSelection::clear()
     {
 	_coords->clear();
 	_coordsList->setCount(0);
-	_lineGeometry->dirtyDisplayList();
+	_lineGeometry->dirtyGLObjects();
 	_isDrawing = false;
     }
 }

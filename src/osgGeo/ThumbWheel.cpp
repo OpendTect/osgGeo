@@ -41,13 +41,13 @@ unsigned char imagedata[] =
 	255, 255, 255, 255,
 	255, 255, 255, 255,
 	255, 255, 255, 255,
-        255, 255, 255, 255,
 	255, 255, 255, 255,
 	255, 255, 255, 255,
 	255, 255, 255, 255,
 	255, 255, 255, 255,
 	255, 255, 255, 255,
-        255, 255, 255, 255,
+	255, 255, 255, 255,
+	255, 255, 255, 255,
 	255, 255, 255, 255,
 	255, 255, 255, 255,
 
@@ -58,13 +58,13 @@ unsigned char imagedata[] =
 	0, 0, 0, 255,
 	0, 0, 0, 255,
 	0, 0, 0, 255,
-        0, 0, 0, 255,
 	0, 0, 0, 255,
 	0, 0, 0, 255,
 	0, 0, 0, 255,
 	0, 0, 0, 255,
 	0, 0, 0, 255,
-        0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
 	0, 0, 0, 255,
 	255, 255, 255, 255,
 
@@ -75,13 +75,13 @@ unsigned char imagedata[] =
 	0, 0, 0, 255,
 	0, 0, 0, 255,
 	0, 0, 0, 255,
-        0, 0, 0, 255,
 	0, 0, 0, 255,
 	0, 0, 0, 255,
 	0, 0, 0, 255,
 	0, 0, 0, 255,
 	0, 0, 0, 255,
-        0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
 	0, 0, 0, 255,
 	255, 255, 255, 255,
 
@@ -92,13 +92,13 @@ unsigned char imagedata[] =
 	0, 0, 0, 255,
 	0, 0, 0, 255,
 	0, 0, 0, 255,
-        0, 0, 0, 255,
 	0, 0, 0, 255,
 	0, 0, 0, 255,
 	0, 0, 0, 255,
 	0, 0, 0, 255,
 	0, 0, 0, 255,
-        0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
 	0, 0, 0, 255,
 	255, 255, 255, 255,
 
@@ -109,13 +109,13 @@ unsigned char imagedata[] =
 	0, 0, 0, 255,
 	0, 0, 0, 255,
 	0, 0, 0, 255,
-        0, 0, 0, 255,
 	0, 0, 0, 255,
 	0, 0, 0, 255,
 	0, 0, 0, 255,
 	0, 0, 0, 255,
 	0, 0, 0, 255,
-        0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
 	0, 0, 0, 255,
 	255, 255, 255, 255,
 
@@ -126,13 +126,13 @@ unsigned char imagedata[] =
 	0, 0, 0, 255,
 	0, 0, 0, 255,
 	0, 0, 0, 255,
-        0, 0, 0, 255,
 	0, 0, 0, 255,
 	0, 0, 0, 255,
 	0, 0, 0, 255,
 	0, 0, 0, 255,
 	0, 0, 0, 255,
-        0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
 	0, 0, 0, 255,
 	255, 255, 255, 255,
 
@@ -143,13 +143,13 @@ unsigned char imagedata[] =
 	0, 0, 0, 255,
 	0, 0, 0, 255,
 	0, 0, 0, 255,
-        0, 0, 0, 255,
 	0, 0, 0, 255,
 	0, 0, 0, 255,
 	0, 0, 0, 255,
 	0, 0, 0, 255,
 	0, 0, 0, 255,
-        0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
 	0, 0, 0, 255,
 	255, 255, 255, 255,
 
@@ -160,13 +160,13 @@ unsigned char imagedata[] =
 	0, 0, 0, 255,
 	0, 0, 0, 255,
 	0, 0, 0, 255,
-        0, 0, 0, 255,
 	0, 0, 0, 255,
 	0, 0, 0, 255,
 	0, 0, 0, 255,
 	0, 0, 0, 255,
 	0, 0, 0, 255,
-        0, 0, 0, 255,
+	0, 0, 0, 255,
+	0, 0, 0, 255,
 	0, 0, 0, 255,
 	255, 255, 255, 255
     };
@@ -242,15 +242,15 @@ osg::Texture2D* ThumbWheel::getSharedTexture()
     static osg::ref_ptr<osg::Texture2D> texture = 0;
     if ( !texture )
     {
-        texture = new osg::Texture2D;
-        texture->setWrap( osg::Texture::WRAP_S, osg::Texture::CLAMP_TO_EDGE );
-        texture->setWrap( osg::Texture::WRAP_T, osg::Texture::REPEAT );
+	texture = new osg::Texture2D;
+	texture->setWrap( osg::Texture::WRAP_S, osg::Texture::CLAMP_TO_EDGE );
+	texture->setWrap( osg::Texture::WRAP_T, osg::Texture::REPEAT );
 
-        osg::Image* image = new osg::Image();
-        image->setImage( IMAGEHEIGHT, IMAGEWIDTH, 1, GL_RGBA, GL_RGBA,
-                        GL_UNSIGNED_BYTE, imagedata, osg::Image::NO_DELETE );
+	osg::Image* image = new osg::Image();
+	image->setImage( IMAGEHEIGHT, IMAGEWIDTH, 1, GL_RGBA, GL_RGBA,
+			GL_UNSIGNED_BYTE, imagedata, osg::Image::NO_DELETE );
 
-        texture->setImage( image );
+	texture->setImage( image );
     }
 
     return texture;
@@ -260,14 +260,14 @@ osg::Texture2D* ThumbWheel::getSharedTexture()
 void ThumbWheel::setBorderColor( const osg::Vec4& col )
 {
     _outlineMaterial->setDiffuse( osg::Material::FRONT,
-                                  osg::Vec4(col[0],col[1],col[2],col[3]) );
+				  osg::Vec4(col[0],col[1],col[2],col[3]) );
 }
 
 
 void ThumbWheel::setWheelColor( const osg::Vec4& col )
 {
     _wheelMaterial->setDiffuse( osg::Material::FRONT,
-                                 osg::Vec4(col[0],col[1],col[2], 1));
+				 osg::Vec4(col[0],col[1],col[2], 1));
 }
 
 
@@ -336,8 +336,8 @@ void ThumbWheel::setShape( short dim, const osg::Vec2& min,const osg::Vec2& max,
 	_outlineGeometry->addPrimitiveSet( primitive );
     }
 
-    _wheelGeometry->dirtyDisplayList();
-    _outlineGeometry->dirtyDisplayList();
+    _wheelGeometry->dirtyGLObjects();
+    _outlineGeometry->dirtyGLObjects();
     dirtyBound();
 }
 
@@ -358,7 +358,7 @@ void ThumbWheel::updateWheelTexture( float diffAngle )
     }
 
     tcarr->dirty();
-    _wheelGeometry->dirtyDisplayList();
+    _wheelGeometry->dirtyGLObjects();
 }
 
 
@@ -394,12 +394,12 @@ void ThumbWheel::accept( osg::NodeVisitor& nv )
 {
     if ( nv.getVisitorType()==osg::NodeVisitor::UPDATE_VISITOR )
     {
-        float progress = (osg::Timer::instance()->time_s() - _animationStart)/_animationTime;
-        if ( isAnimating() && !updateAnimation( progress ) )
-        {
-            _animationStart = -1;
-            setNumChildrenRequiringUpdateTraversal( getNumChildrenRequiringUpdateTraversal()-1);
-        }
+	float progress = (osg::Timer::instance()->time_s() - _animationStart)/_animationTime;
+	if ( isAnimating() && !updateAnimation( progress ) )
+	{
+	    _animationStart = -1;
+	    setNumChildrenRequiringUpdateTraversal( getNumChildrenRequiringUpdateTraversal()-1);
+	}
 
     }
     return _geode->accept( nv );
@@ -457,7 +457,7 @@ bool ThumbWheel::updateAnimation( float progress )
 
     if ( _mouseProximity==Above )
     {
-        opacity = 1;
+	opacity = 1;
 	do_cont = false;
     }
     else if ( _mouseProximity==Nearby )
@@ -470,7 +470,7 @@ bool ThumbWheel::updateAnimation( float progress )
     }
     else
     {
-        if ( !opacity )
+	if ( !opacity )
 	    return false;
 
 	opacity = 1-progress;
@@ -516,7 +516,7 @@ ThumbWheel::MouseProximity ThumbWheel::getMouseProximity( const osg::Vec2& mouse
     const float hotarea2 = ((_min-_max)*2).length2();
 
     if ( diffLen2<hotarea2 )
-        return Nearby;
+	return Nearby;
 
     return None;
 }
@@ -531,7 +531,7 @@ if ( _isTracking ) \
 bool ThumbWheel::handleEvent( const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& )
 {
     if ( ea.getEventType()==osgGA::GUIEventAdapter::FRAME )
-        return false;
+	return false;
 
     const osg::Vec2 mousePos( ea.getX(), ea.getY() );
     updateWheel( getMouseProximity( mousePos ) );
@@ -544,7 +544,7 @@ bool ThumbWheel::handleEvent( const osgGA::GUIEventAdapter& ea, osgGA::GUIAction
 	    if ( _mouseProximity==Above )
 	    {
 		_isTracking = true;
-                setNumChildrenRequiringUpdateTraversal( getNumChildrenRequiringUpdateTraversal()+1 );
+		setNumChildrenRequiringUpdateTraversal( getNumChildrenRequiringUpdateTraversal()+1 );
 		_startPos = mousePos[_dim];
 		_startAngle = _currentAngle;
 		return true;
@@ -556,8 +556,8 @@ bool ThumbWheel::handleEvent( const osgGA::GUIEventAdapter& ea, osgGA::GUIAction
 
     if ( ea.getEventType()==osgGA::GUIEventAdapter::RELEASE && ea.getButton()==1)
     {
-        mTurnOffTracking;
-        return true;
+	mTurnOffTracking;
+	return true;
     }
 
     if ( ea.getEventType()==osgGA::GUIEventAdapter::RESIZE ||
@@ -565,8 +565,8 @@ bool ThumbWheel::handleEvent( const osgGA::GUIEventAdapter& ea, osgGA::GUIAction
 	ea.getEventType()==osgGA::GUIEventAdapter::DOUBLECLICK )
     {
 	//Just quit
-        mTurnOffTracking;
-        return false;
+	mTurnOffTracking;
+	return false;
     }
 
     const float movement = mousePos[_dim] - _startPos;

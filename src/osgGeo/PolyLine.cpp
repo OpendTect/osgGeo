@@ -146,7 +146,7 @@ void PolyLineNode::traverse(osg::NodeVisitor& nv)
     else
     {
 	osgUtil::IntersectionVisitor* iv =
-	    		dynamic_cast<osgUtil::IntersectionVisitor*>( &nv );
+			dynamic_cast<osgUtil::IntersectionVisitor*>( &nv );
 	if ( iv )
 	{
 	    osgUtil::Intersector* intersec = iv->getIntersector()->clone( *iv );
@@ -218,14 +218,14 @@ void PolyLineNode::reScaleCoordinates(const osgUtil::CullVisitor* cv)
 	const float factor = cv->pixelSize(coord,1.0f);
 	    (*_geom3DCoords )[idx] = coord + _geom3DNormals->at(idx)*_radius/factor;
     }
-    _geometry->dirtyDisplayList();
+    _geometry->dirtyGLObjects();
  }
 
 
 osg::BoundingSphere PolyLineNode::computeBound() const
 {
     if (_bbox.valid())
-        return _bbox;
+	return _bbox;
 
     osg::BoundingBox bbox;
 
@@ -304,9 +304,9 @@ void PolyLineNode::clearAll()
     _geom3DCoords ->push_back(vec); \
     _capflags.push_back(false);\
     { \
-        osg::Vec3 norm = vec - pos; \
-        norm.normalize();\
-        _geom3DNormals->push_back(norm); \
+	osg::Vec3 norm = vec - pos; \
+	norm.normalize();\
+	_geom3DNormals->push_back(norm); \
      } \
     _bbox.expandBy(pos)
 

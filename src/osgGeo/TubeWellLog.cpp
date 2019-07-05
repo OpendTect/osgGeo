@@ -142,7 +142,7 @@ void TubeWellLog::setRenderMode( RenderMode mode )
 
     osg::ref_ptr<osg::CullFace> cullface = new osg::CullFace;
     cullface->setMode( mode>=RenderFrontSide
-        ? osg::CullFace::FRONT
+	? osg::CullFace::FRONT
 	: osg::CullFace::BACK );
     stateset->setAttributeAndModes( cullface, osg::StateAttribute::ON );
 }
@@ -152,14 +152,14 @@ TubeWellLog::RenderMode TubeWellLog::getRenderMode() const
 {
     const osg::StateSet* stateset = getStateSet();
     const osg::LightModel* lightmodel = stateset
-        ? dynamic_cast<const osg::LightModel*>(stateset->getAttribute(osg::StateAttribute::LIGHTMODEL))
-        : 0;
+	? dynamic_cast<const osg::LightModel*>(stateset->getAttribute(osg::StateAttribute::LIGHTMODEL))
+	: 0;
 
     const osg::CullFace* cullface =
 	dynamic_cast<const osg::CullFace*>(stateset->getAttribute(osg::StateAttribute::CULLFACE));
 
     if ( !stateset || !lightmodel || lightmodel->getTwoSided() || !cullface )
-        return RenderBothSides;
+	return RenderBothSides;
 
     return cullface->getMode()==osg::CullFace::FRONT ? RenderFrontSide : RenderBackSide;
 }
@@ -292,10 +292,10 @@ void TubeWellLog::buildTube(bool dirtybound)
 	_tubeGeometry->addPrimitiveSet(closedSurfaceDrawElements);
     }
 
-    _logPathGeometry->dirtyDisplayList();
+    _logPathGeometry->dirtyGLObjects();
 
     osgUtil::SmoothingVisitor::smooth(*_tubeGeometry);
-    _tubeGeometry->dirtyDisplayList();
+    _tubeGeometry->dirtyGLObjects();
 
 }
 
@@ -464,14 +464,14 @@ void TubeWellLog::clearVerts()
 #include <osgDB/Serializer>
 
 REGISTER_OBJECT_WRAPPER( TubeWellLog_Wrapper,
-                        new TubeWellLog,
-                        osgGeo::TubeWellLog,
-                        "osg::Object osg::Node osgGeo::WellLog osgGeo::TubeWellLog")
+			new TubeWellLog,
+			osgGeo::TubeWellLog,
+			"osg::Object osg::Node osgGeo::WellLog osgGeo::TubeWellLog")
 {
     BEGIN_ENUM_SERIALIZER( RenderMode, RenderBackSide );
-        ADD_ENUM_VALUE( RenderBackSide );
-        ADD_ENUM_VALUE( RenderBothSides );
-        ADD_ENUM_VALUE( RenderFrontSide );
+	ADD_ENUM_VALUE( RenderBackSide );
+	ADD_ENUM_VALUE( RenderBothSides );
+	ADD_ENUM_VALUE( RenderFrontSide );
     END_ENUM_SERIALIZER();
 }
 
