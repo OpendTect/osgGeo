@@ -185,7 +185,7 @@ void TrackballManipulator::updateCamera(osg::Camera& camera)
 	    double left, right, bottom, up;
 	    camera.getProjectionMatrixAsOrtho(left, right, bottom, up, zNear, zFar);
 	}
-	
+
 	const osg::Viewport* vwp = camera.getViewport();
 	const double aspectRatio = vwp->aspectRatio();
 	const double y = _distance * _fovy/90.;
@@ -204,10 +204,10 @@ void TrackballManipulator::updateCamera(osg::Camera& camera)
 #define MAX(x,y) ((x)>(y)?(x) : (y))
 
 bool TrackballManipulator::computeViewAllParams(osg::View* view, const osg::Quat& rotation,
-                                                osg::Vec3d& center, double& distance) const
+						osg::Vec3d& center, double& distance) const
 {
     if ( !_node )
-        return false;
+	return false;
 
     osgGeo::ComputeBoundsVisitor visitor(osg::NodeVisitor::TRAVERSE_ACTIVE_CHILDREN);
     visitor.setTraversalMask(_boundTraversalMask);
@@ -217,52 +217,52 @@ bool TrackballManipulator::computeViewAllParams(osg::View* view, const osg::Quat
     osg::BoundingBox &bb = visitor.getBoundingBox();
     if ( bb.valid() )
     {
-        osg::BoundingSphere boundingSphere;
-        boundingSphere.expandBy(bb);
-        if ( !boundingSphere.valid() )
-            return false;
+	osg::BoundingSphere boundingSphere;
+	boundingSphere.expandBy(bb);
+	if ( !boundingSphere.valid() )
+	    return false;
 
-        distance = _viewAllInitalFactor * boundingSphere._radius;
-        center = boundingSphere.center();
+	distance = _viewAllInitalFactor * boundingSphere._radius;
+	center = boundingSphere.center();
 
-        if ( !view || !view->getCamera() || !view->getCamera()->getViewport() )
-            return true;
+	if ( !view || !view->getCamera() || !view->getCamera()->getViewport() )
+	    return true;
 
-        const osg::Viewport* vp = view->getCamera()->getViewport();
+	const osg::Viewport* vp = view->getCamera()->getViewport();
 	const osg::Matrix projMatrix = _perspectiveProjection
 	    ? view->getCamera()->getProjectionMatrix()
 	    : computePerspectiveProjectionFromOrtho(*view->getCamera());
 
-        const osg::Matrix windowMatrix = vp->computeWindowMatrix();
+	const osg::Matrix windowMatrix = vp->computeWindowMatrix();
 
-        //Results are better if this is iterated, and two times is a nice compromize between
-        //speed and result.
+	//Results are better if this is iterated, and two times is a nice compromize between
+	//speed and result.
 	float changeFactor = 0.05f;
 	char prevsign = 0;
-        for ( int idx=0; idx<100; idx++ )
-        {
-            const osg::Matrix viewMatrix = getInverseMatrix( center, rotation, distance );
-            const osg::Matrix transform = viewMatrix * projMatrix * windowMatrix;
+	for ( int idx=0; idx<100; idx++ )
+	{
+	    const osg::Matrix viewMatrix = getInverseMatrix( center, rotation, distance );
+	    const osg::Matrix transform = viewMatrix * projMatrix * windowMatrix;
 
-            osg::BoundingBox screenBBox;
-            screenBBox.expandBy(osg::Vec3(bb.xMin(), bb.yMin(), bb.zMin()) * transform);
-            screenBBox.expandBy(osg::Vec3(bb.xMin(), bb.yMin(), bb.zMax()) * transform);
-            screenBBox.expandBy(osg::Vec3(bb.xMin(), bb.yMax(), bb.zMin()) * transform);
-            screenBBox.expandBy(osg::Vec3(bb.xMin(), bb.yMax(), bb.zMax()) * transform);
-            screenBBox.expandBy(osg::Vec3(bb.xMax(), bb.yMin(), bb.zMin()) * transform);
-            screenBBox.expandBy(osg::Vec3(bb.xMax(), bb.yMin(), bb.zMax()) * transform);
-            screenBBox.expandBy(osg::Vec3(bb.xMax(), bb.yMax(), bb.zMin()) * transform);
-            screenBBox.expandBy(osg::Vec3(bb.xMax(), bb.yMax(), bb.zMax()) * transform);
+	    osg::BoundingBox screenBBox;
+	    screenBBox.expandBy(osg::Vec3(bb.xMin(), bb.yMin(), bb.zMin()) * transform);
+	    screenBBox.expandBy(osg::Vec3(bb.xMin(), bb.yMin(), bb.zMax()) * transform);
+	    screenBBox.expandBy(osg::Vec3(bb.xMin(), bb.yMax(), bb.zMin()) * transform);
+	    screenBBox.expandBy(osg::Vec3(bb.xMin(), bb.yMax(), bb.zMax()) * transform);
+	    screenBBox.expandBy(osg::Vec3(bb.xMax(), bb.yMin(), bb.zMin()) * transform);
+	    screenBBox.expandBy(osg::Vec3(bb.xMax(), bb.yMin(), bb.zMax()) * transform);
+	    screenBBox.expandBy(osg::Vec3(bb.xMax(), bb.yMax(), bb.zMin()) * transform);
+	    screenBBox.expandBy(osg::Vec3(bb.xMax(), bb.yMax(), bb.zMax()) * transform);
 
 	    const float relXMaxFactor = fabs(screenBBox.xMax()/vp->width()-0.5f)*2;
 	    const float relXMinFactor = fabs(screenBBox.xMin()/vp->width()-0.5f)*2;
 	    const float relYMaxFactor = fabs(screenBBox.yMax()/vp->height()-0.5f)*2;
 	    const float relYMinFactor = fabs(screenBBox.yMin()/vp->height()-0.5f)*2;
 
-            const float xFactor = MAX(relXMaxFactor,relXMinFactor);
+	    const float xFactor = MAX(relXMaxFactor,relXMinFactor);
 	    const float yFactor = MAX(relYMaxFactor,relYMinFactor);
 
-            const float factor = MAX(xFactor,yFactor) * (1.0f+_viewallMargin);
+	    const float factor = MAX(xFactor,yFactor) * (1.0f+_viewallMargin);
 
 	    if ( factor>0.99 && factor<1.01 )
 		break;
@@ -280,19 +280,19 @@ bool TrackballManipulator::computeViewAllParams(osg::View* view, const osg::Quat
 		distance /= (1+changeFactor);
 
 	    prevsign = cursign;
-        }
+	}
     }
     else
     {
-        osg::BoundingSphere boundingSphere = _node->getBound();
+	osg::BoundingSphere boundingSphere = _node->getBound();
 
-        if ( !boundingSphere.valid() )
-            return false;
+	if ( !boundingSphere.valid() )
+	    return false;
 
-        distance = _viewAllInitalFactor * boundingSphere._radius;
-        center = boundingSphere.center();
+	distance = _viewAllInitalFactor * boundingSphere._radius;
+	center = boundingSphere.center();
     }
-    
+
     return true;
 }
 
@@ -304,19 +304,19 @@ osg::Matrix TrackballManipulator::getInverseMatrix() const
 
 
 osg::Matrix TrackballManipulator::getInverseMatrix(const osg::Vec3d& center,
-                                                   const osg::Quat& rotation,
-                                                   double distance)
+						   const osg::Quat& rotation,
+						   double distance)
 {
     return osg::Matrixd::translate(-center) *
-        osg::Matrixd::rotate(rotation.inverse()) *
-        osg::Matrixd::translate(0.0, 0.0, -distance);
+	osg::Matrixd::rotate(rotation.inverse()) *
+	osg::Matrixd::translate(0.0, 0.0, -distance);
 }
 
 
 void TrackballManipulator::notifyMappedMouseButtonEvents(const osgGA::GUIEventAdapter& ea)
 {
     if ( ea.getHandled() || !_dragEnabled )
-	return; 
+	return;
 
     if ( ea.getEventType()!=osgGA::GUIEventAdapter::PUSH && ea.getEventType()!=osgGA::GUIEventAdapter::RELEASE )
 	return;
@@ -355,15 +355,15 @@ bool TrackballManipulator::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIAc
 {
     if ( ea.getEventType()==osgGA::GUIEventAdapter::MOVE && !ea.isMultiTouchEvent() )
     {
-        _lastKnownMousePos = osg::Vec2( ea.getX(), ea.getY() );
+	_lastKnownMousePos = osg::Vec2( ea.getX(), ea.getY() );
     }
-    
+
     if ( ea.getEventType()==osgGA::GUIEventAdapter::PUSH )
 	_currentModKeyMask = ea.getModKeyMask();
 
     if ( ea.getEventType()==osgGA::GUIEventAdapter::FRAME )
     {
-        return osgGA::MultiTouchTrackballManipulator::handle(ea, aa);
+	return osgGA::MultiTouchTrackballManipulator::handle(ea, aa);
     }
 
     osg::Vec3d oldEyePos, oldCenterPos, oldUpDir;
@@ -377,7 +377,7 @@ bool TrackballManipulator::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIAc
 	_touchEventView = aa.asView();
 #if OSG_VERSION_LESS_THAN(3,3,2)
 	res = handleTouch( ea, aa );
-#else   
+#else
 	res = osgGA::MultiTouchTrackballManipulator::handle(ea, aa);
 #endif
     }
@@ -394,32 +394,32 @@ bool TrackballManipulator::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIAc
 
     if ( _cb )
     {
-        float horAngle = 0;
-        float vertAngle = 0;
-        if ( ea.getEventType()==osgGA::GUIEventAdapter::DRAG || ea.isMultiTouchEvent() )
-        {
-            osg::Vec3 oldViewDir = oldEyePos-oldCenterPos;
-            oldViewDir.normalize();
+	float horAngle = 0;
+	float vertAngle = 0;
+	if ( ea.getEventType()==osgGA::GUIEventAdapter::DRAG || ea.isMultiTouchEvent() )
+	{
+	    osg::Vec3 oldViewDir = oldEyePos-oldCenterPos;
+	    oldViewDir.normalize();
 
-            osg::Vec3d newEyePos, newCenterPos, newUpDir;
-            getTransformation(newEyePos, newCenterPos, newUpDir);
+	    osg::Vec3d newEyePos, newCenterPos, newUpDir;
+	    getTransformation(newEyePos, newCenterPos, newUpDir);
 
-            osg::Vec3 newViewDir = newEyePos-newCenterPos;
-            newViewDir.normalize();
+	    osg::Vec3 newViewDir = newEyePos-newCenterPos;
+	    newViewDir.normalize();
 
-            const float rotationAngle = newViewDir * oldViewDir;
-            if ( rotationAngle )
-            {
-                const osg::Vec3 rotationAxis = newViewDir^oldViewDir;
+	    const float rotationAngle = newViewDir * oldViewDir;
+	    if ( rotationAngle )
+	    {
+		const osg::Vec3 rotationAxis = newViewDir^oldViewDir;
 
-                osg::Vec3 vertAxis = (oldViewDir)^oldUpDir;
-                vertAxis.normalize();
-                osg::Vec3 horAxis = oldUpDir;
-                horAxis.normalize();
+		osg::Vec3 vertAxis = (oldViewDir)^oldUpDir;
+		vertAxis.normalize();
+		osg::Vec3 horAxis = oldUpDir;
+		horAxis.normalize();
 
-                horAngle = rotationAngle * (horAxis*rotationAxis);
-                vertAngle = rotationAngle * (vertAxis*rotationAxis);
-            }
+		horAngle = rotationAngle * (horAxis*rotationAxis);
+		vertAngle = rotationAngle * (vertAxis*rotationAxis);
+	    }
 	}
 
 	if ( horAngle || vertAngle || _distance!=oldDist )
@@ -550,10 +550,10 @@ TrackballEventNodeVisitor::TrackballEventNodeVisitor(EventType et)
 TrackballEventNodeVisitor::~TrackballEventNodeVisitor()
 {}
 
-    
+
 
 #define mDefaultHandling osgGA::TrackballManipulator::handleMouseWheel(ea, us)
-    
+
 
 bool TrackballManipulator::handleMouseWheel(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& us)
 {
@@ -565,14 +565,14 @@ bool TrackballManipulator::handleMouseWheel(const osgGA::GUIEventAdapter& ea, os
     if( ((sm == osgGA::GUIEventAdapter::SCROLL_DOWN && _wheelZoomFactor > 0.)) ||
        ((sm == osgGA::GUIEventAdapter::SCROLL_UP   && _wheelZoomFactor < 0.)) )
     {
-        res = handleMouseWheelZoomIn(ea, us);
+	res = handleMouseWheelZoomIn(ea, us);
 	_isDiscreteZooming = true;
     }
 
     if( ((sm == osgGA::GUIEventAdapter::SCROLL_UP && _wheelZoomFactor > 0.)) ||
        ((sm == osgGA::GUIEventAdapter::SCROLL_DOWN   && _wheelZoomFactor < 0.)))
     {
-         res = handleMouseWheelZoomOut(ea, us);
+	 res = handleMouseWheelZoomOut(ea, us);
 	 _isDiscreteZooming = true;
     }
 
@@ -581,27 +581,27 @@ bool TrackballManipulator::handleMouseWheel(const osgGA::GUIEventAdapter& ea, os
 
 
 bool TrackballManipulator::handleMouseWheelZoomOut(const osgGA::GUIEventAdapter&,
-                                                   osgGA::GUIActionAdapter& us)
+						   osgGA::GUIActionAdapter& us)
 {
     return zoomOut(us.asView(),fabs(_wheelZoomFactor));
 }
 
 
 bool TrackballManipulator::handleMouseWheelZoomIn(const osgGA::GUIEventAdapter& ea,
-                                                   osgGA::GUIActionAdapter& us)
+						   osgGA::GUIActionAdapter& us)
 {
     osg::Vec3d intersectionPos;
     if ( _lastKnownMousePos.x()<0 || _lastKnownMousePos.y()<0 )
-        return false;
-    
+	return false;
+
     if ( !getZoomCenterIntersectionPoint(us.asView(),_lastKnownMousePos,intersectionPos) )
-        return false;
+	return false;
 
     return zoomIn(intersectionPos,fabs(_wheelZoomFactor));
 }
 
 
-bool TrackballManipulator::zoomIn(const osg::Vec3d& intersectionPos, float zoomFactor) 
+bool TrackballManipulator::zoomIn(const osg::Vec3d& intersectionPos, float zoomFactor)
 {
     //General idea is that we move center point towards the eye, and the eye-point towards
     //the intersection point.
@@ -646,33 +646,33 @@ bool TrackballManipulator::zoomIn(const osg::Vec3d& intersectionPos, float zoomF
 }
 
 
-bool TrackballManipulator::zoomOut(osg::View* view,float zoomFactor) 
+bool TrackballManipulator::zoomOut(osg::View* view,float zoomFactor)
 {
   if ( !_node.get() || !view )
-        return false;
+	return false;
 
     osg::Vec3d oldEyePos, oldCenterPos, oldUpDir;
     getTransformation(oldEyePos, oldCenterPos, oldUpDir);
 
     /*General idea is that if we are close, we move the eyepoint towards the
       viewAll eye-point, and move the center towards the viewAll-center.
-     
+
       If we are not close, we simply move eyepoint backwards (standard interaction */
 
     osg::Vec3d viewAllCenter;
     double viewAllDistance;
 
     if ( !computeViewAllParams( view, _rotation, viewAllCenter, viewAllDistance) )
-        return false;
+	return false;
 
     const double currentDistFromIdealCenter = (oldEyePos-viewAllCenter).length();
     if ( currentDistFromIdealCenter>viewAllDistance)
-        return false;
+	return false;
 
     osg::Vec3d viewDir = oldEyePos - oldCenterPos;
     const double viewDirLength = viewDir.length();
     if ( viewDirLength<1.0 )
-        return false;
+	return false;
 
     viewDir /= viewDirLength;
 
@@ -681,13 +681,13 @@ bool TrackballManipulator::zoomOut(osg::View* view,float zoomFactor)
     const osg::Vec3d eyePath = viewAllPos - oldEyePos;
     const double eyePathLength = eyePath.length();
     if ( eyePathLength<1 )
-        return false;
-    
+	return false;
+
     const osg::Vec3d eyePathDir = eyePath / eyePathLength;
 
     double eyeMovementLength = _distance * zoomFactor;
     if ( eyeMovementLength> eyePathLength )
-        eyeMovementLength = eyePathLength;
+	eyeMovementLength = eyePathLength;
 
     const double factor = eyeMovementLength / eyePathLength;
 
@@ -698,9 +698,9 @@ bool TrackballManipulator::zoomOut(osg::View* view,float zoomFactor)
     osg::Vec3d newCenterPos = oldCenterPos;
     if ( centerPathLength>1 )
     {
-        const osg::Vec3d centerPathDir = centerPath / centerPathLength;
-        double centerMovementLength = centerPathLength * factor;
-        newCenterPos = oldCenterPos + centerPathDir * centerMovementLength;
+	const osg::Vec3d centerPathDir = centerPath / centerPathLength;
+	double centerMovementLength = centerPathLength * factor;
+	newCenterPos = oldCenterPos + centerPathDir * centerMovementLength;
     }
 
     setTransformation(newEyePos, newCenterPos, oldUpDir);
@@ -764,7 +764,7 @@ bool TrackballManipulator::getPolyIntersectionPoint(osg::View* view,const osg::V
 	    zoomcenter.x()-radius,zoomcenter.y()-radius,zoomcenter.x()+radius,
 	    zoomcenter.y()+radius);
 
-     polyIntersector->setDimensionMask(osgUtil::PolytopeIntersector::AllDims);
+     polyIntersector->setPrimitiveMask(osgUtil::PolytopeIntersector::ALL_PRIMITIVES);
 
      osgUtil::IntersectionVisitor iv(polyIntersector.get());
      view->getCamera()->accept( iv );
@@ -789,8 +789,8 @@ bool TrackballManipulator::getPolyIntersectionPoint(osg::View* view,const osg::V
 
 
 #if OSG_VERSION_LESS_THAN(3,3,2)
-void TrackballManipulator::handleMultiTouchDrag(const osgGA::GUIEventAdapter::TouchData* now, 
-    const osgGA::GUIEventAdapter::TouchData* last, const double ) 
+void TrackballManipulator::handleMultiTouchDrag(const osgGA::GUIEventAdapter::TouchData* now,
+    const osgGA::GUIEventAdapter::TouchData* last, const double )
 {
     const osg::Vec2 pt_1_now(now->get(0).x_,now->get(0).y_);
     const osg::Vec2 pt_2_now(now->get(1).x_,now->get(1).y_);
@@ -817,14 +817,14 @@ void TrackballManipulator::handleMultiTouchDrag(const osgGA::GUIEventAdapter::To
     bool success = false;
     if ( fabs(zoomFactor) > 0.02f && _touchZoomCenter.length() !=0 )
     {
-	if ( zoomFactor< 0 ) 
+	if ( zoomFactor< 0 )
 	{
 	    osg::Vec3d intersectionPos;
 	    if ( getZoomCenterIntersectionPoint(_touchEventView,
 					_touchZoomCenter,intersectionPos) )
 		success = zoomIn(intersectionPos, fabs(zoomFactor) );
 	}
-	else			  
+	else
 	{
 	    success = zoomOut(_touchEventView, fabs(zoomFactor) );
 	}
@@ -841,19 +841,19 @@ void TrackballManipulator::handleMultiTouchDrag(const osgGA::GUIEventAdapter::To
 #endif
 
 void TrackballManipulator::animateTo(const osg::Vec3d& newCenter,
-                                     const osg::Quat& newRotation,
-                                     double newDistance,
-                                     bool animate)
+				     const osg::Quat& newRotation,
+				     double newDistance,
+				     bool animate)
 {
     if ( animate && getAnimationTime() )
     {
-        TrackballAnimationData* ad = dynamic_cast<TrackballAnimationData*>(_animationData.get());
-        if ( ad )
-        {
-            ad->start(newCenter-_center, newRotation-_rotation,
-                      newDistance-_distance, osg::Timer::instance()->time_s());
-            return;
-        }
+	TrackballAnimationData* ad = dynamic_cast<TrackballAnimationData*>(_animationData.get());
+	if ( ad )
+	{
+	    ad->start(newCenter-_center, newRotation-_rotation,
+		      newDistance-_distance, osg::Timer::instance()->time_s());
+	    return;
+	}
     }
 
     _center = newCenter;
@@ -893,13 +893,13 @@ void TrackballManipulator::viewAll(osg::View* view, const osg::Vec3d& dir, const
 				  0.0f, 0.0f,  0.0f, 1.0f);
 
     const osg::Quat newRotation = rotation_matrix.getRotate().inverse();
-    
+
     osg::Vec3d newCenter;
     double newDistance;
-    
+
     if ( !isProjectionMatrixSet(view->getCamera(),_perspectiveProjection) )
 	updateCamera( *view->getCamera() );
-    
+
     computeViewAllParams(view, newRotation, newCenter, newDistance);
 
     animateTo(newCenter, newRotation, newDistance, animate );
@@ -921,9 +921,9 @@ void TrackballManipulator::viewAll(osg::View* view, bool animate)
 
 
 void TrackballManipulator::TrackballAnimationData::start( const osg::Vec3d& centerMovement,
-               const osg::Quat& rotationMovement,
-               double distanceMovement,
-               const double startTime )
+	       const osg::Quat& rotationMovement,
+	       double distanceMovement,
+	       const double startTime )
 {
     AnimationData::start(startTime);
 
@@ -937,7 +937,7 @@ void  TrackballManipulator::applyAnimationStep( const double currentProgress, co
 {
     TrackballAnimationData* ad = dynamic_cast< TrackballAnimationData* >( _animationData.get() );
     if ( !ad )
-        return;
+	return;
 
     const double prevMovementProgress = 0.5 * (1 - cos(prevProgress*M_PI));
     const double currentMovementProgress = 0.5 * (1 - cos(currentProgress*M_PI));
@@ -974,9 +974,9 @@ void TrackballManipulator::addMovementCallback(osg::NodeCallback* nc)
 void TrackballManipulator::removeMovementCallback(osg::NodeCallback* nc)
 {
     if ( nc==_cb )
-        _cb = _cb->getNestedCallback();
+	_cb = _cb->getNestedCallback();
     else
-        _cb->removeNestedCallback(nc);
+	_cb->removeNestedCallback(nc);
 
 
 }
