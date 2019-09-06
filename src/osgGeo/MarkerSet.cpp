@@ -127,7 +127,7 @@ bool MarkerSet::updateShapes()
 
     osg::ref_ptr<osg::Material> material = new osg::Material;
     material->setColorMode(osg::Material::AMBIENT_AND_DIFFUSE);
-  
+
     for (unsigned int idx=0;idx<_vertexArr->size();idx++)
     {
 	const osg::Vec4 color = getColor( idx );
@@ -152,18 +152,16 @@ bool MarkerSet::updateShapes()
 	autotrans->setPosition(_vertexArr->at(idx));
 	autotrans->setAutoRotateMode(_rotateMode);
 	autotrans->setAutoScaleToScreen(true);
-	autotrans->setMinimumScale(1.0f);
-	autotrans->setMaximumScale(DBL_MAX);
 	autotrans->setAutoScaleTransitionWidthRatio(0.5);
 
 	if ( !_useScreenSize )
-	    autotrans->setScale( (double)1.0 );
-	else
 	{
-	    autotrans->setMinimumScale(_minScale);
-	    autotrans->setMaximumScale(_maxScale);
+	    autotrans->setMinimumScale( 1. );
+	    autotrans->setMaximumScale( DBL_MAX );
+	    autotrans->setScale( 1. );
 	}
-	const bool ison = idx < _onoffArr->size() ? _onoffArr->at(idx) : true;
+
+	const bool ison = idx<_onoffArr->size() ? _onoffArr->at(idx) : true;
 	autotrans->addChild(geode);
 	_switchNode->addChild( autotrans, ison );
     }
@@ -249,7 +247,7 @@ void MarkerSet::forceRedraw(bool yn)
 	return;
 
     setNumChildrenRequiringUpdateTraversal(
-        _switchNode->getNumChildrenRequiringUpdateTraversal()+((int) yn));
+	_switchNode->getNumChildrenRequiringUpdateTraversal()+((int) yn));
     _forceRedraw = yn;
 }
 
