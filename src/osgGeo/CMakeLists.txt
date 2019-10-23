@@ -21,6 +21,9 @@ if ( (NOT DEFINED OPENSCENEGRAPH_FOUND) )
     find_package( OpenSceneGraph REQUIRED osgDB osgDA osgUtil osgManipulator osgWidget osgViewer osgVolume osgText osgSim )
 endif()
 
+if ( UNIX )
+  set( OpenGL_GL_PREFERENCE "LEGACY" )
+endif()
 find_package( OpenGL REQUIRED )
 
 if ( WIN32 )
