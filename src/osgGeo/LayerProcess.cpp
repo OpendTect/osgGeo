@@ -206,12 +206,13 @@ void LayerProcess::getHeaderCode( std::string& code, int& nrUdf, int id, int toI
 
     char line[100];
 
-    char to[5] = ""; 
-    char from[5] = ""; 
+    const int bufsz = 16;
+    char to[bufsz] = ""; 
+    char from[bufsz] = ""; 
     if ( toIdx>=0 )
     {
-	snprintf( to, 5, "[%d]", toIdx );
-	snprintf( from, 5, "[%d]", fromIdx );
+	snprintf( to, bufsz, "[%d]", toIdx );
+	snprintf( from, bufsz, "[%d]", fromIdx );
     }
 
     code += nrUdf ? "    if ( udf < 1.0 )\n"
