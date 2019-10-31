@@ -204,7 +204,7 @@ void LayerProcess::getHeaderCode( std::string& code, int& nrUdf, int id, int toI
 
     char line[100];
 
-    const int bufsz = 13;
+    const int bufsz = 16;
     char to[bufsz] = ""; 
     char from[bufsz] = ""; 
     if ( toIdx>=0 )
