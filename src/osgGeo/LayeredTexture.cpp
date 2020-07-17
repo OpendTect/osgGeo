@@ -2574,7 +2574,10 @@ void LayeredTexture::setRenderingHint( bool stackIsOpaque )
 
 int LayeredTexture::getProcessInfo( std::vector<int>& layerIDs, int& nrUsedLayers, bool& useShaders, bool* stackIsOpaque ) const
 {
-    layerIDs.empty();
+    const bool isempty = layerIDs.empty();
+    if ( isempty )  //Hack to supress compilation warnings.
+	layerIDs.clear();
+
     std::vector<int> skippedIDs;
     int nrProc = 0;
     nrUsedLayers = -1;
