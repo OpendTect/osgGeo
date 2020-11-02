@@ -90,6 +90,7 @@ set ( LIB_PUBLIC_HEADERS
     Text
     TexturePlane
     TexturePanelStrip
+    ThreadGroup
     ThumbWheel
     TiledOffScreenRenderer
     TrackballManipulator
