@@ -85,7 +85,7 @@ void AxesNode::traverse( osg::NodeVisitor& nv )
     {
        if ( needsUpdate() )
 	   updateGeometry();
-    
+
        if ( _masterCamera  )
        {
 	   osg::Matrixd matrix;
@@ -101,10 +101,10 @@ void AxesNode::traverse( osg::NodeVisitor& nv )
 bool AxesNode::computeTransform(osg::Matrix& mt) const
 {
     bool ret = false;
-    osg::Vec3d eye, center, up; 
-    _masterCamera->getViewMatrixAsLookAt(eye, center, up, 45); 
+    osg::Vec3d eye, center, up;
+    _masterCamera->getViewMatrixAsLookAt(eye, center, up, 45);
     osg::Matrixd matrix = getMatrix();
-    matrix.makeLookAt(eye-center, osg::Vec3(0,0,0), up); 
+    matrix.makeLookAt(eye-center, osg::Vec3(0,0,0), up);
     matrix *= osg::Matrixd::translate(_pos.x(), _pos.y(), 0);
 
     if ( matrix !=  getMatrix() )
@@ -112,12 +112,12 @@ bool AxesNode::computeTransform(osg::Matrix& mt) const
 	mt = matrix;
 	ret = true;
     }
-    
+
     return ret;
 }
 
 
-static osg::ref_ptr<osg::Node> arrowNode( const float rad, const float len,const osg::Vec4& color, 
+static osg::ref_ptr<osg::Node> arrowNode( const float rad, const float len,const osg::Vec4& color,
                                    const osg::Vec3& dir,const osgText::String& text, float txtSize,
 				   const osg::Vec4& annotclr, osgText::Font* font )
 {
@@ -125,7 +125,7 @@ static osg::ref_ptr<osg::Node> arrowNode( const float rad, const float len,const
     osg::ref_ptr<osg::Vec3Array> normals = new osg::Vec3Array;
     const int resolution = 10;
     osg::Vec3 curu,curv;
-    
+
     osg::Vec3 w( dir ); w.normalize();
     osg::Vec3 anyvec(1,1,1); anyvec.normalize();
     curu = w ^ anyvec; curu.normalize();
@@ -135,11 +135,11 @@ static osg::ref_ptr<osg::Node> arrowNode( const float rad, const float len,const
     const float conelen = 0.33 * len;
     const osg::Vec3 p1 = dir * len;
     const osg::Vec3 p2 = dir * ( len - conelen );
-   
+
     osg::Vec3 normdir( dir );
     normdir.normalize();
     osg::DrawElementsUInt* cone =
-	new osg::DrawElementsUInt( osg::PrimitiveSet::TRIANGLE_STRIP ); 
+	new osg::DrawElementsUInt( osg::PrimitiveSet::TRIANGLE_STRIP );
     cone->push_back( 0 );
     int ci = 0;
     for ( int idx=0; idx<=resolution; idx++ )
@@ -158,7 +158,7 @@ static osg::ref_ptr<osg::Node> arrowNode( const float rad, const float len,const
 
     //cone base
     osg::DrawElementsUInt* conebase =
-	new osg::DrawElementsUInt( osg::PrimitiveSet::TRIANGLE_FAN ); 
+	new osg::DrawElementsUInt( osg::PrimitiveSet::TRIANGLE_FAN );
     const int conesz = coords->size();
     for ( int idx=0; idx<=resolution; idx++ )
     {
@@ -168,7 +168,7 @@ static osg::ref_ptr<osg::Node> arrowNode( const float rad, const float len,const
 	normals->push_back( -normdir );
 	conebase->push_back( idx+conesz );
     }
-    
+
     // cylinder
     const int platesz = coords->size();
     for ( int idx=0; idx<=resolution; idx++ )
@@ -186,7 +186,7 @@ static osg::ref_ptr<osg::Node> arrowNode( const float rad, const float len,const
     arrowgeometry->addPrimitiveSet(cone);
     arrowgeometry->addPrimitiveSet(conebase);
     const int cylsz = coords->size() - platesz;
-    arrowgeometry->addPrimitiveSet( 
+    arrowgeometry->addPrimitiveSet(
 		   new osg::DrawArrays(GL_TRIANGLE_STRIP, platesz, cylsz, 0));
     arrowgeometry->setNormalArray(normals.get());
     arrowgeometry->setNormalBinding(osg::Geometry::BIND_PER_VERTEX);
@@ -197,7 +197,7 @@ static osg::ref_ptr<osg::Node> arrowNode( const float rad, const float len,const
     mat->setDiffuse(osg::Material::FRONT, color*fac);
     arrowgeode->addDrawable(arrowgeometry);
     arrowgeode->getOrCreateStateSet()->setAttribute(mat);
-   
+
     osg::ref_ptr<osg::Geode> textgeode = new osg::Geode();
     osg::ref_ptr<osgText::TextBase> annot = new osgText::Text;
     annot->setPosition(p1);
@@ -222,18 +222,18 @@ bool AxesNode::updateGeometry()
 	return false;
 
     osg::Vec4 red(1,0,0,1), green(0,1,0,1), blue(0,0.55,1,1), yellow(1,1,0,1);
-    
+
     osg::ref_ptr<osg::Material> mat = new osg::Material;
     mat->setDiffuse(osg::Material::FRONT, yellow*1.5);
-    osg::ref_ptr<osg::ShapeDrawable> sphere = 
+    osg::ref_ptr<osg::ShapeDrawable> sphere =
 	new osg::ShapeDrawable(new osg::Sphere(osg::Vec3f(0,0,0),_radius*0.75f));
     osg::ref_ptr<osg::Geode> spheregeode = new osg::Geode();
     spheregeode->getOrCreateStateSet()->setAttribute(mat);
     spheregeode->addDrawable(sphere);
     const osg::Vec4& c = _annotColor;
     removeChildren(0, getNumChildren());
-    addChild( spheregeode ); 
-    
+    addChild( spheregeode );
+
     addChild(arrowNode(_radius,_length,red,osg::Vec3(0,1,0), _annotText[0], _textSize, c, _font));
     addChild(arrowNode(_radius,_length,green,osg::Vec3(1,0,0),_annotText[1], _textSize, c, _font));
     addChild(arrowNode(_radius,_length,blue,osg::Vec3(0,0,-1),_annotText[2], _textSize, c, _font));
@@ -243,7 +243,6 @@ bool AxesNode::updateGeometry()
 }
 
 
-
 bool AxesNode::needsUpdate() const
 {
     return _needsUpdate;
@@ -251,6 +250,12 @@ bool AxesNode::needsUpdate() const
 
 
 void AxesNode::setMasterCamera(osg::Camera* camera)
+{
+    setPrimaryCamera(camera);
+}
+
+
+void AxesNode::setPrimaryCamera(osg::Camera* camera)
 {
     _masterCamera = camera;
 }
