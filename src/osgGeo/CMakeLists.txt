@@ -16,6 +16,7 @@
 #
 
 set( LIB_NAME osgGeo )
+include( "../../CMakeModules/ListFilter.cmake" )
 
 if ( (NOT DEFINED OPENSCENEGRAPH_FOUND) )
     find_package( OpenSceneGraph REQUIRED osgDB osgDA osgUtil osgManipulator osgWidget osgViewer osgVolume osgText osgSim )
@@ -174,40 +175,3 @@ else()
 	endif()
     endif()
 endif()
-
-
-
-#Takes a list with both optimized and debug libraries, and removes one of them
-#According to BUILD_TYPE
-
-macro ( OD_FILTER_LIBRARIES INPUTLIST BUILD_TYPE )
-    unset( OUTPUT )
-    foreach ( LISTITEM ${${INPUTLIST}} )
-	if ( DEFINED USENEXT )
-	    if ( USENEXT STREQUAL "yes" )
-		list ( APPEND OUTPUT ${LISTITEM} )
-	    endif()
-	    unset( USENEXT )
-	else()
-	    if ( LISTITEM STREQUAL "debug" )
-		if ( "${BUILD_TYPE}" STREQUAL "Debug" )
-		    set ( USENEXT "yes" )
-		else()
-		    set ( USENEXT "no" )
-		endif()
-	    else()
-		if ( LISTITEM STREQUAL "optimized" )
-		    if ( "${BUILD_TYPE}" STREQUAL "Release" )
-			set ( USENEXT "yes" )
-		    else()
-			set ( USENEXT "no" )
-		    endif()
-		else()
-		    list ( APPEND OUTPUT ${LISTITEM} )
-		endif()
-	    endif()
-	endif()
-    endforeach()
-
-    set ( ${INPUTLIST} ${OUTPUT} )
-endmacro()
