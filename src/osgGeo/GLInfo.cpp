@@ -37,7 +37,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
  */
 
 
-#if defined(__win64__) || defined(__win32__)
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__win64__) || defined(__win32__)
 # include <windows.h>
 #endif
 
