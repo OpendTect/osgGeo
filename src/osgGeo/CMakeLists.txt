@@ -168,11 +168,12 @@ else()
 	if ( WIN32 )
 	    install(TARGETS
 		${LIB_NAME}
-		RUNTIME DESTINATION bin${OSGGEO_LIB_POSTFIX} )
+		ARCHIVE DESTINATION lib )
+		RUNTIME DESTINATION bin )
 	else()
 	    install(TARGETS
 		${LIB_NAME}
-		LIBRARY DESTINATION lib${OSGGEO_LIB_POSTFIX} )
+		LIBRARY DESTINATION lib )
 	endif()
     endif()
 endif()
