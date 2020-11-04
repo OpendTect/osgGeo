@@ -168,7 +168,7 @@ else()
 	if ( WIN32 )
 	    install(TARGETS
 		${LIB_NAME}
-		ARCHIVE DESTINATION lib )
+		ARCHIVE DESTINATION lib
 		RUNTIME DESTINATION bin )
 	else()
 	    install(TARGETS
