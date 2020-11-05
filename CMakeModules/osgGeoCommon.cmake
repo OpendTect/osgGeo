@@ -40,7 +40,7 @@ if ( WIN32 )
      set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4" )
    endif( CMAKE_CXX_FLAGS MATCHES "/W[0-4]" )
 
-   add_definitions( "/EHsc" "-DWIN32" "/wd4127" "/wd4800" )
+   add_definitions( "/EHsc" "-DWIN32" "/wd4100 /wd4127" "/wd4800" )
 endif( WIN32 )
 
 if ( UNIX AND NOT WIN32 AND NOT APPLE )

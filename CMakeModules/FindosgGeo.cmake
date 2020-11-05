@@ -1,119 +1,46 @@
-# Locate gdal
-# This module defines
-# OSGGEO_LIBRARY
-# OSGGEO_FOUND, if false, do not try to link to gdal 
-# OSGGEO_INCLUDE_DIR, where to find the headers
-#
-# $osgGeo_DIR is an environment variable that would
-# correspond to the ./configure --prefix=$osgGeo_DIR
-#
-# Created by Kristofer Tingdahl
+# Distributed under the OSI-approved BSD 3-Clause License.  See accompanying
+# file Copyright.txt or https://cmake.org/licensing for details.
 
-find_path(OSGGEO_INCLUDE_DIR osgGeo/Export
-    ${osgGeo_DIR}/include
-    ${osgGeo_DIR}/src
-    $ENV{osgGeo_DIR}/include
-    NO_DEFAULT_PATH
-)
+#[=======================================================================[.rst:
+FindosgGeo
+---------
 
-find_path(OSGGEO_INCLUDE_DIR osgGeo/Export)
 
-macro(FIND_OSGGEO_LIBRARY MYLIBRARY MYLIBRARYNAME)
 
-    find_library("${MYLIBRARY}_DEBUG"
-        NAMES "${MYLIBRARYNAME}${CMAKE_DEBUG_POSTFIX}"
-        PATHS
-        ${osgGeo_DIR}/lib/Debug
-        ${osgGeo_DIR}/lib64/Debug
-        ${osgGeo_DIR}/lib
-        ${osgGeo_DIR}/lib64
-        ${osgGeo_DIR}/src/osgGeo/Debug
-        ${osgGeo_DIR}/src/osgGeo
-        $ENV{osgGeo_DIR}/lib/debug
-        $ENV{osgGeo_DIR}/lib64/debug
-        $ENV{osgGeo_DIR}/lib
-        $ENV{osgGeo_DIR}/lib64
-        $ENV{osgGeo_DIR}
-        $ENV{OSGGEODIR}/lib
-        $ENV{OSGGEODIR}/lib64
-        $ENV{OSGGEODIR}
-        $ENV{OSGGEO_ROOT}/lib
-        $ENV{OSGGEO_ROOT}/lib64
-        NO_DEFAULT_PATH
-    )
+This is part of the Findosg* suite used to find OpenSceneGraph
+components.  Each component is separate and you must opt in to each
+module.  You must also opt into OpenGL and OpenThreads (and Producer
+if needed) as these modules won't do it for you.  This is to allow you
+control over your own system piece by piece in case you need to opt
+out of certain components or change the Find behavior for a particular
+module (perhaps because the default FindOpenGL.cmake module doesn't
+work with your system as an example).  If you want to use a more
+convenient module that includes everything, use the
+FindOpenSceneGraph.cmake instead of the Findosg*.cmake modules.
 
-    find_library("${MYLIBRARY}_DEBUG"
-        NAMES "${MYLIBRARYNAME}${CMAKE_DEBUG_POSTFIX}"
-        PATHS
-        ~/Library/Frameworks
-        /Library/Frameworks
-        /usr/local/lib
-        /usr/local/lib64
-        /usr/lib
-        /usr/lib64
-        /sw/lib
-        /opt/local/lib
-        /opt/csw/lib
-        /opt/lib
-        [HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Session\ Manager\\Environment;OSGGEO_ROOT]/lib
-        /usr/freeware/lib64
-    )
+Locate osgGeo This module defines
 
-    find_library("${MYLIBRARY}_RELEASE"
-        NAMES "${MYLIBRARYNAME}${CMAKE_RELEASE_POSTFIX}"
-        PATHS
-        ${osgGeo_DIR}/lib/Release
-        ${osgGeo_DIR}/lib64/Release
-        ${osgGeo_DIR}/lib
-        ${osgGeo_DIR}/lib64
-        ${osgGeo_DIR}/src/osgGeo/Release
-        ${osgGeo_DIR}/src/osgGeo
-        $ENV{osgGeo_DIR}/lib/Release
-        $ENV{osgGeo_DIR}/lib64/Release
-        $ENV{osgGeo_DIR}/lib
-        $ENV{osgGeo_DIR}/lib64
-        $ENV{osgGeo_DIR}
-        $ENV{OSGGEODIR}/lib
-        $ENV{OSGGEODIR}/lib64
-        $ENV{OSGGEODIR}
-        $ENV{OSGGEO_ROOT}/lib
-        $ENV{OSGGEO_ROOT}/lib64
-        NO_DEFAULT_PATH
-    )
+OSGGEO_FOUND - Was osgGeo found? OSGGEO_INCLUDE_DIR - Where to find the
+headers OSGGEO_LIBRARIES - The libraries to link against for the osgGeo
+(use this)
 
-    find_library("${MYLIBRARY}_RELEASE"
-        NAMES "${MYLIBRARYNAME}${CMAKE_RELEASE_POSTFIX}"
-        PATHS
-        ~/Library/Frameworks
-        /Library/Frameworks
-        /usr/local/lib
-        /usr/local/lib64
-        /usr/lib
-        /usr/lib64
-        /sw/lib
-        /opt/local/lib
-        /opt/csw/lib
-        /opt/lib
-        [HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Session\ Manager\\Environment;OSGGEO_ROOT]/lib
-        /usr/freeware/lib64
-    )
+OSGGEO_LIBRARY - The osgGeo library OSGGEO_LIBRARY_DEBUG - The osgGeo
+debug library
 
-    IF ( ${MYLIBRARY}_DEBUG AND ${MYLIBRARY}_RELEASE )
-	SET ( ${MYLIBRARY} "optimized" ${${MYLIBRARY}_RELEASE}
-			   "debug" ${${MYLIBRARY}_DEBUG} )
-    ELSEIF ( ${MYLIBRARY}_DEBUG )
-	set ( ${MYLIBRARY} ${${MYLIBRARY}_DEBUG} )
-    ELSEIF( ${MYLIBRARY}_RELEASE )
-	set ( ${MYLIBRARY} ${${MYLIBRARY}_RELEASE} )
-    ELSE()
-	set ( ${MYLIBRARY} ${MYLIBRARY}-NOTFOUND )
-    ENDIF()
+$OSGDIR is an environment variable that would correspond to the
+./configure --prefix=$OSGDIR used in building osg.
 
-endmacro(FIND_OSGGEO_LIBRARY MYLIBRARY MYLIBRARYNAME)
+Created by Eric Wing.
+#]=======================================================================]
 
-FIND_OSGGEO_LIBRARY(OSGGEO_LIBRARY osgGeo)
+# Header files are presumed to be included like
+# #include <osg/PositionAttitudeTransform>
+# #include <osgGeo/CallBack>
 
-set(OSGGEO_FOUND "NO")
-if ( OSGGEO_LIBRARY AND OSGGEO_INCLUDE_DIR)
-    set(OSGGEO_FOUND "YES")
-endif( OSGGEO_LIBRARY AND OSGGEO_INCLUDE_DIR)
+include(${CMAKE_ROOT}/Modules/Findosg_functions.cmake)
+OSG_FIND_PATH   (OSGGEO osgGeo/CallBack)
+OSG_FIND_LIBRARY(OSGGEO osgGeo)
+
+include(${CMAKE_ROOT}/Modules/FindPackageHandleStandardArgs.cmake)
+FIND_PACKAGE_HANDLE_STANDARD_ARGS(osgGeo DEFAULT_MSG
+    OSGGEO_LIBRARY OSGGEO_INCLUDE_DIR)

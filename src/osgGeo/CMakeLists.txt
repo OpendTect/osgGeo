@@ -14,10 +14,10 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
-# $Id$
-#
+
 
 set( LIB_NAME osgGeo )
+include( "../../CMakeModules/ListFilter.cmake" )
 
 if ( (NOT DEFINED OPENSCENEGRAPH_FOUND) )
     find_package( OpenSceneGraph REQUIRED osgDB osgDA osgUtil osgManipulator osgWidget osgViewer osgVolume osgText osgSim )
@@ -91,6 +91,7 @@ set ( LIB_PUBLIC_HEADERS
     Text
     TexturePlane
     TexturePanelStrip
+    ThreadGroup
     ThumbWheel
     TiledOffScreenRenderer
     TrackballManipulator
@@ -168,48 +169,16 @@ else()
 	if ( WIN32 )
 	    install(TARGETS
 		${LIB_NAME}
-		RUNTIME DESTINATION bin${OSGGEO_LIB_POSTFIX} )
+		ARCHIVE DESTINATION lib
+		RUNTIME DESTINATION bin )
 	else()
 	    install(TARGETS
 		${LIB_NAME}
-		LIBRARY DESTINATION lib${OSGGEO_LIB_POSTFIX} )
+		LIBRARY DESTINATION lib )
 	endif()
     endif()
 endif()
 
 
 
-#Takes a list with both optimized and debug libraries, and removes one of them
-#According to BUILD_TYPE
 
-macro ( OD_FILTER_LIBRARIES INPUTLIST BUILD_TYPE )
-    unset( OUTPUT )
-    foreach ( LISTITEM ${${INPUTLIST}} )
-	if ( DEFINED USENEXT )
-	    if ( USENEXT STREQUAL "yes" )
-		list ( APPEND OUTPUT ${LISTITEM} )
-	    endif()
-	    unset( USENEXT )
-	else()
-	    if ( LISTITEM STREQUAL "debug" )
-		if ( "${BUILD_TYPE}" STREQUAL "Debug" )
-		    set ( USENEXT "yes" )
-		else()
-		    set ( USENEXT "no" )
-		endif()
-	    else()
-		if ( LISTITEM STREQUAL "optimized" )
-		    if ( "${BUILD_TYPE}" STREQUAL "Release" )
-			set ( USENEXT "yes" )
-		    else()
-			set ( USENEXT "no" )
-		    endif()
-		else()
-		    list ( APPEND OUTPUT ${LISTITEM} )
-		endif()
-	    endif()
-	endif()
-    endforeach()
-
-    set ( ${INPUTLIST} ${OUTPUT} )
-endmacro()
