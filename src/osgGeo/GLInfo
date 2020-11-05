@@ -37,7 +37,7 @@ public:
     const char*			glRenderer() const;
     const char*			glVersion() const;
     const char*			glExtensions() const;
-    
+    bool			isPlatformSupported() const;
     bool			isVertexProgramSupported() const;
     bool			isShaderProgramSupported() const;
     bool			isGeometryShader4Supported() const;
@@ -48,7 +48,8 @@ public:
     bool			isOK() const;
 
 protected:
-                        	GLInfo();
+    static void			initGL();
+				GLInfo();
     void			updateLimits();
     std::string			_glvendor;
     std::string			_glrenderer;
@@ -57,13 +58,13 @@ protected:
     
     struct Limit
     {
-                                Limit( int tok, const char* nm, int val )
-                                    : _token( tok ), _name( nm ), _value( val )
-                                {}
-                                    
-        int			_token;
-        const char*		_name;
-        int			_value;
+				Limit( int tok, const char* nm, int val )
+				    : _token( tok ), _name( nm ), _value( val )
+				{}
+
+	int			_token;
+	const char*		_name;
+	int			_value;
     };
 
     bool			getExtension(const char* extntnnm) const;

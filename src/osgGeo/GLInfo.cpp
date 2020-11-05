@@ -39,19 +39,23 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__win64__) || defined(__win32__)
 # include <windows.h>
-#endif
+# include <GL/gl.h>
+# include <GL/glext.h>
+#else
 
 #if defined( __APPLE__ )
 # include <OpenGL/gl.h>
 #else
-# include <GL/gl.h>
+# include <GL/glx.h>
 #endif
 
-#include <GL/glext.h>
+#endif
 #include <osgGeo/GLInfo>
 
 
 using namespace osgGeo;
+void initWinGL();
+void initLuxGL();
 
 
 GLInfo::GLInfo()
@@ -65,10 +69,23 @@ GLInfo::GLInfo()
 
 
 static osg::ref_ptr<GLInfo> inst;
-    
+void GLInfo::initGL()
+{
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__win64__) || defined(__win32__)
+    initWinGL();
+#elif defined(__lux64__) || defined(__lux32__)
+    initLuxGL();
+#endif
+}
 
 const osg::ref_ptr<GLInfo> GLInfo::get()
 {
+#if defined(__APPLE__)  || defined(__mac__) //Hack to prepvent crash on MAC platform
+    return 0;
+#endif
+
+    if ( !inst )
+	initGL();
     if ( !inst && glGetString(GL_VENDOR) )
     {
         GLInfo* res = new GLInfo;
@@ -169,6 +186,16 @@ bool GLInfo::getExtension( const char* extnsnnm ) const
 }
 
 
+bool GLInfo::isPlatformSupported() const
+{
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__win64__) || defined(__win32__) || defined(__lux64__) || defined(__lux32__)
+    return true;
+#else
+    return false;
+#endif
+}
+
+
 bool GLInfo::isVertexProgramSupported() const
 {
     return getExtension( "GL_ARB_vertex_shader" );
@@ -185,3 +212,127 @@ bool GLInfo::isGeometryShader4Supported() const
 {
     return getExtension( "GL_EXT_geometry_shader4" );
 }
+
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__win64__) || defined(__win32__)
+LONG WINAPI WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+    return (LONG)DefWindowProc(hWnd, uMsg, wParam, lParam);
+}
+
+void initWinGL()
+{
+    HDC	    hDC;
+    HGLRC   hRC;
+    HWND    hWnd;
+    WNDCLASS    wc;
+    PIXELFORMATDESCRIPTOR pfd;
+    static HINSTANCE hInstance = 0;
+    int         pf;
+
+    if ( !hInstance )
+    {
+	hInstance = GetModuleHandle(NULL);
+	wc.style         = CS_OWNDC;
+	wc.lpfnWndProc   = (WNDPROC)WindowProc;
+	wc.cbClsExtra    = 0;
+	wc.cbWndExtra    = 0;
+	wc.hInstance     = hInstance;
+	wc.hIcon         = LoadIcon(NULL, IDI_WINLOGO);
+	wc.hCursor       = LoadCursor(NULL, IDC_ARROW);
+	wc.hbrBackground = NULL;
+	wc.lpszMenuName  = NULL;
+	wc.lpszClassName = "OpenGL";
+
+	if ( !RegisterClass(&wc) )
+	    return;
+    }
+
+    hWnd = CreateWindow("OpenGL", "OpenGL", WS_OVERLAPPEDWINDOW |
+			WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
+			0, 0, 100, 100, NULL, NULL, hInstance, NULL);
+
+    if ( hWnd == NULL )
+	return ;
+
+    hDC = GetDC( hWnd );
+    memset( &pfd, 0, sizeof(pfd) );
+    pfd.nSize        = sizeof( pfd );
+    pfd.nVersion     = 1;
+    pfd.dwFlags      = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL;
+    pfd.iPixelType   = PFD_TYPE_RGBA;
+    pfd.cColorBits   = 32;
+
+    pf = ChoosePixelFormat( hDC, &pfd );
+
+    if ( pf == 0 )
+	return;
+
+    if ( SetPixelFormat(hDC, pf, &pfd) == FALSE )
+	return;
+
+    DescribePixelFormat(hDC, pf, sizeof(PIXELFORMATDESCRIPTOR), &pfd);
+    ReleaseDC(hWnd,hDC);
+    hRC = wglCreateContext(hDC);
+    wglMakeCurrent(hDC, hRC);
+    DestroyWindow( hWnd );
+}
+
+
+#elif defined(__lux64__) || defined(__lux32__)
+void initLuxGL()
+{
+    Display* dpy = XOpenDisplay( NULL );
+    int attribSingle[] = {
+	GLX_RGBA,
+	GLX_RED_SIZE, 1,
+	GLX_GREEN_SIZE, 1,
+	GLX_BLUE_SIZE, 1,
+	None };
+    int attribDouble[] = {
+	GLX_RGBA,
+	GLX_RED_SIZE, 1,
+	GLX_GREEN_SIZE, 1,
+	GLX_BLUE_SIZE, 1,
+	GLX_DOUBLEBUFFER,
+	None };
+
+    int width = 100, height = 100;
+    int scrnum = 0;
+    Window root = RootWindow( dpy, scrnum );
+
+    XVisualInfo* visinfo = glXChooseVisual( dpy, scrnum, attribSingle );
+    if ( !visinfo )
+    {
+	visinfo = glXChooseVisual(dpy, scrnum, attribDouble);
+	if ( !visinfo )
+	    return;
+    }
+
+    XSetWindowAttributes attr;
+    attr.background_pixel = 0;
+    attr.border_pixel = 0;
+    attr.colormap = XCreateColormap( dpy, root, visinfo->visual, AllocNone );
+    attr.event_mask = StructureNotifyMask | ExposureMask;
+
+    unsigned long mask = CWBackPixel | CWBorderPixel | CWColormap | CWEventMask;
+    Window win = XCreateWindow( dpy, root, 0, 0, width, height,
+				0, visinfo->depth, InputOutput,
+				visinfo->visual, mask, &attr );
+
+    Bool allowDirect = True;
+    GLXContext ctx = glXCreateContext( dpy, visinfo, NULL, allowDirect );
+    if ( !ctx )
+    {
+	XFree(visinfo);
+	XDestroyWindow(dpy, win);
+	return;
+    }
+
+    if ( !glXMakeCurrent(dpy,win,ctx) )
+	return;
+
+    glXDestroyContext(dpy, ctx);
+    XFree(visinfo);
+    XDestroyWindow(dpy, win);
+}
+#endif
