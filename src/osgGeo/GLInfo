@@ -1,5 +1,4 @@
-#ifndef OSGGEO_GLINFO_H
-#define OSGGEO_GLINFO_H
+#pragma once
 
 /* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
 Copyright 2012 dGB Beheer B.V.
@@ -47,6 +46,7 @@ public:
     int				getLimit(int glenum) const;
     void			getLineWidthRange(float& min,float& max) const;
 
+    
     bool			isOK() const;
 
 protected:
@@ -60,6 +60,7 @@ protected:
     std::string			_glversion;
     std::string			_glextensions;
 
+    
     struct Limit
     {
 				Limit( int tok, const char* nm, int val )
@@ -73,12 +74,10 @@ protected:
 
     bool			getExtension(const char* extntnnm) const;
 
+    
     std::vector<Limit>		_limits;
 
     std::string			_errmsg;
 };
 
 } // namespace osgGeo
-
-#endif // OSGGEO_GLINFO_H
-
