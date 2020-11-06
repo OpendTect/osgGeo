@@ -237,7 +237,6 @@ void initWinGL()
     HDC	    hDC;
     HGLRC   hRC;
     HWND    hWnd;
-    MSG	    msg;
     WNDCLASS    wc;
     PIXELFORMATDESCRIPTOR pfd;
     static HINSTANCE hInstance = 0;
