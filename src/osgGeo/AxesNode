@@ -37,7 +37,7 @@ public:
 
 				AxesNode();
 				AxesNode(const AxesNode&, const osg::CopyOp& op =
-                                         osg::CopyOp::DEEP_COPY_ALL);
+					osg::CopyOp::DEEP_COPY_ALL);
 				META_Node(osgGeo,AxesNode);
 
     void			traverse(osg::NodeVisitor&);
@@ -53,7 +53,9 @@ public:
     void			setAnnotationTextSize(float);
     float			getAnnotationTextSize() const {return _textSize;}
     void			setAnnotationFont(osgText::Font*);
+    [[deprecated("Use setPrimaryCamera")]]
     void			setMasterCamera(osg::Camera*);
+    void			setPrimaryCamera(osg::Camera*);
 
 protected:
 
@@ -61,7 +63,7 @@ protected:
     bool			updateGeometry();
     bool			needsUpdate() const;
     bool			computeTransform(osg::Matrix&) const;
-       
+
     float			_radius;
     float			_length;
     float			_textSize;
