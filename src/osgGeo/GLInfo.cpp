@@ -39,7 +39,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
  */
 
 
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__win64__) || defined(__win32__)
+#if defined(WIN32) || defined(_WIN32)
 # include <windows.h>
 # include <GL/gl.h>
 # include <GL/glext.h>
@@ -203,7 +203,7 @@ bool GLInfo::getExtension( const char* extnsnnm ) const
 
 bool GLInfo::isPlatformSupported() const
 {
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__win64__) || defined(__win32__) || defined(__lux64__) || defined(__lux32__)
+#if defined(WIN32) || defined(_WIN32) || defined(__linux__)
     return true;
 #else
     return false;
@@ -228,7 +228,7 @@ bool GLInfo::isGeometryShader4Supported() const
     return getExtension( "GL_EXT_geometry_shader4" );
 }
 
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__win64__) || defined(__win32__)
+#if defined(WIN32) || defined(_WIN32)
 LONG WINAPI WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     return (LONG)DefWindowProc(hWnd, uMsg, wParam, lParam);
@@ -293,7 +293,7 @@ void initWinGL()
 }
 
 
-#elif defined(__lux64__) || defined(__lux32__)
+#elif defined(__linux__)
 void initLuxGL()
 {
     Display* dpy = XOpenDisplay( NULL );
