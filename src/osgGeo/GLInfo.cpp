@@ -19,21 +19,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
 
 
-/* This implementation of class osgGeo::GLInfo is using code from: 
+/* This implementation of class osgGeo::GLInfo is using code from:
  *
  * [1] wglinfo.c by Nate Robins, 1997 (for Windows)
  *
  * [2] glxinfo by Brian Paul, 1999-2006 (for Linux)
  *
  * Copyright (C) 1999-2006  Brian Paul   All Rights Reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation
  * the rights to use, copy, modify, merge, publish, distribute, sublicense,
  * and/or sell copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included
  * in all copies or substantial portions of the Software.
  */
@@ -74,9 +74,11 @@ static osg::ref_ptr<GLInfo> inst;
 
 void GLInfo::initGL()
 {
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__win64__) || defined(__win32__)
+#if defined(__APPLE__)
+    return;
+el#if defined(WIN32) || defined(_WIN32)
     initWinGL();
-#elif defined(__lux64__) || defined(__lux32__)
+#elif defined(__linux__)
     initLuxGL();
 #endif
 }
@@ -97,18 +99,18 @@ const osg::ref_ptr<GLInfo> GLInfo::get()
         inst = res;
     }
 
-    
+
     return inst;
 }
 
-    
+
 void GLInfo::updateLimits()
 {
     struct token_name {
         GLenum _token;
         const char* _name;
     };
-    
+
 #if defined(GL_ARB_vertex_shader)
     const struct token_name vertex_limits[] = {
         { GL_MAX_VERTEX_UNIFORM_COMPONENTS_ARB, "GL_MAX_VERTEX_UNIFORM_COMPONENTS_ARB" },
@@ -121,7 +123,7 @@ void GLInfo::updateLimits()
         { (GLenum) 0, NULL }
     };
 
-    
+
     for ( int idx = 0; vertex_limits[idx]._token; idx++) {
         GLint max[1];
         glGetIntegerv( (GLenum) vertex_limits[idx]._token, max);
@@ -132,7 +134,7 @@ void GLInfo::updateLimits()
 
 #endif
 
-    
+
 #if defined(GL_ARB_fragment_shader)
     const struct token_name fragment_limits[] = {
         { GL_MAX_FRAGMENT_UNIFORM_COMPONENTS_ARB, "GL_MAX_FRAGMENT_UNIFORM_COMPONENTS_ARB" },
@@ -141,7 +143,7 @@ void GLInfo::updateLimits()
         { (GLenum) 0, NULL }
     };
 
-    
+
     for ( int idx = 0; fragment_limits[idx]._token; idx++) {
         GLint max[1];
         glGetIntegerv( (GLenum) fragment_limits[idx]._token, max);
@@ -170,15 +172,15 @@ bool GLInfo::isOK() const
 }
 
 
-    
-    
+
+
 int GLInfo::getLimit( int intenum ) const
 {
     for ( int idx=0; idx<_limits.size(); idx++ )
         if ( _limits[idx]._token==intenum )
             return _limits[idx]._value;
 
-    
+
     return -1;
 }
 
