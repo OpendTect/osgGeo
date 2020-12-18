@@ -14,6 +14,8 @@ GNU Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>
 
+
+
 */
 
 
@@ -37,19 +39,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
  */
 
 
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__win64__) || defined(__win32__)
+#if defined(WIN32) || defined(_WIN32)
 # include <windows.h>
 # include <GL/gl.h>
 # include <GL/glext.h>
 #else
-
 #if defined( __APPLE__ )
 # include <OpenGL/gl.h>
 #else
 # include <GL/glx.h>
 #endif
-
 #endif
+
 #include <osgGeo/GLInfo>
 
 
@@ -69,14 +70,19 @@ GLInfo::GLInfo()
 
 
 static osg::ref_ptr<GLInfo> inst;
+
+
 void GLInfo::initGL()
 {
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__win64__) || defined(__win32__)
+#if defined(__APPLE__)
+    return;
+el#if defined(WIN32) || defined(_WIN32)
     initWinGL();
-#elif defined(__lux64__) || defined(__lux32__)
+#elif defined(__linux__)
     initLuxGL();
 #endif
 }
+
 
 const osg::ref_ptr<GLInfo> GLInfo::get()
 {
@@ -86,15 +92,18 @@ const osg::ref_ptr<GLInfo> GLInfo::get()
 
     if ( !inst )
 	initGL();
+
     if ( !inst && glGetString(GL_VENDOR) )
     {
         GLInfo* res = new GLInfo;
         inst = res;
     }
     
+
     return inst;
 }
     
+
 void GLInfo::updateLimits()
 {
     struct token_name {
@@ -114,6 +123,7 @@ void GLInfo::updateLimits()
         { (GLenum) 0, NULL }
     };
     
+
     for ( int idx = 0; vertex_limits[idx]._token; idx++) {
         GLint max[1];
         glGetIntegerv( (GLenum) vertex_limits[idx]._token, max);
@@ -124,6 +134,7 @@ void GLInfo::updateLimits()
 
 #endif
     
+
 #if defined(GL_ARB_fragment_shader)
     const struct token_name fragment_limits[] = {
         { GL_MAX_FRAGMENT_UNIFORM_COMPONENTS_ARB, "GL_MAX_FRAGMENT_UNIFORM_COMPONENTS_ARB" },
@@ -132,6 +143,7 @@ void GLInfo::updateLimits()
         { (GLenum) 0, NULL }
     };
     
+
     for ( int idx = 0; fragment_limits[idx]._token; idx++) {
         GLint max[1];
         glGetIntegerv( (GLenum) fragment_limits[idx]._token, max);
@@ -160,12 +172,15 @@ bool GLInfo::isOK() const
 }
     
     
+
+
 int GLInfo::getLimit( int intenum ) const
 {
     for ( int idx=0; idx<_limits.size(); idx++ )
         if ( _limits[idx]._token==intenum )
             return _limits[idx]._value;
     
+
     return -1;
 }
 
@@ -188,7 +203,7 @@ bool GLInfo::getExtension( const char* extnsnnm ) const
 
 bool GLInfo::isPlatformSupported() const
 {
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__win64__) || defined(__win32__) || defined(__lux64__) || defined(__lux32__)
+#if defined(WIN32) || defined(_WIN32) || defined(__linux__)
     return true;
 #else
     return false;
@@ -213,7 +228,7 @@ bool GLInfo::isGeometryShader4Supported() const
     return getExtension( "GL_EXT_geometry_shader4" );
 }
 
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__win64__) || defined(__win32__)
+#if defined(WIN32) || defined(_WIN32)
 LONG WINAPI WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     return (LONG)DefWindowProc(hWnd, uMsg, wParam, lParam);
@@ -278,7 +293,7 @@ void initWinGL()
 }
 
 
-#elif defined(__lux64__) || defined(__lux32__)
+#elif defined(__linux__)
 void initLuxGL()
 {
     Display* dpy = XOpenDisplay( NULL );
