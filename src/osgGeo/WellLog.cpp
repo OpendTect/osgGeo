@@ -331,7 +331,8 @@ REGISTER_OBJECT_WRAPPER( WellLog_Wrapper,
     BEGIN_ENUM_SERIALIZER( DisplaySide, Right );
     	ADD_ENUM_VALUE( Left );
     	ADD_ENUM_VALUE( Right );
-    END_ENUM_SERIALIZER();
+	ADD_ENUM_VALUE( Center );
+	END_ENUM_SERIALIZER();
 
     ADD_UINT_SERIALIZER(RepeatNumber, 0);
     ADD_FLOAT_SERIALIZER(RepeatGap, 1 );

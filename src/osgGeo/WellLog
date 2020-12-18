@@ -100,7 +100,7 @@ public:
    
     bool			getDisplayStatus();
 
-    enum			DisplaySide {Left, Right};
+    enum			DisplaySide {Left, Right, Center};
     virtual void		setDisplaySide(DisplaySide) = 0;
     virtual DisplaySide		getDisplaySide() const =0;
     virtual void		setRepeatNumber(unsigned int) = 0; 
