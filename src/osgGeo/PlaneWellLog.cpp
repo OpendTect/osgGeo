@@ -14,8 +14,6 @@ GNU Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-$Id$
-
 */
 
 #include <osgGeo/PlaneWellLog>
@@ -131,7 +129,7 @@ float PlaneWellLog::getRepeatStep() const
     if ( _triGeometryWidth != 0  )
 	repeatStep *= _triGeometryWidth / 100.0f;
 
-    return _dispSide==Right ? repeatStep : -repeatStep;
+    return _dispSide==Right || _dispSide==Center ? repeatStep : -repeatStep;
 }
 
 
@@ -159,7 +157,7 @@ void PlaneWellLog::clearCoords()
 float PlaneWellLog::getShapeFactor(float val, float minval, float maxval )const
 {
     float res = WellLog::getShapeFactor(val, minval, maxval);
-    return _dispSide==Left ? -res : res;
+    return _dispSide==Left ? -res : _dispSide==Right ? res : res-0.5;
 }
 
 
@@ -303,7 +301,6 @@ void PlaneWellLog::traverse(osg::NodeVisitor& nv)
 	    for ( int idx=0; idx<(int)_repeatNumber; idx++ )
 	    {
 		repeatTransform.setTrans(normal*idx*getRepeatStep());
-
 		osg::Matrix mat = repeatTransform * (*iv->getModelMatrix());
 		osg::ref_ptr<osg::RefMatrix> rfMx = new osg::RefMatrix(mat);
 
@@ -447,7 +444,7 @@ void PlaneWellLog::calcFactors()
        return;
  
     float meanLogVal( .0 );
-    int nrSamples = _logPath->size();
+    const int nrSamples = _logPath->size();
 
     unsigned int item = getLogItem();
 
@@ -458,8 +455,10 @@ void PlaneWellLog::calcFactors()
 	    float logval = _shapeLog->at(idx);
 	    if ( _dispSide == Left && !_isFullFilled) 
 		logval = _maxShapeValue - logval;
-	    meanLogVal += logval/nrSamples;
+	    meanLogVal += logval;
 	}
+	if ( nrSamples )
+	    meanLogVal /= nrSamples;
     }
     
     const float meanFactor = getShapeFactor(meanLogVal,
@@ -496,6 +495,14 @@ void PlaneWellLog::calcFactors()
 		    _coordLinedTriFactors->push_back(getShapeFactor(logVal,
 		    _minShapeValue, _maxShapeValue ));
 	    }
+	    else if ( _dispSide==Right )
+	    {
+		if ( logVal > meanLogVal )
+		    _coordLinedTriFactors->push_back(meanFactor);
+	    else
+		    _coordLinedTriFactors->push_back(getShapeFactor(logVal,
+		    _minShapeValue, _maxShapeValue ));
+	    }
 	    else
 	    {
 		if ( logVal > meanLogVal )
@@ -512,6 +519,9 @@ void PlaneWellLog::calcFactors()
 		_coordLinedTriFactors->push_back(getShapeFactor(_maxFillValue,
 		    _minShapeValue, _maxShapeValue ));
 	    }
+	    else if (_dispSide==Center)
+		_coordLinedTriFactors->push_back(getShapeFactor(_minFillValue,
+		    _minShapeValue, _maxShapeValue ));
 	    else
 		_coordLinedTriFactors->push_back(.0);
 

@@ -1,5 +1,4 @@
-#ifndef OSGGEO_WELLLOG_H
-#define OSGGEO_WELLLOG_H
+#pragma once
 
 /* osgGeo - A collection of geoscientific extensions to OpenSceneGraph.
 Copyright 2012 dGB Beheer B.V.
@@ -16,8 +15,6 @@ GNU Lesser General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>
-
-$Id$
 
 */
 
@@ -103,7 +100,7 @@ public:
    
     bool			getDisplayStatus();
 
-    enum			DisplaySide {Left, Right};
+    enum			DisplaySide {Left, Right, Center};
     virtual void		setDisplaySide(DisplaySide) = 0;
     virtual DisplaySide		getDisplaySide() const =0;
     virtual void		setRepeatNumber(unsigned int) = 0; 
@@ -168,5 +165,4 @@ protected:
 
 } // namespace
 
-#endif //OSGGEO_WellLog_H
 

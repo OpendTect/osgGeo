@@ -14,8 +14,6 @@ GNU Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-$Id$
-
 */
 
 #include <osgGeo/WellLog>
@@ -333,6 +331,7 @@ REGISTER_OBJECT_WRAPPER( WellLog_Wrapper,
     BEGIN_ENUM_SERIALIZER( DisplaySide, Right );
     	ADD_ENUM_VALUE( Left );
     	ADD_ENUM_VALUE( Right );
+	ADD_ENUM_VALUE( Center );
     END_ENUM_SERIALIZER();
 
     ADD_UINT_SERIALIZER(RepeatNumber, 0);
