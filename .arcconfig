@@ -1,4 +1,5 @@
 {
   "project_id" : "osgGeo",
-  "conduit_uri" : "https://phabricator.dgbes.com:8443"
+  "conduit_uri" : "https://phabricator.dgbes.com:8443",
+  "arc.land.onto.default" :  "main"
 }

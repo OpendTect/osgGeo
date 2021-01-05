@@ -259,7 +259,13 @@ void PlaneWellLog::traverse(osg::NodeVisitor& nv)
 	osg::BoundingBox bbox;
 	for ( int idx=0; idx<(int)_repeatNumber; idx++ )
 	{
-	    repeatTransform.setTrans( normal*idx*getRepeatStep() );
+	    if ( _dispSide==Center )
+	    {
+		const float pos = (float)(2*idx - (int)_repeatNumber + 1)/2.0;
+		repeatTransform.setTrans( normal*pos*getRepeatStep() );
+	    }
+	    else
+		repeatTransform.setTrans( normal*idx*getRepeatStep() );
 	    osg::Matrix RMV = repeatTransform * (*modelViewMatrix);
 	    osg::ref_ptr<osg::RefMatrix> rfMx = new osg::RefMatrix(RMV);
 #if OSG_MIN_VERSION_REQUIRED(3,3,2)
@@ -300,7 +306,13 @@ void PlaneWellLog::traverse(osg::NodeVisitor& nv)
 	    osg::Matrix repeatTransform;
 	    for ( int idx=0; idx<(int)_repeatNumber; idx++ )
 	    {
-		repeatTransform.setTrans(normal*idx*getRepeatStep());
+		if ( _dispSide==Center )
+		{
+		    const float pos = (float)(2*idx - (int)_repeatNumber + 1)/2.0;
+		    repeatTransform.setTrans( normal*pos*getRepeatStep() );
+		}
+		else
+		    repeatTransform.setTrans(normal*idx*getRepeatStep());
 		osg::Matrix mat = repeatTransform * (*iv->getModelMatrix());
 		osg::ref_ptr<osg::RefMatrix> rfMx = new osg::RefMatrix(mat);
 
