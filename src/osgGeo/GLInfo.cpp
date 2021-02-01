@@ -76,7 +76,7 @@ void GLInfo::initGL()
 {
 #if defined(__APPLE__)
     return;
-el#if defined(WIN32) || defined(_WIN32)
+#elif defined(WIN32) || defined(_WIN32)
     initWinGL();
 #elif defined(__linux__)
     initLuxGL();
