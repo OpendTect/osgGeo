@@ -153,7 +153,7 @@ TubeWellLog::RenderMode TubeWellLog::getRenderMode() const
     const osg::StateSet* stateset = getStateSet();
     const osg::LightModel* lightmodel = stateset
 	? dynamic_cast<const osg::LightModel*>(stateset->getAttribute(osg::StateAttribute::LIGHTMODEL))
-	: 0;
+	: nullptr;
 
     const osg::CullFace* cullface =
 	dynamic_cast<const osg::CullFace*>(stateset->getAttribute(osg::StateAttribute::CULLFACE));
@@ -216,8 +216,8 @@ void TubeWellLog::buildTube(bool dirtybound)
     int total(0);
     for (int res = 0; res <_resolution + 1; res++)
     {
-	osg::ref_ptr<osg::DrawElementsUShort> drawElements =
-	    new osg::DrawElementsUShort(GL_TRIANGLE_STRIP,2*nrSamples);
+	osg::ref_ptr<osg::DrawElementsUInt> drawElements =
+	    new osg::DrawElementsUInt(GL_TRIANGLE_STRIP,2*nrSamples);
 
 	int count(0);
 
@@ -279,8 +279,8 @@ void TubeWellLog::buildTube(bool dirtybound)
 
     if ( tubeClosedSurfacePointIndexs.size() > 2 )
     {
-	osg::ref_ptr<osg::DrawElementsUShort> closedSurfaceDrawElements =
-	    new osg::DrawElementsUShort(GL_TRIANGLES, 0);
+	osg::ref_ptr<osg::DrawElementsUInt> closedSurfaceDrawElements =
+	    new osg::DrawElementsUInt(GL_TRIANGLES, 0);
 	for ( int idx=0; idx<(int)tubeClosedSurfacePointIndexs.size()-1; idx++ )
 	{
 	    closedSurfaceDrawElements->push_back(
