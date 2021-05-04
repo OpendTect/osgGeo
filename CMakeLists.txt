@@ -48,10 +48,17 @@ endif( BUILD_EXAMPLES )
 include_directories( ${osgGeo_SOURCE_DIR}/src )
 include_directories( SYSTEM ${OSG_INCLUDE_DIR} ${QT_HEADERS_DIR} )
 
-install( FILES
-	CMakeModules/FindosgGeo.cmake
-	CMakeModules/FindOSG.cmake
-	DESTINATION share/CMakeModules )
+if ( APPLE )
+    install( FILES
+	    CMakeModules/FindosgGeo.cmake
+	    CMakeModules/FindOSG.cmake
+	    DESTINATION Contents/Resources/share/CMakeModules )
+else()
+    install( FILES
+	    CMakeModules/FindosgGeo.cmake
+	    CMakeModules/FindOSG.cmake
+	    DESTINATION share/CMakeModules )
+endif()
 
 add_subdirectory(src)
 

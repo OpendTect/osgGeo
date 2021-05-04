@@ -161,7 +161,7 @@ else()
 	    DESTINATION Contents/Resources/include/${LIB_NAME} )
 	install(TARGETS
 	    ${LIB_NAME}
-	    LIBRARY DESTINATION Contents/MacOS )
+	    LIBRARY DESTINATION Contents/Frameworks )
     else()
 	install(FILES
 	    ${LIB_PUBLIC_HEADERS}
