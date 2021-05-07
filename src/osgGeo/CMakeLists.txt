@@ -58,6 +58,10 @@ if ( UNIX )
     endif()
 endif()
 
+if ( APPLE )
+    set( CMAKE_MACOSX_RPATH 1 )
+endif()
+
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/..
 		     ${CMAKE_CURRENT_BINARY_DIR}/.. )
 include_directories( SYSTEM ${OSG_INCLUDE_DIR} )
