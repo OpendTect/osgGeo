@@ -589,38 +589,9 @@ void PlaneWellLog::updateFilledLogColor()
     const int nrSamples = _logPath->size();
     _outFillIndex.clear();
 
-    float minfillz = 0.0;
-    float maxfillz = 0.0;
-
-    if ( _fillLogDepths->getNumElements() )
-    {
-	const osg::FloatArray::iterator itmin = std::min_element(
-			    _fillLogDepths->begin(), _fillLogDepths->end());
-	minfillz = *itmin;
-
-	const osg::FloatArray::iterator itmax = std::max_element(
-			    _fillLogDepths->begin(), _fillLogDepths->end());
-	maxfillz = *itmax;
-    }
-
     for ( int idx=0; idx<nrSamples; idx++ )
     {
-	const osg::Vec3f pos = _logPath->at(idx);
-
-	if ( _fillLogDepths->getNumElements() )
-	{
-	    if( pos[2] < minfillz || pos[2] > maxfillz )
-	    {
-		_outFillIndex.push_back(idx);
-		continue;
-	    }
-	}
-
-	const int fillIndex = getClosestIndex(*_fillLogDepths, pos[2]);
-	if ( fillIndex < 0 )
-	    continue;
-
-	const float fillLogVal = _fillLog->at(fillIndex);
+	const float fillLogVal = _fillLog->at(idx);
 	clrIndex = (int)((fillLogVal-_minFillValue )/clrStep);
 	clrIndex = (clrIndex > 255) ? 255 : clrIndex;
 	clrIndex = (clrIndex < 0  ) ? 0   : clrIndex;
