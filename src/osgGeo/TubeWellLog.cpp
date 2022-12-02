@@ -398,39 +398,18 @@ void TubeWellLog::updateTubeLogColor()
 	setRenderMode(RenderFrontSide);
     }
 
-    const osg::FloatArray::iterator itmin = std::min_element(
-	_fillLogDepths->begin(), _fillLogDepths->end());
-    const float minfillz = *itmin;
-
-    const osg::FloatArray::iterator itmax = std::max_element(
-	_fillLogDepths->begin(), _fillLogDepths->end());
-    const float maxfillz = *itmax;
-
     _logColors->resize(nrSamples);
 
     for (int idx=0; idx<nrSamples; idx++)
     {
-	const osg::Vec3f pos = _logPath->at(idx);
-
-	if (pos[2]<minfillz || pos[2]>maxfillz)
-	{
-	    _outTubeIndex.push_back(idx);
-	    (*_logColors)[idx] = _colorTable->at(1);
-	    continue;
-	}
-
-	const int fillIndex = getClosestIndex(*_fillLogDepths, pos[2]);
-	if ( fillIndex < 0 )
-	    continue;
-
-	const float fillLogVal = _fillLog->at((int)fillIndex);
+	const float fillLogVal = _fillLog->at(idx);
 	clrIndex = (int)((fillLogVal-_minFillValue )/clrStep);
-	clrIndex = (clrIndex>255) ? 255 : clrIndex;
-	clrIndex = (clrIndex<0) ? 0   : clrIndex;
+	clrIndex = clrIndex>255 ? 255 : clrIndex;
+	clrIndex = clrIndex<0 ? 0 : clrIndex;
 	(*_logColors)[idx] = _colorTable->at(clrIndex) ;
     }
 
-    _tubeLogColors->resize((_resolution+1 )*nrSamples);
+    _tubeLogColors->resize( (_resolution+1)*nrSamples );
 
     int total(0);
     for (int i=0; i<=_resolution; i++)
