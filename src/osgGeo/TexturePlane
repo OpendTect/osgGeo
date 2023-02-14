@@ -54,11 +54,11 @@ public:
     void			setCenter(const osg::Vec3&);
     const osg::Vec3&		getCenter() const;
 
-    void			setTextureBrickSize(short sz,bool strict=false);
+    void			setTextureBrickSize(int sz,bool strict=false);
 				/*!<If not strict, the actual brick size might
 				   be chosen smaller for performance reasons. */
 
-    short			getTextureBrickSize() const;
+    int				getTextureBrickSize() const;
 
     void			setWidth(const osg::Vec3&);
 				/*!<One dim must be zero.
@@ -135,7 +135,7 @@ protected:
     osg::Vec3				_center;
     osg::Vec3				_width;
     osg::Quat				_rotation;
-    short				_textureBrickSize;
+    int					_textureBrickSize;
     bool				_isBrickSizeStrict;
 
     bool				_swapTextureAxes;

@@ -248,7 +248,7 @@ void TexturePanelStripNode::setTexture( osgGeo::LayeredTexture* lt )
 }
 
 
-void TexturePanelStripNode::setTextureBrickSize( short sz, bool strict )
+void TexturePanelStripNode::setTextureBrickSize( int sz, bool strict )
 {
     if ( sz > 0 )
 	_textureBrickSize = sz;

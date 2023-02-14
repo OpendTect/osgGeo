@@ -555,7 +555,7 @@ const osg::Quat& TexturePlaneNode::getRotation() const
 { return _rotation; }
 
 
-void TexturePlaneNode::setTextureBrickSize( short sz, bool strict )
+void TexturePlaneNode::setTextureBrickSize( int sz, bool strict )
 {
     if ( sz > 0 )
 	_textureBrickSize = sz;
@@ -564,7 +564,7 @@ void TexturePlaneNode::setTextureBrickSize( short sz, bool strict )
 }
 
     
-short TexturePlaneNode::getTextureBrickSize() const
+int TexturePlaneNode::getTextureBrickSize() const
 { return _textureBrickSize; }
 
 

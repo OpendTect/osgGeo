@@ -2009,7 +2009,7 @@ int LayeredTexture::getTileOverlapUpperBound( int dim ) const
 }
 
 
-bool LayeredTexture::planTiling( unsigned short brickSize, std::vector<float>& xTickMarks, std::vector<float>& yTickMarks, bool strict ) const
+bool LayeredTexture::planTiling( int brickSize, std::vector<float>& xTickMarks, std::vector<float>& yTickMarks, bool strict ) const
 {
     const Vec2i requestedSize( brickSize, brickSize );
     Vec2i actualSize = requestedSize;
