@@ -63,7 +63,7 @@ public:
 				    lengthy geometry and/or texture changes. */
     bool			isDisplayFrozen() const	{ return _frozen; }
 
-    void			setTextureBrickSize(short sz,bool strict=false);
+    void			setTextureBrickSize(int sz,bool strict=false);
 				/*!<If not strict, the actual brick size is
 				    allowed to be chosen smaller to optimize
 				    performance. */
@@ -161,7 +161,7 @@ protected:
     bool					_isRedrawing;
     
     osg::ref_ptr<osgGeo::LayeredTexture>	_texture;
-    short					_textureBrickSize;
+    int						_textureBrickSize;
     bool					_isBrickSizeStrict;
     osg::ref_ptr<osg::Vec2Array>		_pathCoords;
     osg::ref_ptr<osg::FloatArray>		_pathTexOffsets;
