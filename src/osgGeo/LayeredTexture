@@ -234,7 +234,7 @@ public:
 			   Used by seam management to minimize tile artifacts
 			   caused by mipmapping with non-square texels. */
 
-    bool /* as_asked */	planTiling(unsigned short brickSize,
+    bool /* as_asked */	planTiling(int brickSize,
 				   std::vector<float>& xTickMarks,
 				   std::vector<float>& yTickMarks,
 				   bool strict=true) const;
