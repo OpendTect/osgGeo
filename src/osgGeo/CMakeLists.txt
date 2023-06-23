@@ -17,10 +17,9 @@
 
 
 set( LIB_NAME osgGeo )
-include( "../../CMakeModules/ListFilter.cmake" )
 
-if ( (NOT DEFINED OPENSCENEGRAPH_FOUND) )
-    find_package( OpenSceneGraph REQUIRED osgDB osgDA osgUtil osgManipulator osgWidget osgViewer osgVolume osgText osgSim )
+if ( NOT DEFINED OPENSCENEGRAPH_FOUND )
+    find_package( OpenSceneGraph REQUIRED osgDB osgGA osgUtil osgManipulator osgWidget osgViewer osgVolume osgText osgSim )
 endif()
 
 if ( UNIX )
@@ -33,7 +32,7 @@ if ( WIN32 )
 endif()
 
 if ( UNIX )
-    include (CheckCXXSourceCompiles)
+    include( CheckCXXSourceCompiles )
 
     check_cxx_source_compiles(
 	"${OPENGL_HEADER1}
@@ -69,7 +68,6 @@ include_directories( SYSTEM ${OSG_INCLUDE_DIR} )
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/Config.cmake
     ${CMAKE_CURRENT_SOURCE_DIR}/Config )
-
 
 set ( LIB_PUBLIC_HEADERS 
     AxesNode
@@ -135,50 +133,31 @@ add_library( ${LIB_NAME} SHARED
     VolumeTechniques.cpp
     WellLog.cpp)
 set( OSG_GEODEPS ${OPENSCENEGRAPH_LIBRARIES} )
-OD_FILTER_LIBRARIES( OSG_GEODEPS ${CMAKE_BUILD_TYPE} )
 target_link_libraries(
     ${LIB_NAME}
     ${OSG_GEODEPS}
     ${OPENGL_gl_LIBRARY}
 )
 
-if ( OSGGEO_INSTDIR_LIB_DEBUG )
-    if ( WIN32 )
-	install( TARGETS ${LIB_NAME} 
-	    CONFIGURATIONS "Debug"
-	    RUNTIME DESTINATION ${OSGGEO_INSTDIR_LIB_DEBUG} )
-	install( TARGETS ${LIB_NAME} 
-	    CONFIGURATIONS "Release"
-	    RUNTIME DESTINATION ${OSGGEO_INSTDIR_LIB_RELEASE} )
-    else()
-	install( TARGETS ${LIB_NAME} 
-	    CONFIGURATIONS "Debug"
-	    LIBRARY DESTINATION ${OSGGEO_INSTDIR_LIB_DEBUG} )
-	install( TARGETS ${LIB_NAME} 
-	    CONFIGURATIONS "Release"
-	    LIBRARY DESTINATION ${OSGGEO_INSTDIR_LIB_RELEASE} )
-    endif()
+if ( APPLE )
+    install(FILES
+	${LIB_PUBLIC_HEADERS}
+	DESTINATION Contents/Resources/include/${LIB_NAME} )
+    install(TARGETS
+	${LIB_NAME}
+	LIBRARY DESTINATION Contents/Frameworks )
 else()
-    if ( APPLE )
-	install(FILES
-	    ${LIB_PUBLIC_HEADERS}
-	    DESTINATION Contents/Resources/include/${LIB_NAME} )
+    install(FILES
+	${LIB_PUBLIC_HEADERS}
+	DESTINATION include/${LIB_NAME} )
+    if ( WIN32 )
 	install(TARGETS
 	    ${LIB_NAME}
-	    LIBRARY DESTINATION Contents/Frameworks )
+	    ARCHIVE DESTINATION lib
+	    RUNTIME DESTINATION bin )
     else()
-	install(FILES
-	    ${LIB_PUBLIC_HEADERS}
-	    DESTINATION include/${LIB_NAME} )
-	if ( WIN32 )
-	    install(TARGETS
-		${LIB_NAME}
-		ARCHIVE DESTINATION lib
-		RUNTIME DESTINATION bin )
-	else()
-	    install(TARGETS
-		${LIB_NAME}
-		LIBRARY DESTINATION lib )
-	endif()
+	install(TARGETS
+	    ${LIB_NAME}
+	    LIBRARY DESTINATION lib )
     endif()
 endif()

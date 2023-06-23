@@ -27,7 +27,7 @@ set ( BUILD_EXAMPLES "" CACHE BOOL "Build examples" )
 
 cmake_minimum_required (VERSION 2.6)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 list( APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMakeModules")
@@ -65,6 +65,3 @@ add_subdirectory(src)
 if( BUILD_EXAMPLES )
     add_subdirectory(examples)
 endif( BUILD_EXAMPLES )
-
-#To avoid warnings in continious integration.
-set ( DUMMY ${COINDIR} ${CTEST_MODEL} ${OSGGEO_DIR} ${QTDIR} ${CMAKE_BUILD_TYPE} )
