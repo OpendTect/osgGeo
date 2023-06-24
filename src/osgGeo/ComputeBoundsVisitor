@@ -28,6 +28,7 @@ class OSGGEO_EXPORT ComputeBoundsVisitor : public osg::ComputeBoundsVisitor
 public:
     ComputeBoundsVisitor(osg::NodeVisitor::TraversalMode traversalMode)
 	: osg::ComputeBoundsVisitor( traversalMode ) {}
+    ~ComputeBoundsVisitor()			     {}
 
     const std::vector<osg::Matrix>&  getMatrixStack() const
 				     { return _matrixStack; }
