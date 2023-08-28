@@ -1,4 +1,5 @@
 {
-  "project_id" : "osgGeo",
-  "conduit_uri" : "https://phabricator.dgbes.com:8443"
+  "project_id" : 	"osgGeo",
+  "arc.land.into" :	[osgGeo-1.4],
+  "conduit_uri" : 	"https://phabricator.dgbes.com"
 }
