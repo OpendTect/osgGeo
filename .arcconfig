@@ -1,5 +1,5 @@
 {
   "project_id" : 	"osgGeo",
-  "arc.land.into" :	[osgGeo-1.4],
+  "arc.land.into" :	["osgGeo-1.4"],
   "conduit_uri" : 	"https://phabricator.dgbes.com"
 }
