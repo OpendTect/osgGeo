@@ -1,6 +1,7 @@
 {
   "project_id" :	"osgGeo",
   "arc.land.onto" :	["osgGeo-1.5"],
+  "arc.land.onto.default" :	"osgGeo-1.5",
   "phabricator.uri" :	"https://phabricator.dgbes.com",
   "base" :		"git:merge-base(origin/main), arc:prompt"
 }
