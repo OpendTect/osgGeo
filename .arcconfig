@@ -1,5 +1,6 @@
 {
   "project_id" : 	"osgGeo",
-  "arc.land.into" :	["osgGeo-1.4"],
+  "arc.land.onto" :	["osgGeo-1.4"],
+  "arc.land.onto.default" :	"osgGeo-1.4",
   "phabricator.uri" : 	"https://phabricator.dgbes.com"
 }
