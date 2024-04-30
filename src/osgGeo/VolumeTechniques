@@ -41,7 +41,8 @@ class BoundingGeometry : public osg::Geometry
 public:
     			BoundingGeometry(osgVolume::VolumeTechnique&);
 #if OSG_MIN_VERSION_REQUIRED(3,3,2) 
-    osg::BoundingBox	computeBoundingBox() const	{ return _boundingBox; }
+    osg::BoundingBox	computeBoundingBox() const override
+			{ return _boundingBox; }
 #else
     osg::BoundingBox	computeBound() const    	{ return _boundingBox; }
 #endif
@@ -56,10 +57,12 @@ class OSGGEO_EXPORT FixedFunctionTechnique : public osgVolume::FixedFunctionTech
 {
     public :
 	FixedFunctionTechnique();
-	FixedFunctionTechnique(const FixedFunctionTechnique&,const osg::CopyOp& copyop=osg::CopyOp::SHALLOW_COPY);
+	FixedFunctionTechnique(const FixedFunctionTechnique&,
+			       const osg::CopyOp& copyop=
+					osg::CopyOp::SHALLOW_COPY);
 
-	virtual void init();
-	virtual void traverse(osg::NodeVisitor& nv);
+	void init() override;
+	void traverse(osg::NodeVisitor&) override;
 
 	void setBorderColor(const osg::Vec4f&);
 	const osg::Vec4f& getBorderColor() const;
@@ -76,10 +79,11 @@ class OSGGEO_EXPORT RayTracedTechnique : public osgVolume::RayTracedTechnique
 {
     public :
 	RayTracedTechnique(bool dynamicFragShading=false);
-	RayTracedTechnique(const RayTracedTechnique&,const osg::CopyOp& copyop=osg::CopyOp::SHALLOW_COPY);
+	RayTracedTechnique(const RayTracedTechnique&,
+			   const osg::CopyOp& copyop=osg::CopyOp::SHALLOW_COPY);
 
-	virtual void init();
-	virtual void traverse(osg::NodeVisitor& nv);
+	void init() override;
+	void traverse(osg::NodeVisitor&) override;
 
 	void setBorderColor(const osg::Vec4f&);
 	const osg::Vec4f& getBorderColor() const;

@@ -514,7 +514,7 @@ public:
 	: _layTex( layTex )
     {}
 
-    virtual void requestRedraw() const	{ _layTex.triggerRedrawRequest(); }
+    void requestRedraw() const override	{ _layTex.triggerRedrawRequest(); }
 
 protected: 
     LayeredTexture&	_layTex;

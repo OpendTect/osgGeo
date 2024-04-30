@@ -123,7 +123,7 @@ class SwapBuffersCallback : public osg::GraphicsContext::SwapCallback
 {
 public:
     SwapBuffersCallback(){};
-    virtual void swapBuffersImplementation(osg::GraphicsContext*){return;}
+    void swapBuffersImplementation( osg::GraphicsContext* ) override   {}
 };
 
 

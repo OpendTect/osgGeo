@@ -49,7 +49,8 @@ public:
 			}
 
 #if OSG_MIN_VERSION_REQUIRED(3,3,2)
-    osg::BoundingBox	computeBoundingBox() const	{ return _boundingBox; }
+    osg::BoundingBox	computeBoundingBox() const override
+    			{ return _boundingBox; }
 #else
     osg::BoundingBox	computeBound() const		{ return _boundingBox; }
 #endif
@@ -107,7 +108,7 @@ public:
 	: _tpn( tpn )
     {}
 
-    virtual void requestRedraw() const		{ _tpn.forceRedraw(); }
+    void requestRedraw() const override		{ _tpn.forceRedraw(); }
 
 protected:
     TexturePlaneNode&	_tpn;

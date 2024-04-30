@@ -99,8 +99,8 @@ class OSGGEO_EXPORT MarkerSet : public osg::Node
 	bool				isPickable() const;
 
     protected:
-	osg::BoundingSphere		computeBound() const;
-	void				traverse(osg::NodeVisitor&);
+	osg::BoundingSphere		computeBound() const override;
+	void				traverse(osg::NodeVisitor&) override;
 	bool				updateShapes();
 	osg::Vec4			getColor(int) const;
 	bool				useShader(MarkerShape::ShapeType)const;

@@ -116,7 +116,7 @@ public:
     bool			areNormalsSmoothed() const
 						{ return _smoothNormals; }
 
-    osg::BoundingSphere		computeBound() const;
+    osg::BoundingSphere		computeBound() const override;
 
     void			forceRedraw(bool=true);
 
@@ -130,7 +130,7 @@ protected:
 
     void			cleanUp();
     float			getTexelSizeRatio() const;
-    void			traverse(osg::NodeVisitor&);
+    void			traverse(osg::NodeVisitor&) override;
     bool			updateGeometry();
 
     int				getValidNormalIdx(int panelIdx,

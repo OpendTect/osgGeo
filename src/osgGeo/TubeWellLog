@@ -50,39 +50,42 @@ public:
                                         const osg::CopyOp& op = osg::CopyOp::DEEP_COPY_ALL);
                                 META_Node(osgGeo,TubeWellLog);
 
-    enum RenderMode 		{ RenderBackSide=-1, RenderBothSides, RenderFrontSide };
+    enum RenderMode 	{ RenderBackSide=-1, RenderBothSides, RenderFrontSide };
 
-    void			setRenderMode(RenderMode mode);
-    RenderMode			getRenderMode() const;
+    void		setRenderMode(RenderMode mode);
+    RenderMode		getRenderMode() const;
 
-    void			setResolution(int);
-    int				getResolution() const {return _resolution;}
+    void		setResolution(int) override;
+    int			getResolution() const override	{ return _resolution; }
 
-    virtual void		setDisplaySide(DisplaySide) {};
-    virtual DisplaySide		getDisplaySide() const {return Left;};
-    virtual void		setRepeatNumber(unsigned int) {};
-    virtual unsigned int	getRepeatNumber() const {return 0;};
-    virtual void		setRepeatGap (float) {};
-    virtual float		getRepeatGap() const {return .0f;};
-    virtual void		setFullFilled(bool){};
-    virtual bool		getFullFilled() const {return false;};
-    virtual void		setSeisLogStyle(bool){};
-    virtual bool 		getSeisLogStyle() const{return false;};
-    virtual void		setLogFill(bool){};
-    bool			getLogFill() const { return false; }
-    virtual void		clearLog();
-    virtual float		getRepeatStep() const { return 0; }
-    osg::ref_ptr<osg::Geometry>	getTubeGeometry() const { return _tubeGeometry; }
-    osg::ref_ptr<osg::Geometry> getLogPathGeometry() const { return _logPathGeometry; }
-    osg::ref_ptr<osg::Geometry> getLogGeometry() const { return 0; }
-	
+    void		setDisplaySide(DisplaySide) override		{}
+    DisplaySide		getDisplaySide() const override { return Left; }
+    void		setRepeatNumber(unsigned int) override		{}
+    unsigned int	getRepeatNumber() const override	{ return 0; }
+    void		setRepeatGap (float) override 			{}
+    float		getRepeatGap() const override	{ return .0f; }
+    void		setFullFilled(bool) override			{}
+    bool		getFullFilled() const override	{ return false; }
+    void		setSeisLogStyle(bool) override			{}
+    bool 		getSeisLogStyle() const override { return false; }
+    void		setLogFill(bool) override			{}
+    bool		getLogFill() const override	{ return false; }
+    void		clearLog() override;
+    float		getRepeatStep() const override { return 0; }
+    osg::ref_ptr<osg::Geometry>	getTubeGeometry() const override
+			{ return _tubeGeometry; }
+    osg::ref_ptr<osg::Geometry> getLogPathGeometry() const override
+			{ return _logPathGeometry; }
+    osg::ref_ptr<osg::Geometry> getLogGeometry() const override
+			{ return nullptr; }
 
 protected:
-    osg::BoundingSphere			computeBound() const;
-    virtual void	 		traverse(osg::NodeVisitor&);
-    virtual float			getShapeFactor(float val, float minval, 
-							float maxval) const;
     					~TubeWellLog();
+
+    osg::BoundingSphere			computeBound() const override;
+    void		 		traverse(osg::NodeVisitor&) override;
+    float				getShapeFactor(float val,float minval, 
+						float maxval) const override;
 private:
     void			calcTubeShape();
     void			updateTubeLogColor();

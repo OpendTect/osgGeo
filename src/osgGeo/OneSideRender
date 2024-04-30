@@ -55,13 +55,13 @@ public:
     void		setLine(unsigned int idx,const Line3&);
     Line3		getLine(unsigned int idx) const { return _lines[idx]; }
 
-    void		traverse(osg::NodeVisitor&);
+    void		traverse(osg::NodeVisitor&) override;
 
     bool		isDrawn(int dim,bool first) const;
 
 protected:
     typedef std::vector<osg::ref_ptr<osg::Drawable> > DrawableList;
-    osg::BoundingSphere			computeBound() const;
+    osg::BoundingSphere			computeBound() const override;
 
     std::vector<Line3>			_lines;
     DrawableList			_drawables;

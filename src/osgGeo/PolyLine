@@ -40,7 +40,7 @@ public:
 			    const osg::CopyOp& op = osg::CopyOp::DEEP_COPY_ALL);
 			META_Node(osgGeo,PolyLineNode);
 
-    void		traverse(osg::NodeVisitor&);
+    void		traverse(osg::NodeVisitor&) override;
     void		setVertexArray(osg::Array*);
     void		setRadius(float);
     float		getRadius() const { return _radius; }
@@ -66,7 +66,7 @@ protected:
 			    osg::Vec3Array&,int pidx0,int pidx1, int pidx2,bool first,bool last);
     void		addCap(const osg::Vec3& p,const osg::Vec3Array& cornerpoints,const osg::Vec3& norm);
     
-    osg::BoundingSphere	computeBound() const;
+    osg::BoundingSphere	computeBound() const override;
     void		touch();
     void		setUpdateFlag(bool);  
 

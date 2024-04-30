@@ -47,41 +47,46 @@ class OSGGEO_EXPORT PlaneWellLog : public osgGeo::WellLog
 public:
 			PlaneWellLog();
                         PlaneWellLog(const PlaneWellLog&,
-                                     const osg::CopyOp& op = osg::CopyOp::DEEP_COPY_ALL);
+                                     const osg::CopyOp& op =
+					osg::CopyOp::DEEP_COPY_ALL);
                         META_Node(osgGeo,PlaneWellLog);
 
-    void		setDisplaySide(DisplaySide);
-    DisplaySide		getDisplaySide() const { return _dispSide; }
-    void		setRepeatNumber( unsigned int );
-    unsigned int	getRepeatNumber() const { return _repeatNumber; }
-    void		setRepeatGap (float);
-    float		getRepeatGap() const { return _repeatGap; }
-    void		setFullFilled(bool);
-    bool		getFullFilled() const { return _isFullFilled; }
+    void		setDisplaySide(DisplaySide) override;
+    DisplaySide		getDisplaySide() const override { return _dispSide; }
+    void		setRepeatNumber( unsigned int ) override;
+    unsigned int	getRepeatNumber() const	override
+			{ return _repeatNumber; }
+    void		setRepeatGap (float) override;
+    float		getRepeatGap() const override { return _repeatGap; }
+    void		setFullFilled(bool) override;
+    bool		getFullFilled() const override { return _isFullFilled; }
 
-    void		setSeisLogStyle(bool);
-    bool 		getSeisLogStyle() const { return _seisStyle; }
+    void		setSeisLogStyle(bool) override;
+    bool 		getSeisLogStyle() const override { return _seisStyle; }
 
-    void		setLogFill(bool);
-    bool		getLogFill() const { return _isFilled; }
+    void		setLogFill(bool) override;
+    bool		getLogFill() const override { return _isFilled; }
 
-    void		setResolution(int){};
-    int			getResolution() const { return 0; };
+    void		setResolution(int) override			{}
+    int			getResolution() const override { return 0; }
     
-    float		getRepeatStep() const;
-    osg::ref_ptr<osg::Geometry> getLogPathGeometry() const { return _lineGeometry; }
-    osg::ref_ptr<osg::Geometry> getLogGeometry() const { return _triangleGeometry; }
-    osg::ref_ptr<osg::Geometry>	getTubeGeometry() const { return 0; }
+    float		getRepeatStep() const override;
+    osg::ref_ptr<osg::Geometry> getLogPathGeometry() const override
+			{ return _lineGeometry; }
+    osg::ref_ptr<osg::Geometry> getLogGeometry() const override
+			{ return _triangleGeometry; }
+    osg::ref_ptr<osg::Geometry>	getTubeGeometry() const override
+			{ return nullptr; }
 
-    virtual void	clearLog();
-
+    void		clearLog() override;
 
 protected:
-    osg::BoundingSphere		computeBound() const;
-    virtual void	    	traverse(osg::NodeVisitor&);
-    virtual float		getShapeFactor(float val, float minval, 
-                                           float maxval) const;
 				 ~PlaneWellLog();
+
+    osg::BoundingSphere		computeBound() const override;
+    void	    		traverse(osg::NodeVisitor&) override;
+    float			getShapeFactor(float val, float minval, 
+                                           float maxval) const override;
 
     enum RenderMode		{LOGLINE_ONLY,SEISMIC_ONLY,
 				 LOGFILL_ONLY,LOGLNFL_BOTH};

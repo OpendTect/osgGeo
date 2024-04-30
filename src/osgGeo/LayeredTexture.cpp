@@ -3336,7 +3336,7 @@ public:
 
 protected:
 
-    void				doWork();
+    void				doWork() override;
 
     const LayeredTexture*		_lt;
     bool				_dummyTexture;
@@ -3613,7 +3613,7 @@ public:
 
 protected:
 
-    void		doWork();
+    void		doWork() override;
 
     unsigned char*	_dataPtr;
     pixel_uint		_startNr;

@@ -36,11 +36,11 @@ class OSGGEO_EXPORT AxesNode : public osg::MatrixTransform
 public:
 
 				AxesNode();
-				AxesNode(const AxesNode&, const osg::CopyOp& op =
-					osg::CopyOp::DEEP_COPY_ALL);
+				AxesNode(const AxesNode&,const osg::CopyOp& op =
+					 osg::CopyOp::DEEP_COPY_ALL);
 				META_Node(osgGeo,AxesNode);
 
-    void			traverse(osg::NodeVisitor&);
+    void			traverse(osg::NodeVisitor&) override;
     void			setSize(osg::Vec2 size);
     void			setPosition(osg::Vec2 pos);
     void			setRadius(const float&);

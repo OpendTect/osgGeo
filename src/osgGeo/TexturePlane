@@ -69,7 +69,7 @@ public:
     void			swapTextureAxes(bool yn=true);
     bool			areTextureAxesSwapped() const;
 
-    void			traverse(osg::NodeVisitor&);
+    void			traverse(osg::NodeVisitor&) override;
 
     void			setLayeredTexture(LayeredTexture*);
     LayeredTexture*		getLayeredTexture();
@@ -97,7 +97,7 @@ public:
 				
     char			getThinDim() const;
 
-    osg::BoundingSphere		computeBound() const;
+    osg::BoundingSphere		computeBound() const override;
 
     void			forceRedraw(bool=true);
 

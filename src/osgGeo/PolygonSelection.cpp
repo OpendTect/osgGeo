@@ -43,18 +43,19 @@ protected:
     bool handle(const osgGA::GUIEventAdapter &ea,
 					osgGA::GUIActionAdapter&,
 					osg::Object*,
-					osg::NodeVisitor*)
+					osg::NodeVisitor*) override
     {
 	return _polysel->handleEvent(ea);
     }
 
-    bool handle(const osgGA::GUIEventAdapter &ea,osgGA::GUIActionAdapter& aa)
+    bool handle( const osgGA::GUIEventAdapter &ea,
+	    	 osgGA::GUIActionAdapter& aa ) override
     {
 	return osgGA::GUIEventHandler::handle(ea,aa);
     }
 
 #if OSG_MIN_VERSION_REQUIRED(3,3,1)
-    bool handle(osgGA::Event* ev,osg::Object* obj,osg::NodeVisitor* nv)
+    bool handle(osgGA::Event* ev,osg::Object* obj,osg::NodeVisitor* nv) override
     {
 	return osgGA::GUIEventHandler::handle(ev,obj,nv);
     }

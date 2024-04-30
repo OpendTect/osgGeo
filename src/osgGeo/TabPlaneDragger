@@ -32,7 +32,9 @@ class OSGGEO_EXPORT TabPlaneDragger : public osgManipulator::TabPlaneDragger
 
 	TabPlaneDragger(float handleScaleFactor=20.0f);
 
-	virtual bool handle(const osgManipulator::PointerInfo& pi, const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa);
+	bool handle(const osgManipulator::PointerInfo& pi,
+		    const osgGA::GUIEventAdapter& ea,
+		    osgGA::GUIActionAdapter& aa) override;
 
         bool isCurrentEventHandler() const;
 
@@ -61,7 +63,7 @@ class OSGGEO_EXPORT TabPlaneDragger : public osgManipulator::TabPlaneDragger
 
 	bool convToTranslatePlaneDraggerEvent(osgGA::GUIEventAdapter&);
 
-	virtual void traverse(osg::NodeVisitor&);
+	void traverse(osg::NodeVisitor&) override;
 
 	int			_curMouseButModKeyIdx;
 	osg::Vec2		_positionOnScreen;

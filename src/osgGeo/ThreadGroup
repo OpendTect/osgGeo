@@ -116,7 +116,7 @@ public:
 				, _group(tg)
 			{}
 
-    void		run()
+    void		run() override
 			{
 			    _lock.lock();
 			    while ( !_stopFlag )

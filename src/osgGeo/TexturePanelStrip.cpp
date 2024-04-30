@@ -48,7 +48,8 @@ public:
 			    : _tpsn( tpsn )
 			{}
 #if OSG_MIN_VERSION_REQUIRED(3,3,2)	
-    osg::BoundingBox	computeBoundingBox() const	{ return _boundingBox; }
+    osg::BoundingBox	computeBoundingBox() const override
+			{ return _boundingBox; }
 #else
     osg::BoundingBox	computeBound() const		{ return _boundingBox; }
 #endif
@@ -105,7 +106,7 @@ public:
 	: _tpsn( tpsn )
     {}
 
-    virtual void requestRedraw() const		{ _tpsn.forceRedraw(); }
+    void requestRedraw() const override		{ _tpsn.forceRedraw(); }
 
 protected:
     TexturePanelStripNode&	_tpsn;

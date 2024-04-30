@@ -61,13 +61,13 @@ public:
     float		    getZCoord() const { return _zcoord; }
     
     void		    clear();
-    void		    accept(osg::NodeVisitor&);
+    void		    accept(osg::NodeVisitor&) override;
 
 protected:
 
     friend class	    PolygonSelectionEventHandler;
 
-    osg::BoundingSphere	    computeBound() const;
+    osg::BoundingSphere	    computeBound() const override;
 
     void		    setLatestMousePoints(const osg::Vec3&);
     bool		    checkInteractionObjectIntersection(const osg::Vec3&) const;

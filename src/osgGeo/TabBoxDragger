@@ -38,7 +38,7 @@ class OSGGEO_EXPORT TabBoxDragger : public osgManipulator::CompositeDragger
 	META_OSGMANIPULATOR_Object(osgManipulator,TabBoxDragger)
 
 	/** Setup default geometry for dragger. */
-	void setupDefaultGeometry();
+	void setupDefaultGeometry() override;
 
 	void setPlaneColor(const osg::Vec4& color);
 

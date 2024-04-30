@@ -34,8 +34,10 @@ class OSGGEO_EXPORT Translate1DDragger : public osgManipulator::Translate1DDragg
 	Translate1DDragger();
 	Translate1DDragger(const osg::Vec3d& s, const osg::Vec3d& e);
 
-	virtual void traverse(osg::NodeVisitor& nv);
-	virtual bool handle(const osgManipulator::PointerInfo& pi, const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa);
+	void traverse(osg::NodeVisitor&) override;
+	bool handle(const osgManipulator::PointerInfo&,
+		    const osgGA::GUIEventAdapter&,
+		    osgGA::GUIActionAdapter&) override;
 
 	void setInactivationModKeyMask(unsigned int mask);
 	unsigned int getInactivationModKeyMask() const;
@@ -57,8 +59,10 @@ class OSGGEO_EXPORT Translate2DDragger : public osgManipulator::Translate2DDragg
 	Translate2DDragger();
 	Translate2DDragger(const osg::Plane& plane);
 
-	virtual void traverse(osg::NodeVisitor& nv);
-	virtual bool handle(const osgManipulator::PointerInfo& pi, const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa);
+	void traverse(osg::NodeVisitor&) override;
+	bool handle(const osgManipulator::PointerInfo&,
+		    const osgGA::GUIEventAdapter&,
+		    osgGA::GUIActionAdapter&) override;
 
 	void setInactivationModKeyMask(unsigned int mask);
 	unsigned int getInactivationModKeyMask() const;

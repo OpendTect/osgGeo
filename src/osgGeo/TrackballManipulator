@@ -50,8 +50,9 @@ class OSGGEO_EXPORT TrackballManipulator : public osgGA::MultiTouchTrackballMani
                        double distance, bool animate = true);
 
         void viewAll(osg::View*,bool animate);
-	void viewAll(osg::View* view, const osg::Vec3d& dir, const osg::Vec3d& up, bool animate);
-        osg::Matrix getInverseMatrix() const;
+	void viewAll(osg::View* view,const osg::Vec3d& dir,
+		     const osg::Vec3d& up, bool animate);
+        osg::Matrix getInverseMatrix() const override;
         
         void changeDistance(float factor) { zoomModel(factor, true); }
         //!<factor is fraction of distance
@@ -66,7 +67,7 @@ class OSGGEO_EXPORT TrackballManipulator : public osgGA::MultiTouchTrackballMani
 
 	void setProjectionAsPerspective(bool isPerspective);
 
-	virtual void updateCamera(osg::Camera& camera);
+	void updateCamera(osg::Camera&) override;
 	bool isCameraPerspective() const{ return _perspectiveProjection; }
 	bool isDiscreteZooming() const { return _isDiscreteZooming; }
 
@@ -97,17 +98,16 @@ class OSGGEO_EXPORT TrackballManipulator : public osgGA::MultiTouchTrackballMani
                                             double distance);
 	bool computeViewAllParams(osg::View*,const osg::Quat& rotation,osg::Vec3d& center,double& distance) const;
 
-
-        
-
-        bool handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa);
-        bool handleKeyDown(const osgGA::GUIEventAdapter& ea,osgGA::GUIActionAdapter& us);
-
-        bool handleMouseWheel( const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& us);
-
-	bool handleMouseWheelZoomOut(const osgGA::GUIEventAdapter& ea,osgGA::GUIActionAdapter& us);
-
-        bool handleMouseWheelZoomIn(const osgGA::GUIEventAdapter& ea,osgGA::GUIActionAdapter& us);
+        bool handle(const osgGA::GUIEventAdapter&,
+		    osgGA::GUIActionAdapter&) override;
+        bool handleKeyDown(const osgGA::GUIEventAdapter&,
+			   osgGA::GUIActionAdapter& us) override;
+        bool handleMouseWheel(const osgGA::GUIEventAdapter&,
+			      osgGA::GUIActionAdapter& us) override;
+	bool handleMouseWheelZoomOut(const osgGA::GUIEventAdapter&,
+				     osgGA::GUIActionAdapter& us);
+        bool handleMouseWheelZoomIn(const osgGA::GUIEventAdapter&,
+				    osgGA::GUIActionAdapter& us);
 
         osg::Matrixd computePerspectiveProjectionFromOrtho(const osg::Camera& camera) const;
 
@@ -120,9 +120,12 @@ class OSGGEO_EXPORT TrackballManipulator : public osgGA::MultiTouchTrackballMani
 	void notifyMappedMouseButtonEvents(const osgGA::GUIEventAdapter& ea);
 	bool mapMouseButtonMovement(const double eventTimeDelta,const double dx,const double dy,MouseButton);
 
-	bool performMovementLeftMouseButton(const double eventTimeDelta,const double dx,const double dy);
-	bool performMovementMiddleMouseButton(const double eventTimeDelta,const double dx,const double dy);
-	bool performMovementRightMouseButton(const double eventTimeDelta,const double dx,const double dy);
+	bool performMovementLeftMouseButton(const double eventTimeDelta,
+				const double dx,const double dy) override;
+	bool performMovementMiddleMouseButton(const double eventTimeDelta,
+				const double dx,const double dy) override;
+	bool performMovementRightMouseButton(const double eventTimeDelta,
+				const double dx,const double dy) override;
 	bool getPolyIntersectionPoint(osg::View* view, const osg::Vec2d& zoomcenter,osg::Vec3d& intersection,float radius) const;
 
         unsigned int			_boundTraversalMask;
@@ -170,8 +173,10 @@ class OSGGEO_EXPORT TrackballManipulator : public osgGA::MultiTouchTrackballMani
                         const double startTime );
         };
         
-        void allocAnimationData() { _animationData = new TrackballAnimationData; }
-        void applyAnimationStep(const double currentProgress, const double prevProgress);
+        void allocAnimationData() override
+	{ _animationData = new TrackballAnimationData; }
+        void applyAnimationStep(const double currentProgress,
+				const double prevProgress) override;
 };
 
 

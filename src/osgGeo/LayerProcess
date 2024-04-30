@@ -146,22 +146,24 @@ public:
 				    improve mipmapped coltab mapping quality
 				    of the shader (c[0]^2 = c[1]+c[2]/255). */
 
-    int				getDataLayerID(int idx=0) const;
+    int				getDataLayerID(int idx=0) const override;
     int				getDataLayerTextureChannel(int idx) const;
 
-    void			checkForModifiedColorSequence();
+    void			checkForModifiedColorSequence() override;
     void			setColorSequence(ColorSequence*);
     const ColorSequence*	getColorSequence() const;
-    int				getColorSequenceUndefIdx() const;
+    int				getColorSequenceUndefIdx() const override;
 
-    bool			needsColorSequence() const    { return true; }
+    bool			needsColorSequence() const override
+				{ return true; }
 
     void			getShaderCode(std::string& code,
-					      int stage) const;
+					      int stage) const override;
 
-    TransparencyType		getTransparencyType(bool imageOnly=false) const;
+    TransparencyType		getTransparencyType(bool imageOnly=false)
+								const override;
     void			doProcess(osg::Vec4f& fragColor,float stackUdf,
-					  const osg::Vec2f& globalCoord);
+					  const osg::Vec2f& globalCoord) override;
 protected:
     int				_id[3]; 
     int				_textureChannel[3];
@@ -177,27 +179,28 @@ class OSGGEO_EXPORT RGBALayerProcess : public LayerProcess
 public:
 				RGBALayerProcess(LayeredTexture&);
 
-    void			setDataLayerID(int idx, int id, int channel=0);
+    void			setDataLayerID(int idx,int id,int channel=0);
 				/*! idx=0: red
 				    idx=1: green
 				    idx=2: blue
 				    idx=3: alpha */
-    int				getDataLayerID(int idx) const;
+    int				getDataLayerID(int idx) const override;
     int				getDataLayerTextureChannel(int idx) const;
 
     void			turnOn(int idx,bool yn=true);
-    bool			isOn(int idx=0) const;
+    bool			isOn(int idx=0) const override;
 
     void			applyUndefPerChannel(bool yn=true);
-    bool			isUndefPerChannel() const;
+    bool			isUndefPerChannel() const override;
 
 
     void			getShaderCode(std::string& code,
-					      int stage) const;
+					      int stage) const override;
 
-    TransparencyType		getTransparencyType(bool imageOnly=false) const;
+    TransparencyType		getTransparencyType(bool imageOnly=false)
+								const override;
     void			doProcess(osg::Vec4f& fragColor,float stackUdf,
-					  const osg::Vec2f& globalCoord);
+				      const osg::Vec2f& globalCoord) override;
 protected:
     int 			_id[4];
     int				_textureChannel[4];
@@ -211,14 +214,15 @@ class OSGGEO_EXPORT IdentityLayerProcess : public LayerProcess
 public:
 				IdentityLayerProcess(LayeredTexture&,int id);
 
-    int				getDataLayerID(int idx=0) const;
+    int				getDataLayerID(int idx=0) const override;
 
     void			getShaderCode(std::string& code,
-					      int stage) const;
+					      int stage) const override;
 
-    TransparencyType		getTransparencyType(bool imageOnly=false) const;
+    TransparencyType		getTransparencyType(bool imageOnly=false)
+								const override;
     void			doProcess(osg::Vec4f& fragColor,float stackUdf,
-					  const osg::Vec2f& globalCoord);
+				      const osg::Vec2f& globalCoord) override;
 protected:
     int				_id; 
 };

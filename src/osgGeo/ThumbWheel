@@ -40,8 +40,8 @@ class OSGGEO_EXPORT ThumbWheel : public osg::Node
 public:
     ThumbWheel();
 
-    void accept(osg::NodeVisitor&);
-    osg::BoundingSphere computeBound() const;
+    void accept(osg::NodeVisitor&) override;
+    osg::BoundingSphere computeBound() const override;
 
     void setShape(short dim,const osg::Vec2& min,const osg::Vec2& max,
 		  float zval = 0);
@@ -124,12 +124,14 @@ public:
 
 protected:
     bool handle(const osgGA::GUIEventAdapter &ea,osgGA::GUIActionAdapter &aa,
-		osg::Object*,osg::NodeVisitor*);
-    bool handle(const osgGA::GUIEventAdapter &ea,osgGA::GUIActionAdapter &aa)
+		osg::Object*,osg::NodeVisitor*) override;
+    bool handle(const osgGA::GUIEventAdapter &ea,
+		osgGA::GUIActionAdapter &aa) override
 	{ return osgGA::GUIEventHandler::handle(ea,aa); }
 
 #if OSG_MIN_VERSION_REQUIRED(3,3,1)
-    bool handle(osgGA::Event* ev,osg::Object* obj,osg::NodeVisitor* nv)
+    bool handle( osgGA::Event* ev, osg::Object* obj,
+		 osg::NodeVisitor* nv ) override
 	{ return osgGA::GUIEventHandler::handle(ev,obj,nv); }
 #endif
 
