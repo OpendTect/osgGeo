@@ -332,10 +332,10 @@ void TubeWellLog::calcTubeShape()
 {
     clearTubeShape();
 
-    if(!_logPath->size())
+    const int nrSamples = _logPath->size();
+    if( nrSamples < 2 )
 	return;
 
-    int nrSamples = _logPath->size();
     for (int idx=0; idx<nrSamples; idx++)
     {
 	float logval = _shapeLog->at(idx);
