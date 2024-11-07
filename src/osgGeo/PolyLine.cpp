@@ -496,4 +496,12 @@ void PolyLineNode::removePrimitiveSet(int idx)
     touch();
 }
 
+
+void PolyLineNode::removeAllPrimitiveSets()
+{
+    _primitivesetModCount.clear();
+    _primitiveSets.clear();
+    touch();
+}
+
 } //namespace osgGeo

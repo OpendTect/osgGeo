@@ -49,6 +49,7 @@ public:
     void		useAutoScreenScaling(bool);
     void		addPrimitiveSet(osg::PrimitiveSet*);
     void		removePrimitiveSet(int);
+    void		removeAllPrimitiveSets();
     int			getPrimitiveSetIndex(const osg::PrimitiveSet*) const;
     void		touchPrimitiveSet(int)			{}
     void		clearAll();
