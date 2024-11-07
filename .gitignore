@@ -2,10 +2,16 @@ CMakeFiles
 *.vcx*
 *.sln
 *.tcl
-CTestTestFile.cmake
+CTestTestfile.cmake
 *.obj
 cmake_install.cmake
 Debug/
 Release/
 Config
 CMakeCache.txt
+inst
+install_manifest.txt
+.ninja_lock
+.ninja_log
+.ninja_deps
+*.ninja
