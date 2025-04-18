@@ -113,30 +113,39 @@ void Translate2DDragger::traverse(osg::NodeVisitor& nv)
     if (_handleEvents && nv.getVisitorType()==osg::NodeVisitor::EVENT_VISITOR)
     {
 	osgGA::EventVisitor* ev = dynamic_cast<osgGA::EventVisitor*>(&nv);
-	if (ev)
+	if ( ev )
 	{
-	    for(osgGA::EventQueue::Events::iterator itr = ev->getEvents().begin(); itr != ev->getEvents().end(); ++itr)
+	    osgGA::EventQueue::Events& events = ev->getEvents();
+	    for (osgGA::EventQueue::Events::iterator itr = events.begin();
+		 itr != events.end();
+		 ++itr)
 	    {
 #if OSG_MIN_VERSION_REQUIRED(3,3,1)
 		osgGA::GUIEventAdapter* ea = (*itr)->asGUIEventAdapter();
 #else
 		osgGA::GUIEventAdapter* ea = itr->get();
 #endif
-		// begin modification
-		if ( ea && ea->getEventType()==osgGA::GUIEventAdapter::PUSH )
+		if ( ea )
 		{
-		    osgViewer::View* view = dynamic_cast<osgViewer::View*>(ev->getActionAdapter());
-		    if ( view )
+		    // begin modification
+		    if ( ea->getEventType()==osgGA::GUIEventAdapter::PUSH )
 		    {
-			osgUtil::LineSegmentIntersector::Intersections intersections;
-			if ( !view->computeIntersections(*ea,nv.getNodePath(),intersections,_intersectionMask) ) continue;
+			osgViewer::View* view = dynamic_cast<osgViewer::View*>(ev->getActionAdapter());
+			if ( view )
+			{
+			    osgUtil::LineSegmentIntersector::Intersections intersections;
+			    if ( !view->computeIntersections(*ea,nv.getNodePath(),intersections,_intersectionMask) ) continue;
+			}
 		    }
+		    // end modification
+
+		    if (Dragger::handle(*ea, *(ev->getActionAdapter())))
+			ea->setHandled(true);
 		}
-		// end modification
-		if (Dragger::handle(*ea, *(ev->getActionAdapter()))) ea->setHandled(true);
 	    }
 	}
     }
+
     MatrixTransform::traverse(nv);
 }
 
