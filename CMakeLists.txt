@@ -18,17 +18,35 @@
 #
 # No configuration settings should be modified below.
 
-project( osgGeo )
+cmake_minimum_required ( VERSION 3.27.0 )
 
-set (osgGeo_VERSION_MAJOR 0)
-set (osgGeo_VERSION_MINOR 1)
+cmake_policy( SET CMP0048 NEW )
+cmake_policy( SET CMP0091 NEW )
+#Dummy version, will be retrieved from find_package(OpenSceneGraph)
+project( "osgGeo" VERSION 0.0.0 )
+
+set( CMAKE_CXX_STANDARD 17 )
+set( CMAKE_CXX_STANDARD_REQUIRED True )
+
+cmake_policy( SET CMP0011 NEW )
+cmake_policy( SET CMP0017 NEW )
+cmake_policy( SET CMP0057 NEW )
+cmake_policy( SET CMP0074 NEW )
+cmake_policy( SET CMP0144 NEW )
+
+set( ENV{OSG_ROOT} "${OSG_ROOT}" )
+set( OSG_FIND_MODULES osgDB;osgGA;osgUtil;osgManipulator;osgWidget;osgViewer;osgVolume;osgText;osgSim )
+find_package( OpenSceneGraph REQUIRED COMPONENTS ${OSG_FIND_MODULES} GLOBAL )
+
+if ( UNIX AND NOT APPLE AND NOT DEFINED CMAKE_INSTALL_RPATH )
+    set( CMAKE_INSTALL_RPATH "\\$ORIGIN" )
+endif()
+
+project( "osgGeo"
+	VERSION ${OPENSCENEGRAPH_VERSION}
+	DESCRIPTION "osgGeo" )
 
 set ( BUILD_EXAMPLES "" CACHE BOOL "Build examples" )
-
-cmake_minimum_required (VERSION 2.6)
-
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 list( APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMakeModules")
 enable_testing()
@@ -37,13 +55,6 @@ include( CTest )
 include( CreateLaunchers )
 include( osgGeoCommon )
 include( osgGeoSetupOSG )
-
-if( BUILD_EXAMPLES )
-    if ( APPLE )
-	find_package( Qt4 REQUIRED )
-	set( USEQT 1 )
-    endif()
-endif( BUILD_EXAMPLES )
 
 include_directories( ${osgGeo_SOURCE_DIR}/src )
 include_directories( SYSTEM ${OSG_INCLUDE_DIR} ${QT_HEADERS_DIR} )
