@@ -308,6 +308,10 @@ public:
     int			maxTextureSize() const;
     int			nrTextureUnits() const;
 
+    static int		maxBuiltinTextureCoords()	{ return 8; }
+			/*!gl_MultiTexCoord0..7. Further layers share
+			   texture coordinate 0. */
+
     const osg::Image*	getCompositeTextureImage();
     int			compositeLayerId()	{ return _compositeLayerId; }
 

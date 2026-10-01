@@ -145,7 +145,7 @@ TexturePlaneNode::TexturePlaneNode()
     _boundingGeometry = new BoundingGeometry( *this );
     _boundingGeometry->update();
 
-    _textureCallbackHandler = new TextureCallbackHandler( *this );  
+    _textureCallbackHandler = new TextureCallbackHandler( *this );
 }
 
 
@@ -181,7 +181,7 @@ TexturePlaneNode::TexturePlaneNode( const TexturePlaneNode& node, const osg::Cop
     _boundingGeometry = new BoundingGeometry( *this );
     _boundingGeometry->update();
 
-    _textureCallbackHandler = new TextureCallbackHandler( *this );  
+    _textureCallbackHandler = new TextureCallbackHandler( *this );
 }
 
 
@@ -298,7 +298,7 @@ void TexturePlaneNode::traverse( osg::NodeVisitor& nv )
 	if ( iv )
 #else
         // Covers non-introduced osg::Dragger::setIntersectionMask(.) function
-	if ( iv && iv->getTraversalMask()!=Node::NodeMask(~0) ) 
+	if ( iv && iv->getTraversalMask()!=Node::NodeMask(~0) )
 #endif
 	{
 	    osg::ref_ptr<osgUtil::Intersector> intersec = iv->getIntersector()->clone( *iv );
@@ -372,7 +372,7 @@ float TexturePlaneNode::getTexelSizeRatio() const
 
 bool TexturePlaneNode::updateGeometry()
 {
-    if ( !_texture ) 
+    if ( !_texture )
 	return false;
 
     osg::Matrix rotMat;
@@ -483,7 +483,9 @@ bool TexturePlaneNode::updateGeometry()
 			    SET_TEX_COORD(1,i,j,_nrQuadsPerBrickSide); j++;
 			    SET_TEX_COORD(2,i,j,_nrQuadsPerBrickSide); i--;
 			    SET_TEX_COORD(3,i,j,_nrQuadsPerBrickSide); j--;
-			    geometry->setTexCoordArray( it->_textureUnit, tCoords.get() );
+			    if ( it->_textureUnit>=0 &&
+				 it->_textureUnit<LayeredTexture::maxBuiltinTextureCoords() )
+				geometry->setTexCoordArray( it->_textureUnit, tCoords.get() );
 			}
 		    }
 		    else
@@ -499,7 +501,9 @@ bool TexturePlaneNode::updateGeometry()
 			    (*tCoords)[1] = it->_tc01;
 			    (*tCoords)[2] = it->_tc11;
 			    (*tCoords)[3] = it->_tc10;
-			    geometry->setTexCoordArray( it->_textureUnit, tCoords.get() );
+			    if ( it->_textureUnit>=0 &&
+				 it->_textureUnit<LayeredTexture::maxBuiltinTextureCoords() )
+				geometry->setTexCoordArray( it->_textureUnit, tCoords.get() );
 			}
 		    }
 
@@ -545,7 +549,7 @@ const osg::Vec3& TexturePlaneNode::getCenter() const
 void TexturePlaneNode::setRotation( const osg::Quat& quaternion )
 {
     _rotation = quaternion;
-    _boundingGeometry->update(); 
+    _boundingGeometry->update();
     setUpdateVar( _needsUpdate, true );
 }
 
@@ -562,7 +566,7 @@ void TexturePlaneNode::setTextureBrickSize( int sz, bool strict )
     _isBrickSizeStrict = strict;
 }
 
-    
+
 int TexturePlaneNode::getTextureBrickSize() const
 { return _textureBrickSize; }
 
@@ -579,7 +583,7 @@ const osg::Vec3& TexturePlaneNode::getWidth() const
 { return _width; }
 
 
-float TexturePlaneNode::getSense() const 
+float TexturePlaneNode::getSense() const
 {
     float sense = _width.x()<0 ? -1.0f : 1.0f;
     sense = _width.y()<0 ? -sense : sense;

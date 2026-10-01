@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 #include <osg/GLExtensions>
 #include <osg/FragmentProgram>
 #include <osg/Geometry>
+#include <osg/GraphicsContext>
 #include <osg/State>
 #include <osg/Texture2D>
 #include <osg/Texture3D>
@@ -103,13 +104,13 @@ int LayeredTexture::powerOf2Ceil( unsigned int nr )
     if ( nr<=268435456 )
     {
 	if ( nr<=67108864 )
-	    return nr<=33554432 ? 33554432 : 67108864; 
+	    return nr<=33554432 ? 33554432 : 67108864;
 
 	return nr<=134217728 ? 134217728 : 268435456;
     }
 
     if ( nr<=1073741824 )
-	return nr<=536870912 ? 536870912 : 1073741824; 
+	return nr<=536870912 ? 536870912 : 1073741824;
 
     return -1;	// larger than 2^30 not supported
 }
@@ -170,7 +171,7 @@ static int texture2ImageChannel( int channel, GLenum format )
     if ( format==GL_RED )
 	return channel==0 ? 0 : (channel==3 ? ONE_CHANNEL : ZERO_CHANNEL);
     if ( format==GL_GREEN )
-	return channel==1 ? 0 : (channel==3 ? ONE_CHANNEL : ZERO_CHANNEL); 
+	return channel==1 ? 0 : (channel==3 ? ONE_CHANNEL : ZERO_CHANNEL);
     if ( format==GL_BLUE )
 	return channel==2 ? 0 : (channel==3 ? ONE_CHANNEL : ZERO_CHANNEL);
     if ( format==GL_BGRA )
@@ -183,7 +184,7 @@ static int texture2ImageChannel( int channel, GLenum format )
 
 
 static TransparencyType getImageTransparencyType( const osg::Image* image, int textureChannel=3 )
-{                                                                               
+{
     if ( !image )
 	return FullyTransparent;
 
@@ -200,7 +201,7 @@ static TransparencyType getImageTransparencyType( const osg::Image* image, int t
 	const int step = image->getPixelSizeInBits()/8;
 	const unsigned char* start = image->data()+imageChannel;
 	const unsigned char* stop = start+image->getTotalSizeInBytes()-step;
-	return getTransparencyTypeBytewise( start, stop, step ); 
+	return getTransparencyTypeBytewise( start, stop, step );
     }
 
     bool foundOpaquePixel = false;
@@ -375,14 +376,14 @@ LayeredTextureData* LayeredTextureData::clone() const
 {
     LayeredTextureData* res = new LayeredTextureData( _id );
     res->_origin = _origin;
-    res->_scale = _scale; 
+    res->_scale = _scale;
     res->_textureUnit = _textureUnit;
     res->_filterType = _filterType;
     res->_freezeDisplay = _freezeDisplay;
     res->_imageModifiedCount = _imageModifiedCount;
-    res->_imageScale = _imageScale; 
-    res->_imageDataOrder = _imageDataOrder; 
-    res->_sliceNr = _sliceNr; 
+    res->_imageScale = _imageScale;
+    res->_imageDataOrder = _imageDataOrder;
+    res->_sliceNr = _sliceNr;
     res->_imageSource = _imageSource.get();
     res->_vertex2TextureTrans = _vertex2TextureTrans ? new osg::Matrixf(*_vertex2TextureTrans) : 0;
 
@@ -424,7 +425,7 @@ osg::Vec2f LayeredTextureData::getLayerCoord( const osg::Vec2f& global ) const
     osg::Vec2f res = global - _origin;
     res.x() /= _scale.x() * _imageScale.x();
     res.y() /= _scale.y() * _imageScale.y();
-    
+
     return res;
 }
 
@@ -587,7 +588,7 @@ void LayeredTextureData::updateTileImagesIfNeeded() const
 }
 
 
-bool LayeredTextureData::hasRescaledImage() const 
+bool LayeredTextureData::hasRescaledImage() const
 { return _image && _image!=_imageSource; }
 
 
@@ -605,14 +606,14 @@ void LayeredTextureData::rescaleImage( int sNew, int tNew, bool inPlace )
     }
     else
     {
-	copyImageTile( *_imageSource, *imageToScale, Vec2i(0,0), Vec2i(_imageSource->s(),_imageSource->t()), sliceNr, _imageDataOrder ); 
+	copyImageTile( *_imageSource, *imageToScale, Vec2i(0,0), Vec2i(_imageSource->s(),_imageSource->t()), sliceNr, _imageDataOrder );
     }
 
     // scaleImage(.) can only deal with 2D images without stride
-    imageToScale->scaleImage( sNew, tNew, 1 ); 
+    imageToScale->scaleImage( sNew, tNew, 1 );
 
     if ( inPlace && _image && sNew==_image->s() && tNew==_image->t() )
-	_image->copySubImage( 0, 0, 0, imageToScale ); 
+	_image->copySubImage( 0, 0, 0, imageToScale );
     else
 	_image = imageToScale;
 }
@@ -864,7 +865,7 @@ void LayeredTexture::raiseUndefChannelRefCount( bool yn, int idx )
 void LayeredTexture::removeDataLayer( int id )
 {
     if ( id==_compositeLayerId )
-	return; 
+	return;
 
     _lock.writeLock();
     int idx = getDataLayerIndex( id );
@@ -943,14 +944,37 @@ int LayeredTexture::getTextureUnitLayerId( int unit ) const
 }
 
 
+static void appendLayeredTexCrd( std::string& code, int unit, bool normalized,
+				const char* swizzle )
+{
+    char line[160];
+    // Normalized mode places every layer from one envelope coordinate.
+    // Otherwise each of units 0..7 keeps the coordinate written for it.
+    if ( normalized )
+	snprintf( line, sizeof(line),
+		  "(texcrdbias%d + texcrdfactor%d * layeredtexcrd).%s",
+		  unit, unit, swizzle );
+    else if ( unit>=0 && unit<LayeredTexture::maxBuiltinTextureCoords() )
+	snprintf( line, sizeof(line), "gl_TexCoord[%d].%s", unit, swizzle );
+    else
+	snprintf( line, sizeof(line), "layeredtexcrd.%s", swizzle );
+
+    code += line;
+}
+
+
 void LayeredTexture::addAssignTexCrdLine( std::string& code, int unit ) const
 {
-    char line[50];
+    char line[80];
 
     if ( getTextureUnitNrDims(unit)==3 )
-	snprintf( line, 50, "texcrd = (vertextrans%d*vertexpos).stp;\n", unit );
+	snprintf( line, sizeof(line), "texcrd = (vertextrans%d*vertexpos).stp;\n", unit );
     else
-	snprintf( line, 50, "texcrd = gl_TexCoord[%d].stp;\n", unit );
+    {
+	code += "texcrd = ";
+	appendLayeredTexCrd( code, unit, _useNormalizedTexCoords, "stp" );
+	snprintf( line, sizeof(line), ";\n" );
+    }
 
     code += line;
 }
@@ -961,7 +985,7 @@ void LayeredTexture::setDataLayerOrigin( int id, const osg::Vec2f& origin )
     const int idx = getDataLayerIndex( id );
     if ( idx!=-1 )
     {
-	_dataLayers[idx]->_origin = origin; 
+	_dataLayers[idx]->_origin = origin;
 	setUpdateVar( _tilingInfo->_needsUpdate, true );
     }
 }
@@ -1091,7 +1115,7 @@ void LayeredTexture::setDataLayerImage( int id, osg::Image* image, bool freezewh
     }
     else if ( layer._image )
     {
-	layer._image = 0; 
+	layer._image = 0;
 	layer._imageSource = 0;
 	layer._nrPowerChannels = 0;
 	layer.adaptColors();
@@ -1131,7 +1155,7 @@ void LayeredTexture::setDataLayerUndefChannel( int id, int channel )
 	raiseUndefChannelRefCount( true, idx );
     }
 }
-   
+
 
 void LayeredTexture::setDataLayerImageUndefColor( int id, const osg::Vec4f& col )
 {
@@ -1368,7 +1392,7 @@ template<class T> void LayeredTexture::setVertexOffsetValues( T* start, T* stop,
 	return;
 
     const int imgDataTypeInBits = imgIsFloat ? 32 : 8;
-    const int imgStep = img->getPixelSizeInBits() / imgDataTypeInBits; 
+    const int imgStep = img->getPixelSizeInBits() / imgDataTypeInBits;
     if ( imgStep < 1 )
 	return;
 
@@ -1401,7 +1425,7 @@ template<class T> void LayeredTexture::setVertexOffsetValues( T* start, T* stop,
 
     if ( udfImg )
     {
-	const int udfImgStep = udfImg->getPixelSizeInBits()/8; 
+	const int udfImgStep = udfImg->getPixelSizeInBits()/8;
 	unsigned char* udfImgStart = udfImg->data(s,t,r) + udfImgChannel;
 
 	const float imgUdfVal = _dataLayers[idx]->_undefColor[_vertexOffsetChannel];
@@ -1432,7 +1456,7 @@ template<class T> void LayeredTexture::setVertexOffsetValues( T* start, T* stop,
     }
     else while ( start<=stop )
     {
-	*imgStart = *start++; 
+	*imgStart = *start++;
 	imgStart += imgStep;
     }
 }
@@ -1638,6 +1662,40 @@ void LayeredTexture::overrideGraphicsContextMaxTextureSize( int maxTexSize )
 { _maxTexSizeOverride = maxTexSize; }
 
 
+static int queryMaxTextureImageUnits(
+		const osg::GraphicsContext::GraphicsContexts& contexts )
+{
+    for ( int pass=0; pass<2; pass++ )
+    {
+	const bool currentonly = pass==0;
+	for ( int idx=0; idx<(int)contexts.size(); idx++ )
+	{
+	    osg::GraphicsContext* gc = contexts[idx];
+	    if ( !gc || !gc->isRealized() )
+		continue;
+
+	    const bool wascurrent = gc->isCurrent();
+	    if ( currentonly!=wascurrent )
+		continue;
+
+	    if ( !wascurrent && !gc->makeCurrent() )
+		continue;
+
+	    GLint units = 0;
+	    glGetIntegerv( GL_MAX_TEXTURE_IMAGE_UNITS, &units );
+
+	    if ( !wascurrent )
+		gc->releaseContext();
+
+	    if ( units > 0 )
+		return (int)units;
+	}
+    }
+
+    return -1;
+}
+
+
 void LayeredTexture::updateTextureInfoIfNeeded() const
 {
     if ( _texInfo->_isValid )
@@ -1675,7 +1733,10 @@ void LayeredTexture::updateTextureInfoIfNeeded() const
 		maxUnits = contexts[idx]->getState()->getMaxTextureUnits();
 	}
 
-	if ( osg::getGLVersionNumber()>=2.0 || osg::isGLExtensionSupported(contextID,"GL_ARB_vertex_shader") || OSG_GLES2_FEATURES )
+	const int imageunits = queryMaxTextureImageUnits( contexts );
+	if ( imageunits > 0 )
+	    maxUnits = imageunits;
+	else if ( osg::getGLVersionNumber()>=2.0 || osg::isGLExtensionSupported(contextID,"GL_ARB_vertex_shader") || OSG_GLES2_FEATURES )
 	{
 	    if ( maxUnits%3==0 ) maxUnits/=3;	// Need max units per shader
 	}
@@ -1723,7 +1784,7 @@ void LayeredTexture::updateTextureInfoIfNeeded() const
 #endif
 
 	if ( !_texInfo->_isValid || _texInfo->_floatSupport )
-	    _texInfo->_floatSupport = osg::isGLExtensionOrVersionSupported(contextID,"GL_ARB_texture_float",3.0); 
+	    _texInfo->_floatSupport = osg::isGLExtensionOrVersionSupported(contextID,"GL_ARB_texture_float",3.0);
 
 	if ( !_texInfo->_isValid || _texInfo->_nrVertexUnits>_texInfo->_nrUnits )
 	    // TODO: Should get GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS from OSG
@@ -1887,7 +1948,7 @@ void LayeredTexture::reInitTiling( float texelSizeRatio )
 	(*lit)->cleanUp();
 
     setUpdateVar( _tilingInfo->_retilingNeeded, false );
-    _externalTexelSizeRatio = texelSizeRatio; 
+    _externalTexelSizeRatio = texelSizeRatio;
     _reInitTiling = false;
 }
 
@@ -1927,7 +1988,7 @@ float LayeredTexture::getMaxAnisotropy( int layerIdx ) const
 
     if ( ratio<1.0f )
 	ratio = 1.0f/ratio;
-    
+
     float maxAnisotropy = powerOf2Ceil( (int) floor(ratio+0.5) );
 
     int power = (int)_anisotropicPower;
@@ -2018,7 +2079,7 @@ bool LayeredTexture::planTiling( int brickSize, std::vector<float>& xTickMarks, 
 
 	for ( int dim=0; dim<=1; dim++ )
 	{
-	    const int overlap = getTileOverlapUpperBound( dim ); 
+	    const int overlap = getTileOverlapUpperBound( dim );
 	    actualSize[dim] = powerOf2Ceil( brickSize+overlap );
 
 	    // To minimize absolute difference with requested brick size
@@ -2043,7 +2104,7 @@ bool LayeredTexture::planTiling( int brickSize, std::vector<float>& xTickMarks, 
 		if ( actualSize[dim]>brickSize )
 		    actualSize[dim] = brickSize;
 	    }
-	    else 
+	    else
 		actualSize[dim] -= overlap;
 
 	    // std::cout << "Tile size: " << actualSize[dim] << ", overlap: " << overlap << std::endl;
@@ -2065,7 +2126,7 @@ bool LayeredTexture::divideAxis( float totalSize, int brickSize,
 {
     tickMarks.push_back( 0.0f );
 
-    if ( totalSize <= 1.0f ) 
+    if ( totalSize <= 1.0f )
     {
 	// to display something if no layers or images defined yet
 	tickMarks.push_back( 1.0f );
@@ -2140,7 +2201,7 @@ osg::StateSet* LayeredTexture::createCutoutStateSet( const osg::Vec2f& origin, c
 		tileOrigin[dim] = localOpposite[dim]<EPS ? 0 : imageSize[dim]-1;
 		tileSize[dim] = 1;  // More needed only if mipmapping-induced
 		continue;	    // artifacts in extended-edge-pixel borders
-	    }			    // become an issue. 
+	    }			    // become an issue.
 
 	    const int orgSeamWidth = getSeamWidth( idx, dim );
 	    for ( int width=orgSeamWidth; ; width/=2 )
@@ -2149,15 +2210,15 @@ osg::StateSet* LayeredTexture::createCutoutStateSet( const osg::Vec2f& origin, c
 		int tileOpposite = (int) ceil( localOpposite[dim]+0.5 );
 
 		/* width==0 represents going back to original seam width
-		   after anything smaller does not solve the puzzle either. */ 
+		   after anything smaller does not solve the puzzle either. */
 		const int seamWidth = width ? width : orgSeamWidth;
 
 		tileOrigin[dim] -= seamWidth/2;
 		if ( tileOrigin[dim]<=0 )
 		    tileOrigin[dim] = 0;
-		else 
+		else
 		    // Align seams of subsequent tiles to minimize artifacts
-		    tileOrigin[dim] -= tileOrigin[dim]%seamWidth; 
+		    tileOrigin[dim] -= tileOrigin[dim]%seamWidth;
 
 		tileOpposite += ((3*seamWidth)/2) - 1;
 		tileOpposite -= tileOpposite%seamWidth;
@@ -2194,7 +2255,7 @@ osg::StateSet* LayeredTexture::createCutoutStateSet( const osg::Vec2f& origin, c
 		    if ( orgSeamWidth>1 && width>0 )
 			continue;
 
-		    if ( !resizeHint ) 
+		    if ( !resizeHint )
 		    {
 			resizeHint = true;
 			if ( _textureSizePolicy!=AnySize )
@@ -2226,7 +2287,7 @@ osg::StateSet* LayeredTexture::createCutoutStateSet( const osg::Vec2f& origin, c
 	    sliceNr = image->r()-1;
 
 	ImageDataOrder dataOrder( STR );
-	if ( !layer->hasRescaledImage() ) 
+	if ( !layer->hasRescaledImage() )
 	    dataOrder = layer->_imageDataOrder;
 
 	osg::ref_ptr<osg::Image> tileImage = new osg::Image;
@@ -2246,7 +2307,7 @@ osg::StateSet* LayeredTexture::createCutoutStateSet( const osg::Vec2f& origin, c
 	    }
 
 	    tileImage->setUserData( image );
-	    tileImage->setImage( tileSize.x(), tileSize.y(), 1, image->getInternalTextureFormat(), image->getPixelFormat(), image->getDataType(), dataOrigin, osg::Image::NO_DELETE, image->getPacking(), rowLength ); 
+	    tileImage->setImage( tileSize.x(), tileSize.y(), 1, image->getInternalTextureFormat(), image->getPixelFormat(), image->getDataType(), dataOrigin, osg::Image::NO_DELETE, image->getPacking(), rowLength );
 
 	    tileImage->ref();
 	    const_cast<LayeredTexture*>(this)->_lock.writeLock();
@@ -2332,7 +2393,7 @@ osg::StateSet* LayeredTexture::createCutoutStateSet( const osg::Vec2f& origin, c
 		    const float yRatio = refScale.y()/layer->_scale.y();
 		    lod += xRatio>yRatio ? log(xRatio)/log(2.0f) : log(yRatio)/log(2.0f);
 		}
-		else 
+		else
 		    stateset->addUniform( new osg::Uniform("offsetifudf",(vertexOffsetInfo ? vertexOffsetInfo->_offsetIfUndef : 0.0f)) );
 
 		if ( lod<0.0f )
@@ -2558,7 +2619,7 @@ void LayeredTexture::setRenderingHint( bool stackIsOpaque )
     if ( isDataLayerOK(_stackUndefLayerId) && _stackUndefColor[3]<1.0f )
 	stackIsOpaque = false;
 
-    if ( !stackIsOpaque ) 
+    if ( !stackIsOpaque )
     {
 	osg::ref_ptr<osg::BlendFunc> blendFunc = new osg::BlendFunc;
 	blendFunc->setFunction( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
@@ -2593,7 +2654,7 @@ int LayeredTexture::getProcessInfo( std::vector<int>& layerIDs, int& nrUsedLayer
 	if ( isDataLayerOK(_vertexOffsetLayerId) )
 	    layerIDs.push_back( _vertexOffsetLayerId );
 	else if ( _vertexOffsetLayerId>0 )
-	    skippedIDs.push_back( _vertexOffsetLayerId ); 
+	    skippedIDs.push_back( _vertexOffsetLayerId );
     }
 
     std::vector<LayerProcess*>::const_reverse_iterator it = _processes.rbegin();
@@ -2730,7 +2791,7 @@ void LayeredTexture::createColSeqTexture()
 
 		const int idx2 = pivot+stepout>stop ? stop : pivot+stepout;
 		const int offset2 = 4*(idx2-pivot) - rowSize;
-		
+
 		for ( int channel=0; channel<4; channel++ )
 		{
 		    int val = *(ptr-rowSize);
@@ -2753,7 +2814,7 @@ void LayeredTexture::createColSeqTexture()
     osg::ref_ptr<osg::Texture2D> texture = new osg::Texture2D( colSeqImage );
     texture->setFilter( osg::Texture::MIN_FILTER, osg::Texture::LINEAR );
     texture->setFilter( osg::Texture::MAG_FILTER, osg::Texture::LINEAR );
-    _setupStateSet->setTextureAttributeAndModes( 0, texture.get() ); 
+    _setupStateSet->setTextureAttributeAndModes( 0, texture.get() );
 
     const osg::Vec2 texSize( 256, nrRows );
     _setupStateSet->addUniform( new osg::Uniform("texsize0",texSize) );
@@ -2825,20 +2886,8 @@ void LayeredTexture::getVertexShaderCode( std::string& code, const std::vector<i
 {
     char line[100];
     code = "varying vec4 vertexpos;\n"
+	   "varying vec4 layeredtexcrd;\n"
 	   "\n";
-
-    if ( _useNormalizedTexCoords )
-    {
-	std::vector<int>::const_iterator iit = activeUnits.begin();
-	for ( ; iit!=activeUnits.end(); iit++ )
-	{
-	    snprintf( line, 100, "uniform vec4 texcrdfactor%d;\n", *iit );
-	    code += line;
-	    snprintf( line, 100, "uniform vec4 texcrdbias%d;\n", *iit );
-	    code += line;
-	}
-	code += "\n";
-    }
 
     const int udfId = getDataLayerUndefLayerID(_vertexOffsetLayerId);
     const int offsetUnit = getDataLayerTextureUnit(_vertexOffsetLayerId);
@@ -2860,6 +2909,14 @@ void LayeredTexture::getVertexShaderCode( std::string& code, const std::vector<i
 	    snprintf( line, 100, "uniform vec2 texsize%d;\n", *iit );
 	    code += line;
 
+	    if ( _useNormalizedTexCoords )
+	    {
+		snprintf( line, 100, "uniform vec4 texcrdfactor%d;\n", *iit );
+		code += line;
+		snprintf( line, 100, "uniform vec4 texcrdbias%d;\n", *iit );
+		code += line;
+	    }
+
 	    snprintf( line, 100, "uniform float lod%d;\n", *iit );
 	    code += line;
 	}
@@ -2873,7 +2930,9 @@ void LayeredTexture::getVertexShaderCode( std::string& code, const std::vector<i
 
 	if ( isDataLayerOK(udfId) )
 	{
-	    snprintf( line, 100, "    texcrd = gl_TexCoord[%d].st + delta/texsize%d;\n", udfUnit, udfUnit );
+	    code += "    texcrd = ";
+	    appendLayeredTexCrd( code, udfUnit, _useNormalizedTexCoords, "st" );
+	    snprintf( line, 100, " + delta/texsize%d;\n", udfUnit );
 	    code += line;
 	    const int udfChannel = getDataLayerUndefChannel( _vertexOffsetLayerId );
 	    snprintf( line, 100, "    float udf = texture2DLod( texture%d, texcrd, lod%d )[%d];\n", udfUnit, udfUnit, udfChannel );
@@ -2888,7 +2947,9 @@ void LayeredTexture::getVertexShaderCode( std::string& code, const std::vector<i
 
 	    if ( udfId!=_vertexOffsetLayerId )
 	    {
-		snprintf( line, 100, "    texcrd = gl_TexCoord[%d].st + delta/texsize%d;\n", offsetUnit, offsetUnit );
+		code += "    texcrd = ";
+		appendLayeredTexCrd( code, offsetUnit, _useNormalizedTexCoords, "st" );
+		snprintf( line, 100, " + delta/texsize%d;\n", offsetUnit );
 		code += line;
 	    }
 	    snprintf( line, 100, "    float offset = texture2DLod( texture%d, texcrd, lod%d )[%d];\n", offsetUnit, offsetUnit, _vertexOffsetChannel );
@@ -2905,7 +2966,9 @@ void LayeredTexture::getVertexShaderCode( std::string& code, const std::vector<i
 	}
 	else
 	{
-	    snprintf( line, 100, "    texcrd = gl_TexCoord[%d].st + delta/texsize%d;\n", offsetUnit, offsetUnit );
+	    code += "    texcrd = ";
+	    appendLayeredTexCrd( code, offsetUnit, _useNormalizedTexCoords, "st" );
+	    snprintf( line, 100, " + delta/texsize%d;\n", offsetUnit );
 	    code += line;
 	    snprintf( line, 100, "    float offset = texture2DLod( texture%d, texcrd, lod%d )[%d];\n", offsetUnit, offsetUnit, _vertexOffsetChannel );
 	    code += line;
@@ -2922,21 +2985,41 @@ void LayeredTexture::getVertexShaderCode( std::string& code, const std::vector<i
 	    "    vec3 normal;\n"
 	    "\n";
 
+    int sourceunit = 0;
+    bool foundsource = false;
     std::vector<int>::const_iterator it = activeUnits.begin();
     for ( ; it!=activeUnits.end(); it++ )
     {
-	snprintf( line, 100, "    gl_TexCoord[%d] = gl_TextureMatrix[%d] * gl_MultiTexCoord%d;\n", *it, *it, *it );
-	code += line;
+	if ( *it<0 || *it>=maxBuiltinTextureCoords() )
+	    continue;
 
-	if ( _useNormalizedTexCoords )
+	if ( !foundsource || *it<sourceunit )
 	{
-	    snprintf( line, 100, "    gl_TexCoord[%d] = texcrdbias%d + texcrdfactor%d * gl_TexCoord[%d];\n", *it, *it, *it, *it );
+	    sourceunit = *it;
+	    foundsource = true;
+	}
+    }
+
+    snprintf( line, 100,
+	      "    layeredtexcrd = gl_TextureMatrix[%d] * gl_MultiTexCoord%d;\n",
+	      sourceunit, sourceunit );
+    code += line;
+
+    if ( !_useNormalizedTexCoords )
+    {
+	for ( it=activeUnits.begin(); it!=activeUnits.end(); it++ )
+	{
+	    if ( *it<0 || *it>=maxBuiltinTextureCoords() )
+		continue;
+
+	    snprintf( line, 100,
+		"    gl_TexCoord[%d] = gl_TextureMatrix[%d] * gl_MultiTexCoord%d;\n",
+		*it, *it, *it );
 	    code += line;
 	}
     }
 
-    if ( activeUnits.size() )
-	code += "\n";
+    code += "\n";
 
     if ( includeVertexOffset )
     {
@@ -3080,6 +3163,7 @@ void LayeredTexture::getFragmentShaderCode( std::string& code, const std::vector
 {
     char line[100];
     code = "varying vec4 vertexpos;\n"
+	   "varying vec4 layeredtexcrd;\n"
 	   "\n";
 
     const bool useLOD = isDataLayerOK(_vertexOffsetLayerId)
@@ -3500,8 +3584,8 @@ void LayeredTexture::createCompositeTexture( bool dummyTexture, bool triggerProg
        without shaders (trick with extra one-pixel wide border is screwed
        by mipmapping) */
     osg::Vec4f borderColor = getDataLayerBorderColor( _compositeLayerId );
-    if ( borderColor[0]>=0.0f )	
-	nrPixels++; // One extra pixel to compute uniform composite borderColor		
+    if ( borderColor[0]>=0.0f )
+	nrPixels++; // One extra pixel to compute uniform composite borderColor
     int nrTasks = OpenThreads::GetNumberOfProcessors();
 
     if ( nrTasks<1 )
@@ -3541,7 +3625,7 @@ void LayeredTexture::createCompositeTexture( bool dummyTexture, bool triggerProg
 
     setDataLayerImage( _compositeLayerId, image );
 
-    setUpdateVar( _retileCompositeLayer, 
+    setUpdateVar( _retileCompositeLayer,
 		  _tilingInfo->_needsUpdate ||
 		  getDataLayerTextureUnit(_compositeLayerId)!=0 ||
 		  borderColor!=getDataLayerBorderColor(_compositeLayerId) );
@@ -3567,7 +3651,7 @@ const osg::Image* LayeredTexture::getCompositeTextureImage()
 
 
 void LayeredTexture::setCompositeSubsampleSteps( int steps )
-{ 
+{
     if ( steps>0 && steps!=_compositeSubsampleSteps )
     {
 	_compositeSubsampleSteps = steps;
