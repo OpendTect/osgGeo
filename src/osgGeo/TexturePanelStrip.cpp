@@ -811,7 +811,9 @@ bool TexturePanelStripNode::updateGeometry()
 			texCoords->push_back( cnt==0 || cnt==3 ? tc0 : tc1 );
 		    }
 		}
-		geometry->setTexCoordArray( it->_textureUnit, texCoords.get() );
+		if ( it->_textureUnit>=0 &&
+		     it->_textureUnit<LayeredTexture::maxBuiltinTextureCoords() )
+		    geometry->setTexCoordArray( it->_textureUnit, texCoords.get() );
 	    }
 
 	    geometry->setVertexArray( coords.get() );
