@@ -60,7 +60,7 @@ public:
 
     void		turnOn(bool yn=true);
     bool		isOn() const			{ return _isOn; }
-   
+
     int			addDataLayer(); //returns an id
 			//Does its own locking
     void		removeDataLayer(int id);
@@ -178,7 +178,7 @@ public:
 							const osg::Vec3f& v1);
     const osg::Vec3f&	getVertexOffsetTexelSpanVector(int dim) const;
 
-			/* Vertex offset convenience functions. Doing it 
+			/* Vertex offset convenience functions. Doing it
 			   yourself with no checks will maximize speed. */
     void		setVertexOffsetValue(float val,float undefVal,
 					     int s,int t,int r=0);
@@ -276,7 +276,7 @@ public:
 
     void		allowShaders(bool yn=true,bool maySkipEarlyProcs=false);
 			/*!Fallback to fixed function pipeline if not enough
-			   texture units available, unless option is set to 
+			   texture units available, unless option is set to
 			   just skip the earliest processes. */
 
     bool		areShadersAllowed() const   { return _allowShaders; }
@@ -312,11 +312,15 @@ public:
 			/*!gl_MultiTexCoord0..7. Further layers share
 			   texture coordinate 0. */
 
+    static int		queryMaxTextureImageUnits();
+			/*!GL_MAX_TEXTURE_IMAGE_UNITS from a realized graphics
+			   context. Returns -1 when no context can be queried. */
+
     const osg::Image*	getCompositeTextureImage();
     int			compositeLayerId()	{ return _compositeLayerId; }
 
     void		setCompositeSubsampleSteps(int);
-    int			getCompositeSubsampleSteps() const; 
+    int			getCompositeSubsampleSteps() const;
 
     static int		image2TextureChannel(int channel,GLenum format);
     static int		powerOf2Ceil(unsigned int nr);	// nr<=2^30 supported

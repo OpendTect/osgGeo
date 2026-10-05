@@ -1662,7 +1662,7 @@ void LayeredTexture::overrideGraphicsContextMaxTextureSize( int maxTexSize )
 { _maxTexSizeOverride = maxTexSize; }
 
 
-static int queryMaxTextureImageUnits(
+static int queryMaxTextureImageUnitsInContexts(
 		const osg::GraphicsContext::GraphicsContexts& contexts )
 {
     for ( int pass=0; pass<2; pass++ )
@@ -1693,6 +1693,25 @@ static int queryMaxTextureImageUnits(
     }
 
     return -1;
+}
+
+
+int LayeredTexture::queryMaxTextureImageUnits()
+{
+#if OSG_MIN_VERSION_REQUIRED(3,3,1)
+    osg::GraphicsContext::GraphicsContexts contexts;
+    const int maxcontextid = (int)osg::GraphicsContext::getMaxContextID();
+    for ( int contextid=0; contextid<=maxcontextid; contextid++ )
+    {
+	const osg::GraphicsContext::GraphicsContexts ctxts =
+	    osg::GraphicsContext::getRegisteredGraphicsContexts( contextid );
+	contexts.insert( contexts.end(), ctxts.begin(), ctxts.end() );
+    }
+
+    return queryMaxTextureImageUnitsInContexts( contexts );
+#else
+    return -1;
+#endif
 }
 
 
@@ -1733,7 +1752,7 @@ void LayeredTexture::updateTextureInfoIfNeeded() const
 		maxUnits = contexts[idx]->getState()->getMaxTextureUnits();
 	}
 
-	const int imageunits = queryMaxTextureImageUnits( contexts );
+	const int imageunits = queryMaxTextureImageUnitsInContexts( contexts );
 	if ( imageunits > 0 )
 	    maxUnits = imageunits;
 	else if ( osg::getGLVersionNumber()>=2.0 || osg::isGLExtensionSupported(contextID,"GL_ARB_vertex_shader") || OSG_GLES2_FEATURES )
