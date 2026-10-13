@@ -2333,7 +2333,7 @@ osg::StateSet* LayeredTexture::createCutoutStateSet( const osg::Vec2f& origin, c
 	tc11.y() = (localOpposite.y()-tileOrigin.y()) / tileSize.y();
 
 	char uniformName[20];
-	if ( _useNormalizedTexCoords )
+	if ( _useNormalizedTexCoords && _useShaders )
 	{
 	    const osg::Vec4f texCrdBias( tc00.x(), tc00.y(), 0.0f, 0.0f );
 	    osg::Vec4f texCrdFactor( tc11.x(), tc11.y(), 1.0f, 1.0f );
